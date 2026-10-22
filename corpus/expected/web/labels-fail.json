@@ -1,0 +1,14 @@
+{
+  "item": "web/labels-fail.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "label",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

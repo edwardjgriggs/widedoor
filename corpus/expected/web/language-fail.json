@@ -1,0 +1,14 @@
+{
+  "item": "web/language-fail.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "html-has-lang",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

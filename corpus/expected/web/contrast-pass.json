@@ -1,0 +1,14 @@
+{
+  "item": "web/contrast-pass.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "color-contrast",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

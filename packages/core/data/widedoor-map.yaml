@@ -1,0 +1,42 @@
+# Widedoor's own PDF checks (Phase 1 Task 1.2), mapped to WCAG SC. Basis cites the W3C
+# Techniques for WCAG 2.1 for PDF (https://www.w3.org/WAI/WCAG21/Techniques/#pdf), each of
+# which states the SC it relates to. decides is false for every check (see each basis).
+
+meta:
+  sources:
+    - https://www.w3.org/WAI/WCAG21/Techniques/#pdf
+  engine: widedoor
+  retrieved: 2026-10-21
+
+rules:
+  - id: pdf-title-displayed
+    title: Document title is set and shown in the title bar
+    wcag: ['2.4.2']
+    decides: false
+    basis: >-
+      PDF18 (Title entry plus DisplayDocTitle) relates to SC 2.4.2 Page Titled (Sufficient when
+      used with G88). A title being present does not show it is descriptive, so it does not decide.
+  - id: pdf-language
+    title: Document language is set
+    wcag: ['3.1.1']
+    decides: false
+    basis: >-
+      PDF16 (default language via /Lang in the catalog) relates to SC 3.1.1 Language of Page
+      (Sufficient). A /Lang value being valid does not show it is the correct language.
+  - id: pdf-image-only
+    title: Page has no real text (image-only page)
+    wcag: ['1.1.1', '1.4.5']
+    decides: false
+    basis: >-
+      PDF7 (OCR a scanned document to provide actual text) relates to SC 1.4.5 Images of Text
+      (Sufficient). A page image of text is non-text content, so without a text alternative it
+      also fails SC 1.1.1 (PDF1 is the Alt technique). The check finds the problem; it never
+      shows conformance.
+  - id: pdf-bookmarks
+    title: Long document has bookmarks
+    wcag: ['2.4.5']
+    decides: false
+    basis: >-
+      PDF2 (bookmarks) relates to SC 2.4.5 Multiple Ways as Advisory only, so a missing bookmark
+      is not by itself a 2.4.5 failure; report as needs review. Under the 508 profile 2.4.5 is not
+      applicable to non-web documents (E205.4 exception).

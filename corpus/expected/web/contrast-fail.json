@@ -1,0 +1,14 @@
+{
+  "item": "web/contrast-fail.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "color-contrast",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

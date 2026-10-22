@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.env*
+*.key
+*.pem
+.widedoor/
+evidence/
+*.tsbuildinfo
+sbom.json
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.keystore
+*storageState*.json
+.auth/

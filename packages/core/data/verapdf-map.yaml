@@ -1,0 +1,696 @@
+# GENERATED FILE. Do not edit by hand.
+# Source: PDF_UA/PDFUA-1.xml in https://github.com/veraPDF/veraPDF-validation-profiles (branch rel/1.30) at commit c4f57effb0d3618827c87bd71882930d752be6e3.
+# Rule id is "<clause>-<testNumber>" as veraPDF reports it for specification "ISO 14289-1:2014"
+# (the profile names it ISO_14289_1). Mapping basis: W3C PDF techniques PDF1 to PDF23 and the
+# Matterhorn Protocol 1.1 checkpoints. decides is false for every rule: a PDF/UA pass does not
+# show that the content meets the SC (for example Alt present is not Alt equivalent).
+# Regenerate: npm run data:verapdf -w @widedoor/core
+
+meta:
+  sources:
+    - https://github.com/veraPDF/veraPDF-validation-profiles/blob/c4f57effb0d3618827c87bd71882930d752be6e3/PDF_UA/PDFUA-1.xml
+    - https://www.w3.org/WAI/WCAG21/Techniques/#pdf
+    - https://taggedpdfschool.pdfa.org/matterhorn
+  engine: verapdf
+  profile: PDF/UA-1
+  specification: ISO 14289-1:2014
+  branch: rel/1.30
+  commit: c4f57effb0d3618827c87bd71882930d752be6e3
+  retrieved: 2026-10-21
+rules:
+  - id: 6.2-1
+    clause: '6.2'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Every W3C PDF technique for structure (PDF6, PDF9, PDF21) applies to tagged PDF; without a valid structure tree, structure and relationships are not programmatically determinable (SC 1.3.1).
+  - id: 7.1-1
+    clause: '7.1'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 01 (real content tagged). Real content must sit in the structure tree and only incidental content may be an Artifact (PDF4), or structure is not programmatically determinable (SC 1.3.1).
+  - id: 7.1-2
+    clause: '7.1'
+    testNumber: 2
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 01 (real content tagged). Real content must sit in the structure tree and only incidental content may be an Artifact (PDF4), or structure is not programmatically determinable (SC 1.3.1).
+  - id: 7.1-3
+    clause: '7.1'
+    testNumber: 3
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 01 (real content tagged). Real content must sit in the structure tree and only incidental content may be an Artifact (PDF4), or structure is not programmatically determinable (SC 1.3.1).
+  - id: 7.1-5
+    clause: '7.1'
+    testNumber: 5
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 02 (role mapping). Assistive technology reads semantics from standard structure types, which PDF6, PDF9 and PDF21 rely on for SC 1.3.1.
+  - id: 7.1-6
+    clause: '7.1'
+    testNumber: 6
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 02 (role mapping). Assistive technology reads semantics from standard structure types, which PDF6, PDF9 and PDF21 rely on for SC 1.3.1.
+  - id: 7.1-7
+    clause: '7.1'
+    testNumber: 7
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 02 (role mapping). Assistive technology reads semantics from standard structure types, which PDF6, PDF9 and PDF21 rely on for SC 1.3.1.
+  - id: 7.1-9
+    clause: '7.1'
+    testNumber: 9
+    wcag:
+      - 2.4.2
+    decides: false
+    basis: PDF18 (document title, shown via DisplayDocTitle) relates to SC 2.4.2 Page Titled (Sufficient with G88).
+  - id: 7.1-10
+    clause: '7.1'
+    testNumber: 10
+    wcag:
+      - 2.4.2
+    decides: false
+    basis: PDF18 (document title, shown via DisplayDocTitle) relates to SC 2.4.2 Page Titled (Sufficient with G88).
+  - id: 7.1-11
+    clause: '7.1'
+    testNumber: 11
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Every W3C PDF technique for structure (PDF6, PDF9, PDF21) applies to tagged PDF; without a valid structure tree, structure and relationships are not programmatically determinable (SC 1.3.1).
+  - id: 7.1-12
+    clause: '7.1'
+    testNumber: 12
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Every W3C PDF technique for structure (PDF6, PDF9, PDF21) applies to tagged PDF; without a valid structure tree, structure and relationships are not programmatically determinable (SC 1.3.1).
+  - id: 7.2-2
+    clause: '7.2'
+    testNumber: 2
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-3
+    clause: '7.2'
+    testNumber: 3
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-4
+    clause: '7.2'
+    testNumber: 4
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-5
+    clause: '7.2'
+    testNumber: 5
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-6
+    clause: '7.2'
+    testNumber: 6
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-7
+    clause: '7.2'
+    testNumber: 7
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-8
+    clause: '7.2'
+    testNumber: 8
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-9
+    clause: '7.2'
+    testNumber: 9
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-10
+    clause: '7.2'
+    testNumber: 10
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-11
+    clause: '7.2'
+    testNumber: 11
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-12
+    clause: '7.2'
+    testNumber: 12
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-13
+    clause: '7.2'
+    testNumber: 13
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-14
+    clause: '7.2'
+    testNumber: 14
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-15
+    clause: '7.2'
+    testNumber: 15
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-16
+    clause: '7.2'
+    testNumber: 16
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-17
+    clause: '7.2'
+    testNumber: 17
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF21 (List tags for lists) relates to SC 1.3.1.
+  - id: 7.2-18
+    clause: '7.2'
+    testNumber: 18
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF21 (List tags for lists) relates to SC 1.3.1.
+  - id: 7.2-19
+    clause: '7.2'
+    testNumber: 19
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF21 (List tags for lists) relates to SC 1.3.1.
+  - id: 7.2-20
+    clause: '7.2'
+    testNumber: 20
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF21 (List tags for lists) relates to SC 1.3.1.
+  - id: 7.2-21
+    clause: '7.2'
+    testNumber: 21
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-22
+    clause: '7.2'
+    testNumber: 22
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-23
+    clause: '7.2'
+    testNumber: 23
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-24
+    clause: '7.2'
+    testNumber: 24
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-25
+    clause: '7.2'
+    testNumber: 25
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-26
+    clause: '7.2'
+    testNumber: 26
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 09 (appropriate tags). TOC and TOCI nesting is how a table of contents structure is programmatically determined (SC 1.3.1).
+  - id: 7.2-27
+    clause: '7.2'
+    testNumber: 27
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 09 (appropriate tags). TOC and TOCI nesting is how a table of contents structure is programmatically determined (SC 1.3.1).
+  - id: 7.2-28
+    clause: '7.2'
+    testNumber: 28
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 09 (appropriate tags). TOC and TOCI nesting is how a table of contents structure is programmatically determined (SC 1.3.1).
+  - id: 7.2-29
+    clause: '7.2'
+    testNumber: 29
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-30
+    clause: '7.2'
+    testNumber: 30
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-31
+    clause: '7.2'
+    testNumber: 31
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-32
+    clause: '7.2'
+    testNumber: 32
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-33
+    clause: '7.2'
+    testNumber: 33
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-34
+    clause: '7.2'
+    testNumber: 34
+    wcag:
+      - 3.1.1
+      - 3.1.2
+    decides: false
+    basis: PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.
+  - id: 7.2-36
+    clause: '7.2'
+    testNumber: 36
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-37
+    clause: '7.2'
+    testNumber: 37
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-38
+    clause: '7.2'
+    testNumber: 38
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-39
+    clause: '7.2'
+    testNumber: 39
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-40
+    clause: '7.2'
+    testNumber: 40
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF21 (List tags for lists) relates to SC 1.3.1.
+  - id: 7.2-41
+    clause: '7.2'
+    testNumber: 41
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-42
+    clause: '7.2'
+    testNumber: 42
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.2-43
+    clause: '7.2'
+    testNumber: 43
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.3-1
+    clause: '7.3'
+    testNumber: 1
+    wcag:
+      - 1.1.1
+    decides: false
+    basis: PDF1 (Alt entry as text alternative for images) relates to SC 1.1.1.
+  - id: 7.4.2-1
+    clause: 7.4.2
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF9 (heading tags) relates to SC 1.3.1.
+  - id: 7.4.4-1
+    clause: 7.4.4
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF9 (heading tags) relates to SC 1.3.1.
+  - id: 7.4.4-2
+    clause: 7.4.4
+    testNumber: 2
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF9 (heading tags) relates to SC 1.3.1.
+  - id: 7.4.4-3
+    clause: 7.4.4
+    testNumber: 3
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF9 (heading tags) relates to SC 1.3.1.
+  - id: 7.5-1
+    clause: '7.5'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.5-2
+    clause: '7.5'
+    testNumber: 2
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.
+  - id: 7.7-1
+    clause: '7.7'
+    testNumber: 1
+    wcag:
+      - 1.1.1
+    decides: false
+    basis: A formula without Alt or ActualText is non-text content without a text alternative; PDF1 is the Alt technique for SC 1.1.1.
+  - id: 7.9-1
+    clause: '7.9'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 19 (notes and references). Unique Note ids let the reference-to-note relationship be programmatically determined (SC 1.3.1).
+  - id: 7.9-2
+    clause: '7.9'
+    testNumber: 2
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 19 (notes and references). Unique Note ids let the reference-to-note relationship be programmatically determined (SC 1.3.1).
+  - id: 7.15-1
+    clause: '7.15'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+      - 4.1.2
+    decides: false
+    basis: Dynamic XFA content and fields are not expressed in the tagged PDF structure tree, so structure (SC 1.3.1) and the form field name, role and value that PDF12 exposes (SC 4.1.2) are not available to assistive technology through PDF accessibility support.
+  - id: 7.16-1
+    clause: '7.16'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+      - 4.1.2
+    decides: false
+    basis: If the encryption permissions deny content extraction for accessibility, assistive technology cannot read the text, structure or form fields, so structure (SC 1.3.1) and name, role and value of controls (SC 4.1.2) are not programmatically determinable.
+  - id: 7.18.1-1
+    clause: 7.18.1
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Matterhorn checkpoint 28 (annotations). Annotations outside the structure tree are outside structure and reading order; PDF11 uses the same structure-plus-annotation pattern for SC 1.3.1.
+  - id: 7.18.1-2
+    clause: 7.18.1
+    testNumber: 2
+    wcag:
+      - 1.1.1
+    decides: false
+    basis: An annotation's Contents or Alt entry is its text alternative (SC 1.1.1).
+  - id: 7.18.1-3
+    clause: 7.18.1
+    testNumber: 3
+    wcag:
+      - 1.3.1
+      - 4.1.2
+    decides: false
+    basis: 'PDF10 and PDF12: the TU entry or Alt supplies the accessible name of a form field (SC 4.1.2; also SC 1.3.1).'
+  - id: 7.18.3-1
+    clause: 7.18.3
+    testNumber: 1
+    wcag:
+      - 2.4.3
+    decides: false
+    basis: PDF3 (correct tab and reading order) relates to SC 2.4.3 Focus Order.
+  - id: 7.18.4-1
+    clause: 7.18.4
+    testNumber: 1
+    wcag:
+      - 1.3.1
+      - 4.1.2
+    decides: false
+    basis: 'PDF12 (name, role, value for form fields): the Form structure element exposes the role of the widget (SC 4.1.2, 1.3.1).'
+  - id: 7.18.4-2
+    clause: 7.18.4
+    testNumber: 2
+    wcag:
+      - 1.3.1
+      - 4.1.2
+    decides: false
+    basis: 'PDF12 (name, role, value for form fields): the Form structure element exposes the role of the widget (SC 4.1.2, 1.3.1).'
+  - id: 7.18.5-1
+    clause: 7.18.5
+    testNumber: 1
+    wcag:
+      - 1.3.1
+      - 2.4.4
+    decides: false
+    basis: PDF11 (Link annotation with Link structure element) relates to SC 1.3.1 and 2.4.4.
+  - id: 7.18.5-2
+    clause: 7.18.5
+    testNumber: 2
+    wcag:
+      - 2.4.4
+    decides: false
+    basis: PDF13 (replacement text for links) relates to SC 2.4.4.
+  - id: 7.18.6.2-2
+    clause: 7.18.6.2
+    testNumber: 2
+    wcag:
+      - 1.1.1
+    decides: false
+    basis: SC 1.1.1 requires time-based media to have a text alternative that at least identifies it; the media clip Alt key carries it.
+  - id: 7.20-1
+    clause: '7.20'
+    testNumber: 1
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: A reference XObject imports content from another file, which is not part of the structure tree of this document, so its structure is not programmatically determinable (SC 1.3.1).
+  - id: 7.20-2
+    clause: '7.20'
+    testNumber: 2
+    wcag:
+      - 1.3.1
+    decides: false
+    basis: Every W3C PDF technique for structure (PDF6, PDF9, PDF21) applies to tagged PDF; without a valid structure tree, structure and relationships are not programmatically determinable (SC 1.3.1).
+  - id: 7.21.7-1
+    clause: 7.21.7
+    testNumber: 1
+    wcag:
+      - 1.1.1
+      - 1.3.1
+    decides: false
+    basis: WCAG defines text as a sequence of characters that can be programmatically determined, and non-text content as any content that is not. Glyphs without a Unicode mapping cannot be extracted by assistive technology, so they are non-text content without a text alternative (SC 1.1.1) and their information is not programmatically determinable (SC 1.3.1).
+  - id: 7.21.7-2
+    clause: 7.21.7
+    testNumber: 2
+    wcag:
+      - 1.1.1
+      - 1.3.1
+    decides: false
+    basis: WCAG defines text as a sequence of characters that can be programmatically determined, and non-text content as any content that is not. Glyphs without a Unicode mapping cannot be extracted by assistive technology, so they are non-text content without a text alternative (SC 1.1.1) and their information is not programmatically determinable (SC 1.3.1).
+unmapped:
+  - id: 5-1
+    clause: '5'
+    testNumber: 1
+    reason: PDF/UA identification in XMP metadata. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 5-2
+    clause: '5'
+    testNumber: 2
+    reason: PDF/UA identification in XMP metadata. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 5-3
+    clause: '5'
+    testNumber: 3
+    reason: PDF/UA identification in XMP metadata. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 5-4
+    clause: '5'
+    testNumber: 4
+    reason: PDF/UA identification in XMP metadata. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 5-5
+    clause: '5'
+    testNumber: 5
+    reason: PDF/UA identification in XMP metadata. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 6.1-1
+    clause: '6.1'
+    testNumber: 1
+    reason: File header syntax. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.1-4
+    clause: '7.1'
+    testNumber: 4
+    reason: Suspects flag in MarkInfo. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.1-8
+    clause: '7.1'
+    testNumber: 8
+    reason: Presence of the catalog Metadata stream. File format rule with no user-facing effect that a WCAG SC addresses. The title in it is rule 7.1-9.
+  - id: 7.10-1
+    clause: '7.10'
+    testNumber: 1
+    reason: Optional content configuration Name entry. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.10-2
+    clause: '7.10'
+    testNumber: 2
+    reason: Optional content configuration AS key. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.11-1
+    clause: '7.11'
+    testNumber: 1
+    reason: Embedded file specification keys. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.18.2-1
+    clause: 7.18.2
+    testNumber: 1
+    reason: TrapNet annotations are a print production feature. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.18.6.2-1
+    clause: 7.18.6.2
+    testNumber: 1
+    reason: Media clip content type (CT) key. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.18.8-1
+    clause: 7.18.8
+    testNumber: 1
+    reason: PrinterMark annotations are print production artifacts. File format rule with no user-facing effect that a WCAG SC addresses.
+  - id: 7.21.3.1-1
+    clause: 7.21.3.1
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.3.2-1
+    clause: 7.21.3.2
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.3.3-1
+    clause: 7.21.3.3
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.3.3-2
+    clause: 7.21.3.3
+    testNumber: 2
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.3.3-3
+    clause: 7.21.3.3
+    testNumber: 3
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.4.1-1
+    clause: 7.21.4.1
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.4.1-2
+    clause: 7.21.4.1
+    testNumber: 2
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.4.2-1
+    clause: 7.21.4.2
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.4.2-2
+    clause: 7.21.4.2
+    testNumber: 2
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.5-1
+    clause: 7.21.5
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.6-1
+    clause: 7.21.6
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.6-2
+    clause: 7.21.6
+    testNumber: 2
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.6-3
+    clause: 7.21.6
+    testNumber: 3
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.6-4
+    clause: 7.21.6
+    testNumber: 4
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.
+  - id: 7.21.8-1
+    clause: 7.21.8
+    testNumber: 1
+    reason: Font program integrity. Affects rendering and text extraction in general; no W3C PDF technique ties it to a specific SC.

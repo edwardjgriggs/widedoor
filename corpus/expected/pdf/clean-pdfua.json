@@ -1,0 +1,88 @@
+{
+  "item": "pdf/clean-pdfua.pdf",
+  "kind": "pdf",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "verapdf",
+      "ruleId": "6.2-1",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-10",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-11",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-3",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-8",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-9",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.2-2",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.2-34",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.3-1",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.5-1",
+      "outcome": "pass"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.5-2",
+      "outcome": "pass"
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-bookmarks",
+      "outcome": "pass",
+      "provisional": true
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-image-only",
+      "outcome": "pass",
+      "provisional": true
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-language",
+      "outcome": "pass",
+      "provisional": true
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-title-displayed",
+      "outcome": "pass",
+      "provisional": true
+    }
+  ],
+  "confirmedBy": "veraPDF 1.30.3",
+  "provisional": true
+}
