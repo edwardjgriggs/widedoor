@@ -1,0 +1,435 @@
+# Revised Section 508 Standards (36 CFR part 1194, Appendix A and C), as published by the
+# U.S. Access Board. Ids and titles are copied from https://www.access-board.gov/ict/
+# (checked 2026-10-21). Exception text is verbatim.
+#
+# kind:
+#   section      a numbered section heading that groups provisions (302, 502, ...)
+#   scoping      a provision that only says which other provisions apply (x.1 General, 502.2)
+#   requirement  a provision with its own requirement
+# incorporatesWcag20: the provision requires WCAG 2.0 Level A and AA Success Criteria and
+#   Conformance Requirements (incorporated by reference, see 702.10.1).
+# manual: a requirement no automated rule in Widedoor decides. scope is "product" for
+#   Chapter 3 and Chapter 6 (they judge the product or its support, not one asset) and
+#   "web" for Chapter 5 (software; a PDF is not software). Every Chapter 5 item carries a
+#   condition (with the provision it comes from) stating when it applies to a web asset:
+#   501.1 for 502 and 503, 504.1 for 504, or the platform addressee named in 502.2.1, 502.3
+#   and 502.4. A reviewer marks the item not applicable, citing that provision, when the
+#   condition does not hold.
+
+meta:
+  sources:
+    - https://www.access-board.gov/ict/
+  retrieved: 2026-10-21
+  standard: Revised 508 Standards (2017), 36 CFR part 1194
+
+provisions:
+  - id: E205
+    title: Electronic Content
+    kind: section
+  - id: E205.4
+    title: Accessibility Standard
+    kind: requirement
+    incorporatesWcag20: true
+    exceptions:
+      - appliesTo: non-web-document
+        criteria: ['2.4.1', '2.4.5', '3.2.3', '3.2.4']
+        text: >-
+          Non-Web documents shall not be required to conform to the following four WCAG 2.0
+          Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent
+          Navigation, and 3.2.4 Consistent Identification.
+    note: >-
+      E205.4.1 substitutes "document" for "Web page" and "page" when WCAG 2.0 is applied to
+      non-Web documents.
+  - id: E207.2
+    title: WCAG Conformance
+    kind: requirement
+    incorporatesWcag20: true
+    exceptions:
+      - appliesTo: assistive-technology-software
+        text: >-
+          Software that is assistive technology and that supports the accessibility services of
+          the platform shall not be required to conform to E207.2.
+      - appliesTo: non-web-software
+        criteria: ['2.4.1', '2.4.5', '3.2.3', '3.2.4']
+        text: >-
+          Non-Web software shall not be required to conform to the following four Success
+          Criteria in WCAG 2.0: 2.4.1 Bypass Blocks; 2.4.5 Multiple Ways; 3.2.3 Consistent
+          Navigation; and 3.2.4 Consistent Identification.
+      - appliesTo: non-web-software
+        conformanceRequirement: 3
+        text: >-
+          Non-Web software shall not be required to conform to Conformance Requirement 3
+          Complete Processes in WCAG 2.0.
+    note: >-
+      Software scoping only; Widedoor does not test software. E207.3 replaces Conformance
+      Requirement 3 for non-Web software, and E207.2.1 substitutes "software" for "Web page".
+
+  - id: '302'
+    title: Functional Performance Criteria
+    kind: section
+  - id: '302.1'
+    title: Without Vision
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.2'
+    title: With Limited Vision
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.3'
+    title: Without Perception of Color
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.4'
+    title: Without Hearing
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.5'
+    title: With Limited Hearing
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.6'
+    title: Without Speech
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.7'
+    title: With Limited Manipulation
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.8'
+    title: With Limited Reach and Strength
+    kind: requirement
+    manual: { scope: product }
+  - id: '302.9'
+    title: With Limited Language, Cognitive, and Learning Abilities
+    kind: requirement
+    manual: { scope: product }
+
+  - id: '501'
+    title: General
+    kind: section
+  - id: '501.1'
+    title: Scope
+    kind: scoping
+    exceptions:
+      - appliesTo: web-application-without-platform-services
+        provisions: ['502', '503']
+        text: >-
+          Where Web applications do not have access to platform accessibility services and do
+          not include components that have access to platform accessibility services, they shall
+          not be required to conform to 502 or 503 provided that they conform to Level A and Level
+          AA Success Criteria and Conformance Requirements in WCAG 2.0 (incorporated by reference,
+          see 702.10.1).
+
+  - id: '502'
+    title: Interoperability with Assistive Technology
+    kind: section
+  - id: '502.1'
+    title: General
+    kind: scoping
+  - id: '502.2'
+    title: Documented Accessibility Features
+    kind: scoping
+  - id: '502.2.1'
+    title: User Control of Accessibility Features
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '502.2.1'
+        text: >-
+          Applies only to platform software, the addressee of 502.2.1. A web application is not platform software.
+  - id: '502.2.2'
+    title: No Disruption of Accessibility Features
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3'
+    title: Accessibility Services
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '502.3'
+        text: >-
+          Applies only to platform software and software tools provided by the platform developer, the addressee of 502.3. A web application is not platform software.
+  - id: '502.3.1'
+    title: Object Information
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.2'
+    title: Modification of Object Information
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.3'
+    title: Row, Column, and Headers
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.4'
+    title: Values
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.5'
+    title: Modification of Values
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.6'
+    title: Label Relationships
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.7'
+    title: Hierarchical Relationships
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.8'
+    title: Text
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.9'
+    title: Modification of Text
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.10'
+    title: List of Actions
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.11'
+    title: Actions on Objects
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.12'
+    title: Focus Cursor
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.13'
+    title: Modification of Focus Cursor
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.3.14'
+    title: Event Notification
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '502.4'
+    title: Platform Accessibility Features
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '502.4'
+        text: >-
+          Applies only to platforms and platform software, the addressee of 502.4. A web application is not platform software.
+
+  - id: '503'
+    title: Applications
+    kind: section
+  - id: '503.1'
+    title: General
+    kind: scoping
+  - id: '503.2'
+    title: User Preferences
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '503.3'
+    title: Alternative User Interfaces
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '503.4'
+    title: User Controls for Captions and Audio Description
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '503.4.1'
+    title: Caption Controls
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+  - id: '503.4.2'
+    title: Audio Description Controls
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '501.1'
+        text: >-
+          Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.
+
+  - id: '504'
+    title: Authoring Tools
+    kind: section
+  - id: '504.1'
+    title: General
+    kind: scoping
+  - id: '504.2'
+    title: Content Creation or Editing
+    kind: requirement
+    incorporatesWcag20: true
+    manual:
+      scope: web
+      condition:
+        provision: '504.1'
+        text: >-
+          Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.
+  - id: '504.2.1'
+    title: Preservation of Information Provided for Accessibility in Format Conversion
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '504.1'
+        text: >-
+          Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.
+  - id: '504.2.2'
+    title: PDF Export
+    kind: requirement
+    manual:
+      scope: web
+      condition:
+        provision: '504.1'
+        text: >-
+          Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.
+  - id: '504.3'
+    title: Prompts
+    kind: requirement
+    incorporatesWcag20: true
+    manual:
+      scope: web
+      condition:
+        provision: '504.1'
+        text: >-
+          Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.
+  - id: '504.4'
+    title: Templates
+    kind: requirement
+    incorporatesWcag20: true
+    manual:
+      scope: web
+      condition:
+        provision: '504.1'
+        text: >-
+          Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.
+
+  - id: '602'
+    title: Support Documentation
+    kind: section
+  - id: '602.1'
+    title: General
+    kind: scoping
+  - id: '602.2'
+    title: Accessibility and Compatibility Features
+    kind: requirement
+    manual: { scope: product }
+  - id: '602.3'
+    title: Electronic Support Documentation
+    kind: requirement
+    incorporatesWcag20: true
+    manual: { scope: product }
+  - id: '602.4'
+    title: Alternate Formats for Non-Electronic Support Documentation
+    kind: requirement
+    manual: { scope: product }
+
+  - id: '603'
+    title: Support Services
+    kind: section
+  - id: '603.1'
+    title: General
+    kind: scoping
+  - id: '603.2'
+    title: Information on Accessibility and Compatibility Features
+    kind: requirement
+    manual: { scope: product }
+  - id: '603.3'
+    title: Accommodation of Communication Needs
+    kind: requirement
+    manual: { scope: product }

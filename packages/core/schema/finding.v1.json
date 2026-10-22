@@ -1,0 +1,880 @@
+{
+  "$id": "urn:widedoor:schema:finding:v1",
+  "title": "Widedoor Finding v1",
+  "description": "One accessibility result for a web page or PDF. A review block is required exactly when source.engine is \"manual\".",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^wd_[0-9a-f]{16}$"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "wcag"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "section508"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "needs-review",
+            "not-applicable",
+            "not-tested"
+          ]
+        },
+        "impact": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "serious",
+            "moderate",
+            "minor"
+          ]
+        },
+        "plain": {
+          "type": "object",
+          "properties": {
+            "what": {
+              "type": "string",
+              "minLength": 1
+            },
+            "who": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fix": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "what",
+            "who",
+            "fix"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "snippet": {
+              "type": "string"
+            },
+            "screenshot": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "asset": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "web"
+            },
+            "uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "uri",
+            "contentHash"
+          ],
+          "additionalProperties": false
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "selector"
+          ],
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "type": "string",
+              "enum": [
+                "axe-core",
+                "verapdf",
+                "widedoor"
+              ]
+            },
+            "engineVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ruleId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actRuleId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "engine",
+            "engineVersion",
+            "ruleId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "criteria",
+        "outcome",
+        "asset",
+        "location",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^wd_[0-9a-f]{16}$"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "wcag"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "section508"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "needs-review",
+            "not-applicable",
+            "not-tested"
+          ]
+        },
+        "impact": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "serious",
+            "moderate",
+            "minor"
+          ]
+        },
+        "plain": {
+          "type": "object",
+          "properties": {
+            "what": {
+              "type": "string",
+              "minLength": 1
+            },
+            "who": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fix": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "what",
+            "who",
+            "fix"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "snippet": {
+              "type": "string"
+            },
+            "screenshot": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "asset": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "web"
+            },
+            "uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "uri",
+            "contentHash"
+          ],
+          "additionalProperties": false
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "selector": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "selector"
+          ],
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "type": "string",
+              "const": "manual"
+            },
+            "engineVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ruleId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actRuleId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "engine",
+            "engineVersion",
+            "ruleId"
+          ],
+          "additionalProperties": false
+        },
+        "review": {
+          "type": "object",
+          "properties": {
+            "reviewer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "date": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "expiresOnChangeOf": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "reviewer",
+            "date",
+            "expiresOnChangeOf"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "criteria",
+        "outcome",
+        "asset",
+        "location",
+        "source",
+        "review"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^wd_[0-9a-f]{16}$"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "wcag"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "section508"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "needs-review",
+            "not-applicable",
+            "not-tested"
+          ]
+        },
+        "impact": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "serious",
+            "moderate",
+            "minor"
+          ]
+        },
+        "plain": {
+          "type": "object",
+          "properties": {
+            "what": {
+              "type": "string",
+              "minLength": 1
+            },
+            "who": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fix": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "what",
+            "who",
+            "fix"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "snippet": {
+              "type": "string"
+            },
+            "screenshot": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "asset": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pdf"
+            },
+            "uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "uri",
+            "contentHash"
+          ],
+          "additionalProperties": false
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "structPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "type": "string",
+              "enum": [
+                "axe-core",
+                "verapdf",
+                "widedoor"
+              ]
+            },
+            "engineVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ruleId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actRuleId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "engine",
+            "engineVersion",
+            "ruleId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "criteria",
+        "outcome",
+        "asset",
+        "location",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^wd_[0-9a-f]{16}$"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "wcag"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "wcag": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                  }
+                },
+                "section508": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                  }
+                },
+                "baselineTest": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "section508"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "needs-review",
+            "not-applicable",
+            "not-tested"
+          ]
+        },
+        "impact": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "serious",
+            "moderate",
+            "minor"
+          ]
+        },
+        "plain": {
+          "type": "object",
+          "properties": {
+            "what": {
+              "type": "string",
+              "minLength": 1
+            },
+            "who": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fix": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "what",
+            "who",
+            "fix"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "snippet": {
+              "type": "string"
+            },
+            "screenshot": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "asset": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pdf"
+            },
+            "uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "kind",
+            "uri",
+            "contentHash"
+          ],
+          "additionalProperties": false
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "structPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "type": "string",
+              "const": "manual"
+            },
+            "engineVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ruleId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actRuleId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "engine",
+            "engineVersion",
+            "ruleId"
+          ],
+          "additionalProperties": false
+        },
+        "review": {
+          "type": "object",
+          "properties": {
+            "reviewer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "date": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "expiresOnChangeOf": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "reviewer",
+            "date",
+            "expiresOnChangeOf"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "criteria",
+        "outcome",
+        "asset",
+        "location",
+        "source",
+        "review"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

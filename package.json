@@ -1,0 +1,41 @@
+{
+  "name": "widedoor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Open source accessibility checker for websites and PDFs against Section 508 and WCAG 2.1 AA.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -b && tsc -p packages/core/tsconfig.dev.json && tsc -p corpus",
+    "check:data": "npm run check:data -w @widedoor/core",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json",
+    "corpus:build": "tsx corpus/scripts/build-pdfs.ts",
+    "corpus:verify": "tsx corpus/scripts/verify-web.ts && tsx corpus/scripts/verify-pdf.ts",
+    "corpus:act": "tsx corpus/scripts/vendor-act.ts"
+  },
+  "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1",
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.6.5",
+    "axe-core": "4.14.0",
+    "eslint": "10.13.0",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.64.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5",
+    "zod": "4.6.7"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "item": "web/title-fail.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "document-title",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

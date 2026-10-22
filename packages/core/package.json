@@ -1,0 +1,24 @@
+{
+  "name": "@widedoor/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "scripts": {
+    "schema": "tsx scripts/gen-schema.ts",
+    "check:data": "tsx scripts/check-data.ts",
+    "data:wcag": "tsx scripts/gen-wcag.ts",
+    "data:baseline": "tsx scripts/gen-baseline.ts",
+    "data:axe": "tsx scripts/gen-axe-map.ts",
+    "data:verapdf": "tsx scripts/gen-verapdf-map.ts"
+  },
+  "devDependencies": {
+    "axe-core": "4.14.0"
+  }
+}

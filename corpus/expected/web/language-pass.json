@@ -1,0 +1,19 @@
+{
+  "item": "web/language-pass.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "html-has-lang",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "html-lang-valid",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

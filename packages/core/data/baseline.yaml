@@ -1,0 +1,638 @@
+# GENERATED FILE. Do not edit by hand.
+# Source: https://github.com/atbcb/ICTTestingBaseline at commit 082e144ef2219bb66ce530018e1e4fb2534352b2.
+# Content by the Federal CIO Council Accessibility Community of Practice (ACOP); see NOTICE.
+# Ids are the published "Baseline Test ID" values. Regenerate: npm run data:baseline -w @widedoor/core
+
+meta:
+  sources:
+    - https://github.com/atbcb/ICTTestingBaseline/tree/082e144ef2219bb66ce530018e1e4fb2534352b2/_baselines
+  commit: 082e144ef2219bb66ce530018e1e4fb2534352b2
+  retrieved: 2026-10-21
+  baselines:
+    web:
+      name: ICT Testing Baseline for Web
+      version: '3.1'
+    document:
+      name: ICT Testing Baseline for Electronic Documents
+      version: '1.0'
+tests:
+  - id: 1.A-KeyboardAccess
+    baseline: web
+    title: Keyboard Access
+    wcag:
+      - 2.1.1
+  - id: 1.B-NoKeyboardTrap
+    baseline: web
+    title: No Keyboard Trap
+    wcag:
+      - 2.1.2
+  - id: 2.A-FocusVisible
+    baseline: web
+    title: Focus Visible
+    wcag:
+      - 2.4.7
+  - id: 2.B-FocusOrder
+    baseline: web
+    title: Focus Order
+    wcag:
+      - 2.4.3
+  - id: 2.C-OnFocus
+    baseline: web
+    title: On Focus
+    wcag:
+      - 3.2.1
+  - id: 3.A-NonInterference
+    baseline: web
+    title: Non-Interference
+    wcag: []
+    conformanceRequirement: 5
+    basis: 'Test cites [CR5] only: WCAG Conformance Requirement 5 (Non-Interference).'
+  - id: 4.A-BypassBlocks
+    baseline: web
+    title: Bypass Blocks
+    wcag:
+      - 2.4.1
+  - id: 4.B-ConsistentNavigation
+    baseline: web
+    title: Consistent Navigation
+    wcag:
+      - 3.2.3
+  - id: 4.C-ConsistentIdentification
+    baseline: web
+    title: Consistent Identification
+    wcag:
+      - 3.2.4
+  - id: 5.A-ControlName
+    baseline: web
+    title: Control Name
+    wcag:
+      - 4.1.2
+  - id: 5.B-ControlRole
+    baseline: web
+    title: Control Role
+    wcag:
+      - 4.1.2
+  - id: 5.C-ControlState
+    baseline: web
+    title: Control State
+    wcag:
+      - 4.1.2
+  - id: 5.D-ControlValue
+    baseline: web
+    title: Control Value
+    wcag:
+      - 4.1.2
+  - id: 6.A-MeaningfulImage
+    baseline: web
+    title: Images with a non-empty text alternative
+    wcag:
+      - 1.1.1
+      - 4.1.2
+  - id: 6.B-DecorativeImage
+    baseline: web
+    title: Images with an empty text alternative
+    wcag:
+      - 1.1.1
+  - id: 6.C-Captcha
+    baseline: web
+    title: Captchas
+    wcag:
+      - 1.1.1
+  - id: 6.D-ImageText
+    baseline: web
+    title: Images of Text
+    wcag:
+      - 1.4.5
+  - id: 7.A-Color
+    baseline: web
+    title: Use of Color
+    wcag:
+      - 1.4.1
+  - id: 7.B-SensoryCharacteristics
+    baseline: web
+    title: Sensory Characteristics
+    wcag:
+      - 1.3.3
+  - id: 7.C-AudibleCues
+    baseline: web
+    title: Audible Cues
+    wcag:
+      - 1.1.1
+  - id: 8.A-ContrastMinimum
+    baseline: web
+    title: Contrast (minimum)
+    wcag:
+      - 1.4.3
+  - id: 9.A-Flashes
+    baseline: web
+    title: Three Flashes or Below Threshold
+    wcag:
+      - 2.3.1
+  - id: 10.A-FormName
+    baseline: web
+    title: Form Names
+    wcag:
+      - 4.1.2
+      - 1.3.1
+  - id: 10.B-FormDescriptiveLabel
+    baseline: web
+    title: Form Labels Descriptive
+    wcag:
+      - 2.4.6
+  - id: 10.C-OnInput
+    baseline: web
+    title: On Input
+    wcag:
+      - 3.2.2
+  - id: 10.D-ErrorIdentification
+    baseline: web
+    title: Error Identification
+    wcag:
+      - 3.3.1
+  - id: 10.E-FormHasLabel
+    baseline: web
+    title: Form has a Visible Label
+    wcag:
+      - 3.3.2
+  - id: 10.F-ErrorSuggestion
+    baseline: web
+    title: Error Suggestion
+    wcag:
+      - 3.3.3
+  - id: 10.G-ErrorPrevention
+    baseline: web
+    title: Error Prevention (Legal, Financial, Data)
+    wcag:
+      - 3.3.4
+  - id: 11.A-PageTitled
+    baseline: web
+    title: Page Titled
+    wcag:
+      - 2.4.2
+  - id: 12.A-DataTableRole
+    baseline: web
+    title: Data Table Roles
+    wcag:
+      - 4.1.2
+  - id: 12.B-DataTableHeaderAssociation
+    baseline: web
+    title: Data Table Header Association
+    wcag:
+      - 1.3.1
+  - id: 12.C-LayoutTable
+    baseline: web
+    title: Layout Tables
+    wcag:
+      - 4.1.2
+  - id: 13.A-HeadingDescriptive
+    baseline: web
+    title: Descriptive Headings
+    wcag:
+      - 2.4.6
+  - id: 13.B-VisHeadingProg
+    baseline: web
+    title: Visual Headings Programmatic
+    wcag:
+      - 1.3.1
+  - id: 13.C-ProgHeadingVisual
+    baseline: web
+    title: Programmatic Headings Visual
+    wcag:
+      - 1.3.1
+  - id: 13.D-List
+    baseline: web
+    title: Visually Apparent Lists
+    wcag:
+      - 1.3.1
+  - id: 14.A-LinkPurpose
+    baseline: web
+    title: Link Purpose (In Context)
+    wcag:
+      - 4.1.2
+      - 2.4.4
+  - id: 15.A-LanguagePage
+    baseline: web
+    title: Language of Page
+    wcag:
+      - 3.1.1
+  - id: 15.B-LanguagePart
+    baseline: web
+    title: Language of Parts
+    wcag:
+      - 3.1.2
+  - id: 16.A-AudioOnlyTranscript
+    baseline: web
+    title: Audio-only (Prerecorded)
+    wcag:
+      - 1.2.1
+  - id: 16.B-VideoOnlyAlt
+    baseline: web
+    title: Video-only (Prerecorded)
+    wcag:
+      - 1.2.1
+  - id: 16.C-AudioMediaAlternative
+    baseline: web
+    title: Audio Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.1
+    basis: Decides whether audio-only content is a media alternative for text, the exception in SC 1.2.1 (the only SC in this section).
+  - id: 16.D-VideoMediaAlternative
+    baseline: web
+    title: Video Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.1
+    basis: Decides whether video-only content is a media alternative for text, the exception in SC 1.2.1 (the only SC in this section).
+  - id: 17.A-MediaPlayerCCADControls
+    baseline: web
+    title: Media Player Controls
+    wcag: []
+    section508:
+      - '503.4'
+  - id: 17.B-MediaPlayerCCLevel
+    baseline: web
+    title: Media Player Caption Control Level
+    wcag: []
+    section508:
+      - 503.4.1
+  - id: 17.C-MediaPlayerADLevel
+    baseline: web
+    title: Media Player Audio Description Control Level
+    wcag: []
+    section508:
+      - 503.4.2
+  - id: 17.D-CaptionsPrerecorded
+    baseline: web
+    title: Captions (Prerecorded)
+    wcag:
+      - 1.2.2
+  - id: 17.E-ADPrerecorded
+    baseline: web
+    title: Audio Description (Prerecorded)
+    wcag:
+      - 1.2.5
+  - id: 17.F-CaptionsLive
+    baseline: web
+    title: Captions (Live)
+    wcag:
+      - 1.2.4
+  - id: 17.G-SyncMediaAlternative
+    baseline: web
+    title: Sync Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.2
+      - 1.2.3
+    basis: Decides whether synchronized media is a media alternative for text; SC 1.2.2 and 1.2.3 carry that exception.
+  - id: 18.B-CSSPositionedContent
+    baseline: web
+    title: CSS Positioned Content
+    wcag:
+      - 1.3.2
+  - id: 19.A-FrameTitle
+    baseline: web
+    title: Frames
+    wcag:
+      - 4.1.2
+  - id: 19.B-iFrameName
+    baseline: web
+    title: iFrames
+    wcag:
+      - 4.1.2
+  - id: 20.A-ConformingAltVersion
+    baseline: web
+    title: Conforming Alternate Version
+    wcag: []
+    conformanceRequirement: 1
+    basis: Section cites WCAG Conformance Requirement 1 (conforming alternate version).
+  - id: 21.A-TimingAdjustable
+    baseline: web
+    title: Timing Adjustable
+    wcag:
+      - 2.2.1
+  - id: 21.B-MovingInfo
+    baseline: web
+    title: Moving Information
+    wcag:
+      - 2.2.2
+  - id: 21.C-AutoUpdate
+    baseline: web
+    title: Auto-updating information
+    wcag:
+      - 2.2.2
+  - id: 21.D-AudioControl
+    baseline: web
+    title: Audio Control
+    wcag:
+      - 1.4.2
+  - id: 22.A-ResizeText
+    baseline: web
+    title: Resize Text
+    wcag:
+      - 1.4.4
+  - id: 23.A-MultipleWays
+    baseline: web
+    title: Related Web Pages
+    wcag:
+      - 2.4.5
+  - id: 24.A-Parsing
+    baseline: web
+    title: Parsing
+    wcag:
+      - 4.1.1
+    basis: Section cites SC 4.1.1 only; the test is "No testing necessary" and always passes.
+  - id: 1.A-KeyboardAccess
+    baseline: document
+    title: Keyboard Access
+    wcag:
+      - 2.1.1
+  - id: 1.B-NoKeyboardTrap
+    baseline: document
+    title: No Keyboard Trap
+    wcag:
+      - 2.1.2
+  - id: 2.A-FocusVisible
+    baseline: document
+    title: Focus Visible
+    wcag:
+      - 2.4.7
+  - id: 2.B-FocusOrder
+    baseline: document
+    title: Focus Order
+    wcag:
+      - 2.4.3
+  - id: 2.C-OnFocus
+    baseline: document
+    title: On Focus
+    wcag:
+      - 3.2.1
+  - id: 3.A-NonInterference
+    baseline: document
+    title: Non-Interference
+    wcag: []
+    conformanceRequirement: 5
+    basis: 'Test cites [CR5] only: WCAG Conformance Requirement 5 (Non-Interference).'
+  - id: 5.A-ControlName
+    baseline: document
+    title: Control Name
+    wcag:
+      - 4.1.2
+  - id: 5.B-ControlRole
+    baseline: document
+    title: Control Role
+    wcag:
+      - 4.1.2
+  - id: 5.C-ControlState
+    baseline: document
+    title: Control State
+    wcag:
+      - 4.1.2
+  - id: 5.D-ControlValue
+    baseline: document
+    title: Control Value
+    wcag:
+      - 4.1.2
+  - id: 6.A-MeaningfulImage
+    baseline: document
+    title: Images with a non-empty text alternative
+    wcag:
+      - 1.1.1
+  - id: 6.B-DecorativeImage
+    baseline: document
+    title: Images with an empty text alternative
+    wcag:
+      - 1.1.1
+  - id: 6.C-Captcha
+    baseline: document
+    title: Captchas
+    wcag: []
+    notApplicable: Not applicable to documents
+  - id: 6.D-ImageText
+    baseline: document
+    title: Images of Text
+    wcag:
+      - 1.4.5
+  - id: 7.A-Color
+    baseline: document
+    title: Use of Color
+    wcag:
+      - 1.4.1
+  - id: 7.B-SensoryCharacteristics
+    baseline: document
+    title: Sensory Characteristics
+    wcag:
+      - 1.3.3
+  - id: 7.C-AudibleCues
+    baseline: document
+    title: Audible Cues
+    wcag:
+      - 1.1.1
+  - id: 8.A-ContrastMinimum
+    baseline: document
+    title: Contrast (minimum)
+    wcag:
+      - 1.4.3
+  - id: 9.A-Flashes
+    baseline: document
+    title: Three Flashes or Below Threshold
+    wcag:
+      - 2.3.1
+  - id: 10.A-FormName
+    baseline: document
+    title: Form Names
+    wcag:
+      - 4.1.2
+      - 1.3.1
+  - id: 10.B-FormDescriptiveLabel
+    baseline: document
+    title: Form Labels Descriptive
+    wcag:
+      - 2.4.6
+  - id: 10.C-OnInput
+    baseline: document
+    title: On Input
+    wcag:
+      - 3.2.2
+  - id: 10.D-ErrorIdentification
+    baseline: document
+    title: Error Identification
+    wcag:
+      - 3.3.1
+  - id: 10.E-FormHasLabel
+    baseline: document
+    title: Form has a Visible Label
+    wcag:
+      - 3.3.2
+  - id: 10.F-ErrorSuggestion
+    baseline: document
+    title: Error Suggestion
+    wcag:
+      - 3.3.3
+  - id: 10.G-ErrorPrevention
+    baseline: document
+    title: Error Prevention (Legal, Financial, Data)
+    wcag:
+      - 3.3.4
+  - id: 11.A-DocumentTitled
+    baseline: document
+    title: Document Titled
+    wcag:
+      - 2.4.2
+  - id: 12.A-DataTableRole
+    baseline: document
+    title: Data Table Roles
+    wcag:
+      - 4.1.2
+  - id: 12.B-DataTableHeaderAssociation
+    baseline: document
+    title: Data Table Header Association
+    wcag:
+      - 1.3.1
+  - id: 12.C-LayoutTable
+    baseline: document
+    title: Layout Tables
+    wcag:
+      - 4.1.2
+  - id: 13.A-HeadingDescriptive
+    baseline: document
+    title: Descriptive Headings
+    wcag:
+      - 2.4.6
+  - id: 13.B-VisHeadingProg
+    baseline: document
+    title: Visual Headings Programmatic
+    wcag:
+      - 1.3.1
+  - id: 13.C-ProgHeadingVisual
+    baseline: document
+    title: Programmatic Headings Visual
+    wcag:
+      - 1.3.1
+  - id: 13.D-List
+    baseline: document
+    title: Visually Apparent Lists
+    wcag:
+      - 1.3.1
+  - id: 14.A-LinkPurpose
+    baseline: document
+    title: Link Purpose (In Context)
+    wcag:
+      - 4.1.2
+      - 2.4.4
+  - id: 15.A-LanguageDocument
+    baseline: document
+    title: Language of Document
+    wcag:
+      - 3.1.1
+  - id: 15.B-LanguageParts
+    baseline: document
+    title: Language of Parts
+    wcag:
+      - 3.1.2
+  - id: 16.A-AudioOnlyTranscript
+    baseline: document
+    title: Audio-only (Prerecorded)
+    wcag:
+      - 1.2.1
+  - id: 16.B-VideoOnlyAlt
+    baseline: document
+    title: Video-only (Prerecorded)
+    wcag:
+      - 1.2.1
+  - id: 16.C-AudioMediaAlternative
+    baseline: document
+    title: Audio Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.1
+    basis: Decides whether audio-only content is a media alternative for text, the exception in SC 1.2.1 (the only SC in this section).
+  - id: 16.D-VideoMediaAlternative
+    baseline: document
+    title: Video Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.1
+    basis: Decides whether video-only content is a media alternative for text, the exception in SC 1.2.1 (the only SC in this section).
+  - id: 17.A-MediaPlayerCCADControls
+    baseline: document
+    title: Media Player Controls
+    wcag: []
+    section508:
+      - '503.4'
+  - id: 17.B-MediaPlayerCCLevel
+    baseline: document
+    title: Media Player Caption Control Level
+    wcag: []
+    section508:
+      - 503.4.1
+  - id: 17.C-MediaPlayerADLevel
+    baseline: document
+    title: Media Player Audio Description Control Level
+    wcag: []
+    section508:
+      - 503.4.2
+  - id: 17.D-CaptionsPrerecorded
+    baseline: document
+    title: Captions (Prerecorded)
+    wcag:
+      - 1.2.2
+  - id: 17.E-ADPrerecorded
+    baseline: document
+    title: Audio Description (Prerecorded)
+    wcag:
+      - 1.2.5
+  - id: 17.F-CaptionsLive
+    baseline: document
+    title: Captions (Live)
+    wcag:
+      - 1.2.4
+  - id: 17.G-SyncMediaAlternative
+    baseline: document
+    title: Sync Media Alternative (Prerecorded)
+    wcag:
+      - 1.2.2
+      - 1.2.3
+    basis: Decides whether synchronized media is a media alternative for text; SC 1.2.2 and 1.2.3 carry that exception.
+  - id: 18.A-MeaningfulContent
+    baseline: document
+    title: Meaningful Visible Content
+    wcag:
+      - 1.3.1
+  - id: 18.B-MeaningfulSequence
+    baseline: document
+    title: Meaningful Sequence
+    wcag:
+      - 1.3.2
+  - id: 20.A-ConformingAltVersion
+    baseline: document
+    title: Conforming Alternate Version
+    wcag: []
+    conformanceRequirement: 1
+    basis: Section cites WCAG Conformance Requirement 1 (conforming alternate version).
+  - id: 21.A-TimingAdjustable
+    baseline: document
+    title: Timing Adjustable
+    wcag:
+      - 2.2.1
+  - id: 21.B-MovingInfo
+    baseline: document
+    title: Moving Information
+    wcag:
+      - 2.2.2
+  - id: 21.C-AutoUpdate
+    baseline: document
+    title: Auto-updating Information
+    wcag:
+      - 2.2.2
+  - id: 21.D-AudioControl
+    baseline: document
+    title: Audio Control
+    wcag:
+      - 1.4.2
+  - id: 22.A-ResizeText
+    baseline: document
+    title: Resize Text
+    wcag:
+      - 1.4.4
+  - id: 24.A-Parsing
+    baseline: document
+    title: Parsing
+    wcag:
+      - 4.1.1
+    basis: Section cites SC 4.1.1 only; the test is "No testing necessary" and always passes.

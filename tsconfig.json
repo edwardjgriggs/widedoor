@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/web" },
+    { "path": "packages/pdf" },
+    { "path": "packages/report" },
+    { "path": "packages/cli" }
+  ]
+}

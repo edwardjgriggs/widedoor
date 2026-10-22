@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "path": "web/labels-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/labels-fail.json",
+      "description": "Form field with no label",
+      "family": "labels"
+    },
+    {
+      "path": "web/labels-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/labels-pass.json",
+      "description": "Form field with a label",
+      "family": "labels"
+    },
+    {
+      "path": "web/alt-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/alt-fail.json",
+      "description": "Image with no alt attribute",
+      "family": "alt"
+    },
+    {
+      "path": "web/alt-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/alt-pass.json",
+      "description": "Image with alt text",
+      "family": "alt"
+    },
+    {
+      "path": "web/contrast-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/contrast-fail.json",
+      "description": "Text at 2.3:1 contrast",
+      "family": "contrast"
+    },
+    {
+      "path": "web/contrast-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/contrast-pass.json",
+      "description": "Text at 7:1 contrast",
+      "family": "contrast"
+    },
+    {
+      "path": "web/headings-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/headings-fail.json",
+      "description": "ARIA heading with no aria-level",
+      "family": "headings",
+      "note": "axe-core has no active heading rule under the WCAG tags (p-as-heading is experimental and empty-heading and heading-order are best-practice), so this family targets an ARIA heading with no level."
+    },
+    {
+      "path": "web/headings-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/headings-pass.json",
+      "description": "ARIA heading with aria-level",
+      "family": "headings"
+    },
+    {
+      "path": "web/landmarks-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/landmarks-fail.json",
+      "description": "Links but no landmark, heading or skip link",
+      "family": "landmarks",
+      "note": "axe-core reports bypass as needs-review (incomplete), not fail, when a page with links has no landmark, heading or same-page link."
+    },
+    {
+      "path": "web/landmarks-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/landmarks-pass.json",
+      "description": "Same page with a main landmark",
+      "family": "landmarks"
+    },
+    {
+      "path": "web/aria-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/aria-fail.json",
+      "description": "aria-expanded with an invalid value",
+      "family": "aria"
+    },
+    {
+      "path": "web/aria-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/aria-pass.json",
+      "description": "aria-expanded with a valid value",
+      "family": "aria"
+    },
+    {
+      "path": "web/links-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/links-fail.json",
+      "description": "Image link whose image has empty alt",
+      "family": "links"
+    },
+    {
+      "path": "web/links-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/links-pass.json",
+      "description": "Image link with alt text",
+      "family": "links"
+    },
+    {
+      "path": "web/tables-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/tables-fail.json",
+      "description": "Cell headers attribute names a missing id",
+      "family": "tables"
+    },
+    {
+      "path": "web/tables-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/tables-pass.json",
+      "description": "Cell headers attribute names a header cell",
+      "family": "tables"
+    },
+    {
+      "path": "web/language-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/language-fail.json",
+      "description": "html element has no lang",
+      "family": "language"
+    },
+    {
+      "path": "web/language-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/language-pass.json",
+      "description": "html element has lang=\"en\"",
+      "family": "language"
+    },
+    {
+      "path": "web/title-fail.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/title-fail.json",
+      "description": "Page has no title element",
+      "family": "title"
+    },
+    {
+      "path": "web/title-pass.html",
+      "kind": "web",
+      "source": "corpus",
+      "expected": "expected/web/title-pass.json",
+      "description": "Page has a title element",
+      "family": "title"
+    },
+    {
+      "path": "pdf/untagged.pdf",
+      "kind": "pdf",
+      "source": "corpus",
+      "expected": "expected/pdf/untagged.json",
+      "description": "Chromium PDF of the report with no tags (title kept, no language)",
+      "note": "Chromium writes the title and DisplayDocTitle even when untagged, so 7.1-10 and pdf-title-displayed pass. Widedoor entries are provisional until Task 1.2; pdf-bookmarks is left out because Task 1.2 has not set the page count that makes a document long."
+    },
+    {
+      "path": "pdf/tagged-broken.pdf",
+      "kind": "pdf",
+      "source": "corpus",
+      "expected": "expected/pdf/tagged-broken.json",
+      "description": "Tagged Chromium PDF: image with no alt, no language, no title, table without header cells",
+      "note": "veraPDF does not detect a table whose header row is tagged as TD cells (7.5-1 and 7.5-2 pass), so that defect is left for manual review. Widedoor entries are provisional until Task 1.2; pdf-bookmarks is left out because Task 1.2 has not set the page count that makes a document long."
+    },
+    {
+      "path": "pdf/clean-pdfua.pdf",
+      "kind": "pdf",
+      "source": "corpus",
+      "expected": "expected/pdf/clean-pdfua.json",
+      "description": "Tagged Chromium PDF with PDF/UA-1 metadata; passes veraPDF PDF/UA-1",
+      "note": "Zero failed rules under veraPDF 1.30.3 PDF/UA-1. Widedoor entries are provisional until Task 1.2."
+    },
+    {
+      "path": "pdf/scanned-image-only.pdf",
+      "kind": "pdf",
+      "source": "corpus",
+      "expected": "expected/pdf/scanned-image-only.json",
+      "description": "One page that is only a raster image of the report, no text layer",
+      "note": "veraPDF reports structure and metadata failures but nothing about the missing text layer; pdf-image-only is the check that finds it. Widedoor entries are provisional until Task 1.2; pdf-bookmarks is left out because Task 1.2 has not set the page count that makes a document long."
+    }
+  ],
+  "supportFiles": []
+}

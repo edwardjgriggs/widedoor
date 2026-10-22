@@ -1,0 +1,52 @@
+{
+  "item": "pdf/scanned-image-only.pdf",
+  "kind": "pdf",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "verapdf",
+      "ruleId": "6.2-1",
+      "outcome": "fail"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-10",
+      "outcome": "fail"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-11",
+      "outcome": "fail"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-3",
+      "outcome": "fail"
+    },
+    {
+      "engine": "verapdf",
+      "ruleId": "7.1-8",
+      "outcome": "fail"
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-image-only",
+      "outcome": "fail",
+      "provisional": true
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-language",
+      "outcome": "fail",
+      "provisional": true
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-title-displayed",
+      "outcome": "fail",
+      "provisional": true
+    }
+  ],
+  "confirmedBy": "veraPDF 1.30.3",
+  "provisional": true
+}

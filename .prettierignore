@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+evidence
+.widedoor
+package-lock.json
+LICENSE
+packages/core/schema/finding.v1.json
+corpus/act
+corpus/web
+corpus/pdf
