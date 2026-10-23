@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/bisz58/c3cc2e9d19259f7a7ffa99818ac44d034127f01f.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "meta-refresh",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

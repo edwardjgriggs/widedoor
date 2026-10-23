@@ -10,8 +10,11 @@ updates:
           - minor
           - patch
 
+  # The composite action in packages/action pins its own actions.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /packages/action
     schedule:
       interval: weekly
     groups:
@@ -19,3 +22,12 @@ updates:
         update-types:
           - minor
           - patch
+
+  # Base images in the Dockerfile, pinned by tag and digest. verapdf/cli moves
+  # only by hand, together with VERAPDF_IMAGE_REF and verapdf-map.yaml.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: verapdf/cli

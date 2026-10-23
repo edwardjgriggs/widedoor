@@ -121,6 +121,7 @@ export const BaselineDataSchema = z.strictObject({
 });
 
 const decides = z.boolean();
+const impact = z.enum(['critical', 'serious', 'moderate', 'minor']);
 
 export const AxeMapSchema = z.strictObject({
   meta: MetaSchema.extend({ engine: z.literal('axe-core'), engineVersion: text }),
@@ -156,7 +157,14 @@ export const VerapdfMapSchema = z.strictObject({
   rules: z
     .array(
       z
-        .strictObject({ ...verapdfId, wcag: z.array(scId).min(1), decides, basis: text })
+        .strictObject({
+          ...verapdfId,
+          wcag: z.array(scId).min(1),
+          /** Default severity of a fail or needs-review finding from this rule. */
+          impact,
+          decides,
+          basis: text,
+        })
         .refine(idMatchesClause, 'id must be <clause>-<testNumber>'),
     )
     .min(1),
@@ -175,6 +183,8 @@ export const WidedoorMapSchema = z.strictObject({
         id: z.string().regex(/^[a-z][a-z0-9-]*$/),
         title: text,
         wcag: z.array(scId).min(1),
+        /** Default severity of a fail or needs-review finding from this rule. */
+        impact,
         decides,
         basis: text,
       }),

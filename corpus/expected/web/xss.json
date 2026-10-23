@@ -1,0 +1,44 @@
+{
+  "item": "web/xss.html",
+  "kind": "web",
+  "source": "corpus",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-valid-attr-value",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "color-contrast",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "color-contrast",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "document-title",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "html-has-lang",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "image-alt",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "link-name",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

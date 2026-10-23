@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/b33eff/3600a3d783678e384fec62211e854cb8a4d3d2d0.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "css-orientation-lock",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

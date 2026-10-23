@@ -17,9 +17,31 @@ env:
   GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
 
 jobs:
-  verify:
+  # The secret scan runs first, in its own job, so a flaky test can never skip it.
+  secrets:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks
+        run: |
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL "$url" -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+
+      - name: Scan history for secrets
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose .'
+
+  verify:
+    needs: secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,8 +55,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Install scripts stay off, as in the action and the Dockerfile. Nothing the
+      # tests need runs one: esbuild finds its platform package without its
+      # postinstall, and the two native optional packages with install scripts
+      # (fsevents, libxmljs2) are not used here. Chromium is installed below.
       - name: Install
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Lint
         run: npm run lint
@@ -42,21 +68,113 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # Packages and the viewer bundle that widedoor ui serves.
+      - name: Build
+        run: npm run build
+
       - name: Validate standards data
         run: npm run check:data
 
       - name: Test
         run: npm test
 
+      # Audit before the browser tests, so a known-bad dependency fails the job before it runs.
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
-      - name: Install gitleaks
-        run: |
-          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -sSfL "$url" -o "$RUNNER_TEMP/gitleaks.tar.gz"
-          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Verify registry signatures
+        run: npm audit signatures
 
-      - name: Scan history for secrets
-        run: '"$RUNNER_TEMP/gitleaks" git --redact --verbose .'
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # The scanner runs Chromium with its OS sandbox and fails closed without it.
+      # Ubuntu 23.10 and later (the ubuntu-latest runner) block unprivileged user
+      # namespaces through AppArmor, which the sandbox needs, so allow them for
+      # this job instead of turning the sandbox off. If a runner image ever
+      # refuses this, set WIDEDOOR_TEST_UNSAFE_NO_SANDBOX=1 on the step below as
+      # the fallback (CI only, never the product); the sandbox test is then
+      # reported as skipped, so the state stays visible.
+      # Self-hosted runners keep their own policy.
+      - name: Allow the Chromium sandbox
+        if: runner.environment == 'github-hosted'
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns > /dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+
+      - name: Browser tests
+        run: npm run test:browser
+
+      # veraPDF runs in its pinned image. Pull by digest so a re-pushed tag
+      # cannot change what runs; the tag is added locally because the adapter
+      # refers to the image as tag@digest and never pulls itself. Bump the
+      # digest together with VERAPDF_IMAGE_REF in packages/pdf/src/verapdf.ts.
+      - name: Pull veraPDF image
+        run: |
+          docker pull "verapdf/cli@${VERAPDF_DIGEST}"
+          docker tag "verapdf/cli@${VERAPDF_DIGEST}" verapdf/cli:v1.30.3
+        env:
+          VERAPDF_DIGEST: sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
+
+      - name: Docker tests
+        run: npm run test:docker
+
+      # The corpus regression check (Tasks 1.1 and 1.2 done-when): web pages and
+      # PDFs must match corpus/expected exactly. Chromium and the veraPDF image
+      # are already here.
+      - name: Verify the corpus
+        run: npm run corpus:verify
+
+  # Runs the composite action from this checkout against the corpus: web pages
+  # served on 127.0.0.1 plus PDFs, without the SARIF upload (corpus findings are
+  # fixtures, not alerts). It needs a remote to run (ledger, Task 1.6).
+  action:
+    needs: secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same pages the CLI end-to-end test serves, as a site would.
+      - name: Serve the corpus pages
+        run: |
+          nohup python3 -m http.server 8321 --bind 127.0.0.1 --directory corpus/web > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sSf -o /dev/null http://127.0.0.1:8321/alt-pass.html && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/serve.log"
+          exit 1
+
+      - name: Scan the corpus with the action
+        id: widedoor
+        uses: ./packages/action
+        continue-on-error: true
+        with:
+          urls: |
+            http://127.0.0.1:8321/alt-fail.html
+            http://127.0.0.1:8321/alt-pass.html
+            http://127.0.0.1:8321/contrast-fail.html
+            http://127.0.0.1:8321/labels-fail.html
+            http://127.0.0.1:8321/xss.html
+          files: |
+            corpus/pdf/clean-pdfua.pdf
+            corpus/pdf/untagged.pdf
+          out: widedoor-action-report
+          upload-sarif: false
+
+      # The corpus holds failing pages, so the scan must exit 1 with every report written.
+      - name: Check the action result
+        env:
+          EXIT_CODE: ${{ steps.widedoor.outputs.exit-code }}
+          REPORT_DIR: ${{ steps.widedoor.outputs.report-dir }}
+        run: |
+          test "$EXIT_CODE" = 1
+          test "$REPORT_DIR" = "$GITHUB_WORKSPACE/widedoor-action-report"
+          for f in report.html report.json report.sarif .widedoor-report; do
+            test -f "$REPORT_DIR/$f"
+          done

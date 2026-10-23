@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/6cfa84/9812d828fef2da32081f4c0acce0c58912f071cb.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-hidden-focus",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

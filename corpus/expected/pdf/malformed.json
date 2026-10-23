@@ -1,0 +1,11 @@
+{
+  "item": "pdf/malformed.pdf",
+  "kind": "pdf",
+  "source": "corpus",
+  "expected": [],
+  "error": {
+    "code": "malformed-pdf"
+  },
+  "confirmedBy": "veraPDF 1.30.3, Widedoor 0.0.0",
+  "provisional": false
+}

@@ -66,9 +66,17 @@ describe('standards data loader', () => {
     expect(all.filter((r) => r.decides)).toEqual([]);
   });
 
-  it('includes the four Widedoor PDF checks', () => {
+  it('includes the four Widedoor PDF checks and the three PDF review items', () => {
     expect(data.widedoor.rules.map((r) => r.id).sort()).toEqual(
-      ['pdf-bookmarks', 'pdf-image-only', 'pdf-language', 'pdf-title-displayed'].sort(),
+      [
+        'pdf-alt-text-quality',
+        'pdf-bookmarks',
+        'pdf-image-only',
+        'pdf-language',
+        'pdf-reading-order',
+        'pdf-table-logic',
+        'pdf-title-displayed',
+      ].sort(),
     );
   });
 
@@ -173,6 +181,33 @@ describe('standards data loader', () => {
     );
     expect(err.message).toContain('widedoor-map.yaml');
     expect(err.message).toContain('colour');
+  });
+
+  it('rates whole-document failures critical and element-level ones serious', () => {
+    const impact = (id: string) => data.verapdf.rules.find((r) => r.id === id)?.impact;
+    expect(['6.2-1', '7.1-11', '7.16-1'].map(impact)).toEqual(['critical', 'critical', 'critical']);
+    expect(['7.1-12', '7.20-2', '7.1-3'].map(impact)).toEqual(['serious', 'serious', 'serious']);
+  });
+
+  it('requires a valid default impact on every veraPDF and Widedoor rule', () => {
+    for (const r of [...data.verapdf.rules, ...data.widedoor.rules])
+      expect(['critical', 'serious', 'moderate', 'minor'], r.id).toContain(r.impact);
+    const missing = errorOf(() =>
+      validateStandardsData(
+        mutated((raw) => {
+          delete raw.verapdf!.rules[0].impact;
+        }),
+      ),
+    );
+    expect(missing.message).toContain('verapdf-map.yaml');
+    const wrong = errorOf(() =>
+      validateStandardsData(
+        mutated((raw) => {
+          raw.widedoor!.rules[0].impact = 'severe';
+        }),
+      ),
+    );
+    expect(wrong.message).toContain('widedoor-map.yaml');
   });
 
   it('rejects a veraPDF id that does not match clause and testNumber', () => {

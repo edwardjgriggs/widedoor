@@ -1,0 +1,115 @@
+name: Widedoor accessibility scan
+description: Scan web pages and PDFs against Section 508 and WCAG 2.1 AA and upload the results as SARIF.
+author: Widedoor contributors
+
+# Inputs reach the scan only through env (never ${{ }} inside run), and the
+# entry script builds the CLI argv itself (ledger ruling, Task 1.6).
+inputs:
+  urls:
+    description: Web pages to scan, one http or https URL per line.
+    required: false
+    default: ''
+  files:
+    description: Local PDF files to scan, one path per line, absolute or relative to the workspace.
+    required: false
+    default: ''
+  config:
+    description: Path to a widedoor.config.yaml, absolute or relative to the workspace. Without urls, files or config, ./widedoor.config.yaml is used when present.
+    required: false
+    default: ''
+  profile:
+    description: 508, wcag21aa or 508+wcag21aa. Empty means the config's profile (default 508+wcag21aa).
+    required: false
+    default: ''
+  fail-on:
+    description: Fail the step on a failed check at or above this impact (critical, serious, moderate, minor or none). Overrides the config's report.failOn.
+    required: false
+    default: serious
+  out:
+    description: Report folder, absolute or relative to the workspace.
+    required: false
+    default: widedoor-report
+  upload-sarif:
+    description: Upload report.sarif to GitHub code scanning (needs security-events write).
+    required: false
+    default: 'true'
+  sarif-category:
+    description: Code scanning category for the upload, to keep several Widedoor runs apart.
+    required: false
+    default: widedoor
+
+outputs:
+  exit-code:
+    description: The CLI exit code. 0 no failed check at or above fail-on, 1 at least one, 2 a tool error (including listed pages left out by the page cap).
+    value: ${{ steps.scan.outputs.exit-code }}
+  report-dir:
+    description: Absolute path of the report folder (report.html, report.json, report.sarif, evidence/).
+    value: ${{ steps.scan.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+        # No npm cache: the install reads only the committed lockfile.
+        package-manager-cache: false
+
+    # Builds the CLI from the action's own checkout; install scripts stay off, and
+    # devDependencies are kept even when the caller sets NODE_ENV=production. The
+    # build is not incremental: a self-hosted runner reuses this folder, so a
+    # dist or tsbuildinfo left by an earlier job must not survive.
+    - name: Install Widedoor
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH/../.."
+        npm ci --ignore-scripts --include=dev --no-audit --no-fund
+        rm -rf packages/*/dist
+        npm run build
+        npx --no-install playwright install --with-deps chromium
+
+    # Ubuntu 23.10 and later block the unprivileged user namespaces that the
+    # Chromium sandbox needs; allow them on GitHub-hosted runners only, rather
+    # than turning the sandbox off. Self-hosted runners keep their own policy.
+    - name: Allow the Chromium sandbox
+      if: runner.environment == 'github-hosted' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        if sysctl -n kernel.apparmor_restrict_unprivileged_userns > /dev/null 2>&1; then
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        fi
+
+    # Skipped for a URL-only scan: command-line targets replace the config's PDFs.
+    # Pull by digest; bump together with VERAPDF_IMAGE_REF in packages/pdf/src/verapdf.ts
+    # and the digest in .github/workflows/ci.yml (action.test.ts checks).
+    - name: Pull veraPDF image
+      if: runner.os == 'Linux' && (inputs.files != '' || inputs.urls == '')
+      shell: bash
+      env:
+        VERAPDF_DIGEST: sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
+      run: |
+        docker pull "verapdf/cli@${VERAPDF_DIGEST}"
+        docker tag "verapdf/cli@${VERAPDF_DIGEST}" verapdf/cli:v1.30.3
+
+    - name: Scan
+      id: scan
+      shell: bash
+      env:
+        INPUT_URLS: ${{ inputs.urls }}
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_PROFILE: ${{ inputs.profile }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_OUT: ${{ inputs.out }}
+        INPUT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+      run: node "$GITHUB_ACTION_PATH/dist/entry.js"
+
+    # Runs after a failing scan too (the step exits with the CLI's code), but
+    # not after a cancel, and only when the CLI wrote report.sarif.
+    - name: Upload SARIF
+      if: ${{ !cancelled() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
+      uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
+        category: ${{ inputs.sarif-category }}

@@ -1,0 +1,3205 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "widedoor",
+    "version": "0.0.0"
+  },
+  "engines": [
+    {
+      "name": "axe-core",
+      "version": "4.14.0"
+    },
+    {
+      "name": "verapdf",
+      "version": "1.30.3",
+      "runner": "docker"
+    },
+    {
+      "name": "widedoor",
+      "version": "0.0.0"
+    }
+  ],
+  "profile": {
+    "id": "wcag21aa",
+    "pdfDocumentType": "non-web"
+  },
+  "startedAt": "2026-10-22T12:00:00.000Z",
+  "finishedAt": "2026-10-22T12:05:00.000Z",
+  "scope": {
+    "web": {
+      "urls": [
+        "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "javascript:alert(5)"
+      ],
+      "truncated": false
+    },
+    "pdf": {
+      "files": [
+        "docs/annual report.pdf",
+        "docs/broken.pdf"
+      ],
+      "include": []
+    }
+  },
+  "assets": [
+    {
+      "kind": "web",
+      "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "kind": "pdf",
+      "uri": "docs/annual report.pdf",
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "titles": [
+    {
+      "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+      "title": "Contact us </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+    }
+  ],
+  "findings": [
+    {
+      "schemaVersion": 1,
+      "id": "wd_3cec12c46032865a",
+      "criteria": {
+        "wcag": [
+          "4.1.2"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "critical",
+      "evidence": {
+        "snippet": "<input id=\"phone\" type=\"tel\">",
+        "screenshot": "wd_label.png"
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "form > input#phone"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "label"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_3cec12c46032865a",
+      "criteria": {
+        "wcag": [
+          "4.1.2"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "critical",
+      "evidence": {
+        "snippet": "<input id=\"phone\" aria-label='</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>'>"
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "form > input#phone"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "label"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_636b5b8952d4c8eb",
+      "criteria": {
+        "wcag": [
+          "1.4.3"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "evidence": {
+        "snippet": "<p class=\"faint\"></style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)></p>",
+        "viewport": {
+          "width": 320,
+          "height": 256
+        }
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "p[title=\"</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>\"]"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "color-contrast"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_87dfc58f7b9a558c",
+      "criteria": {
+        "wcag": [
+          "2.4.4",
+          "4.1.2"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "evidence": {
+        "snippet": "<a href=\"javascript:alert(4)\"></a>"
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "a[href^=\"javascript:\"][id=\"{0} [Fix guide](https://evil.example/login) [x](1) \\[y\\]\"]"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "link-name"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_2a6c23bd84b57de8",
+      "criteria": {
+        "wcag": [
+          "1.1.1"
+        ]
+      },
+      "outcome": "needs-review",
+      "impact": "moderate",
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "img.logo"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "image-alt"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_8e81a1a4ab549cae",
+      "criteria": {
+        "wcag": [
+          "2.4.2"
+        ]
+      },
+      "outcome": "pass",
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "html"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "document-title"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_d11e353cd504d30d",
+      "criteria": {
+        "wcag": [
+          "1.1.1"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "asset": {
+        "kind": "pdf",
+        "uri": "docs/annual report.pdf",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "location": {
+        "page": 2,
+        "structPath": "Document/Sect[1]/Figure[1]"
+      },
+      "source": {
+        "engine": "verapdf",
+        "engineVersion": "1.30.3",
+        "ruleId": "7.3-1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_6ace2f5d3c1bf90a",
+      "criteria": {
+        "wcag": [
+          "2.4.2"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "asset": {
+        "kind": "pdf",
+        "uri": "docs/annual report.pdf",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "location": {},
+      "source": {
+        "engine": "widedoor",
+        "engineVersion": "0.0.0",
+        "ruleId": "pdf-title-displayed"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_9eff8471fa2b37f6",
+      "criteria": {
+        "wcag": [
+          "1.3.2"
+        ]
+      },
+      "outcome": "needs-review",
+      "impact": "moderate",
+      "asset": {
+        "kind": "pdf",
+        "uri": "docs/annual report.pdf",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "location": {},
+      "source": {
+        "engine": "widedoor",
+        "engineVersion": "0.0.0",
+        "ruleId": "pdf-reading-order"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_ee09a4749dff24c4",
+      "criteria": {
+        "wcag": [
+          "2.1.2"
+        ]
+      },
+      "outcome": "pass",
+      "plain": {
+        "what": "Keyboard focus never gets stuck.",
+        "who": "Keyboard users.",
+        "fix": "Nothing to fix."
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "body"
+      },
+      "source": {
+        "engine": "manual",
+        "engineVersion": "0.0.0",
+        "ruleId": "keyboard"
+      },
+      "review": {
+        "reviewer": "Edward </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>",
+        "date": "2026-10-21",
+        "notes": "Tabbed through the whole page.",
+        "expiresOnChangeOf": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "informational": [
+    {
+      "uri": "docs/annual report.pdf",
+      "engine": "verapdf",
+      "ruleId": "5-1",
+      "outcome": "fail",
+      "reason": "no PDF/UA identification"
+    }
+  ],
+  "errors": [
+    {
+      "kind": "web",
+      "uri": "javascript:alert(5)",
+      "code": "unsupported-url",
+      "message": "cannot scan </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+    },
+    {
+      "kind": "pdf",
+      "uri": "docs/broken.pdf",
+      "code": "malformed-pdf",
+      "engine": "verapdf",
+      "message": "not a PDF"
+    }
+  ],
+  "skipped": [
+    {
+      "uri": "https://example.com/out",
+      "finalUri": "https://evil.example/</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>",
+      "reason": "redirect-off-origin"
+    }
+  ],
+  "warnings": [
+    "Chromium ran without its OS sandbox <b></style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)></b>"
+  ],
+  "rollup": {
+    "profile": "wcag21aa",
+    "standards": [
+      {
+        "standard": "wcag21aa",
+        "criteria": [
+          {
+            "id": "1.1.1",
+            "title": "Non-text Content",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 5 applicable assets fail; none pass",
+            "evidence": [
+              "wd_d11e353cd504d30d"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-deciding-result",
+                "evidence": [],
+                "undecided": [
+                  "wd_2a6c23bd84b57de8"
+                ],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_d11e353cd504d30d"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.1",
+            "title": "Audio-only and Video-only (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.2",
+            "title": "Captions (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.3",
+            "title": "Audio Description or Media Alternative (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.4",
+            "title": "Captions (Live)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.5",
+            "title": "Audio Description (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.1",
+            "title": "Info and Relationships",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.2",
+            "title": "Meaningful Sequence",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-deciding-result",
+                "evidence": [],
+                "undecided": [
+                  "wd_9eff8471fa2b37f6"
+                ],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.3",
+            "title": "Sensory Characteristics",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.4",
+            "title": "Orientation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.5",
+            "title": "Identify Input Purpose",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.1",
+            "title": "Use of Color",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.2",
+            "title": "Audio Control",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.3",
+            "title": "Contrast (Minimum)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 5 applicable assets fail; none pass",
+            "evidence": [
+              "wd_636b5b8952d4c8eb"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_636b5b8952d4c8eb"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.4",
+            "title": "Resize Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.5",
+            "title": "Images of Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.10",
+            "title": "Reflow",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.11",
+            "title": "Non-text Contrast",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.12",
+            "title": "Text Spacing",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.13",
+            "title": "Content on Hover or Focus",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.1",
+            "title": "Keyboard",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.2",
+            "title": "No Keyboard Trap",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "4 of 5 applicable assets have no deciding result",
+            "evidence": [
+              "wd_ee09a4749dff24c4"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "pass",
+                "reason": "manual-pass",
+                "evidence": [
+                  "wd_ee09a4749dff24c4"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.4",
+            "title": "Character Key Shortcuts",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.1",
+            "title": "Timing Adjustable",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.2",
+            "title": "Pause, Stop, Hide",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.3.1",
+            "title": "Three Flashes or Below Threshold",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.1",
+            "title": "Bypass Blocks",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.2",
+            "title": "Page Titled",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 5 applicable assets fail; none pass",
+            "evidence": [
+              "wd_6ace2f5d3c1bf90a"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-deciding-result",
+                "evidence": [],
+                "undecided": [
+                  "wd_8e81a1a4ab549cae"
+                ],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_6ace2f5d3c1bf90a"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.3",
+            "title": "Focus Order",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.4",
+            "title": "Link Purpose (In Context)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 5 applicable assets fail; none pass",
+            "evidence": [
+              "wd_87dfc58f7b9a558c"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_87dfc58f7b9a558c"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.5",
+            "title": "Multiple Ways",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.6",
+            "title": "Headings and Labels",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.7",
+            "title": "Focus Visible",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.1",
+            "title": "Pointer Gestures",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.2",
+            "title": "Pointer Cancellation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.3",
+            "title": "Label in Name",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.4",
+            "title": "Motion Actuation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.1",
+            "title": "Language of Page",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.2",
+            "title": "Language of Parts",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.1",
+            "title": "On Focus",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.2",
+            "title": "On Input",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.3",
+            "title": "Consistent Navigation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.4",
+            "title": "Consistent Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.1",
+            "title": "Error Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.2",
+            "title": "Labels or Instructions",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.3",
+            "title": "Error Suggestion",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.4",
+            "title": "Error Prevention (Legal, Financial, Data)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.1",
+            "title": "Parsing",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.2",
+            "title": "Name, Role, Value",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 5 applicable assets fail; none pass",
+            "evidence": [
+              "wd_3cec12c46032865a",
+              "wd_87dfc58f7b9a558c"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_3cec12c46032865a",
+                  "wd_87dfc58f7b9a558c"
+                ],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.3",
+            "title": "Status Messages",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "5 of 5 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/annual report.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "javascript:alert(5)",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "docs/broken.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              },
+              {
+                "uri": "https://example.com/out",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "not-scanned",
+                "evidence": [],
+                "undecided": [],
+                "expired": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "disclaimer": "This report documents the testing performed. It is not a certification of conformance."
+}

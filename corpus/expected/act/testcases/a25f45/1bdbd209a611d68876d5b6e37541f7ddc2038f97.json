@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/a25f45/1bdbd209a611d68876d5b6e37541f7ddc2038f97.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "td-headers-attr",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

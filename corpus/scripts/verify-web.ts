@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { extname, isAbsolute, relative, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, type BrowserContext } from 'playwright';
-import { axeVersion, runAxe } from './lib/axe.ts';
+import { extname } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { WebScanner, isInside, type InterceptDecision } from '@widedoor/web';
 import {
   actAgreement,
   compareExact,
@@ -17,23 +16,25 @@ import {
 import { ACT_BASE } from './lib/act.ts';
 
 /*
- * Runs axe-core (WCAG 2.0/2.1 A and AA tags) on every web item in the manifest
- * and compares the results with corpus/expected.
+ * Runs the shipped web adapter (@widedoor/web: hardened Chromium, axe-core with
+ * WCAG 2.0/2.1 A and AA tags, desktop plus 320px reflow pass) on every web item
+ * in the manifest and compares the results with corpus/expected.
  *
  *   corpus items: exact match (see README). Any difference fails the run.
- *   ACT items:    the ACT-level outcome over the mapped axe rules must equal the
- *                 expected outcome. A confirmed item that disagrees fails the run;
- *                 a provisional one is counted.
+ *   ACT items:    the expected outcome is the ACT outcome. The ACT-level outcome
+ *                 over the mapped axe rules must equal it, or equal the item's
+ *                 recorded knownDisagreement exactly. Any other result (a new
+ *                 disagreement, a known one that went away, an unrecorded item)
+ *                 fails the run. Not-vendored test cases are skipped.
  *
- * --record rewrites the ACT expected files and manifest notes from this run:
- * agreeing items become confirmed, disagreeing ones provisional with a note. A
- * confirmed item that now disagrees still fails the run and is left as it was,
- * unless --allow-downgrade is also passed.
+ * --record rewrites the ACT expected files and manifest from this run: agreeing
+ * items become confirmed, disagreeing ones provisional with a knownDisagreement.
+ * A confirmed item that now disagrees still fails the run and is left as it
+ * was, unless --allow-downgrade is also passed.
  */
 
 const record = process.argv.includes('--record');
 const allowDowngrade = process.argv.includes('--allow-downgrade');
-const confirmedBy = `axe-core ${axeVersion}`;
 
 const MIME: Record<string, string> = {
   '.html': 'text/html',
@@ -49,37 +50,24 @@ const MIME: Record<string, string> = {
   '.js': 'text/javascript',
 };
 
-const inCorpus = (file: string) => {
-  const rel = relative(resolve(corpusDir), resolve(file));
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
-};
+const actDir = corpusPath('act');
 
 /**
- * No page may reach the network or files outside corpus/: corpus file URLs and
- * data URLs load, ACT URLs come from corpus/act, everything else is blocked.
+ * No page may reach the network: ACT URLs are served from corpus/act and every
+ * other http(s) request is blocked. The adapter itself keeps file: URLs inside
+ * corpus/ and closes WebSockets.
  */
-async function isolate(context: BrowserContext): Promise<void> {
-  await context.routeWebSocket(/.*/, (ws) => ws.close());
-  await context.route('**/*', async (route) => {
-    const url = route.request().url();
-    if (url.startsWith('file:')) {
-      return inCorpus(fileURLToPath(url)) ? route.continue() : route.abort('blockedbyclient');
-    }
-    if (url.startsWith(ACT_BASE)) {
-      const rel = decodeURIComponent(
-        new URL(url).pathname.slice(new URL(ACT_BASE).pathname.length),
-      );
-      const file = corpusPath(`act/${rel}`);
-      if (rel && inCorpus(file) && existsSync(file)) {
-        return route.fulfill({
-          body: readFileSync(file),
-          contentType: MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
-        });
-      }
-      return route.fulfill({ status: 404, body: '' });
-    }
-    return route.abort('blockedbyclient');
-  });
+function offline(url: string): InterceptDecision {
+  if (!url.startsWith(ACT_BASE)) return 'abort';
+  const rel = decodeURIComponent(new URL(url).pathname.slice(new URL(ACT_BASE).pathname.length));
+  const file = corpusPath(`act/${rel}`);
+  if (rel && isInside(actDir, file) && existsSync(file)) {
+    return {
+      body: readFileSync(file),
+      contentType: MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
+    };
+  }
+  return { status: 404, body: '' };
 }
 
 interface Outcome {
@@ -88,18 +76,25 @@ interface Outcome {
   detail: string;
 }
 
-async function check(context: BrowserContext, item: ManifestItem): Promise<Outcome> {
+async function check(scanner: WebScanner, item: ManifestItem): Promise<Outcome> {
   const expected = readExpected(item.expected);
-  const page = await context.newPage();
-  let actual: ExpectedEntry[];
-  try {
-    const url = item.act ? item.act.url : pathToFileURL(corpusPath(item.path)).href;
-    await page.goto(url, { waitUntil: 'load' });
-    actual = await runAxe(page);
-  } catch (e) {
-    return { item, ok: false, detail: `axe did not run: ${(e as Error).message.split('\n')[0]}` };
-  } finally {
-    await page.close();
+  const url = item.act ? item.act.url : pathToFileURL(corpusPath(item.path)).href;
+  const scan = await scanner.scanPage(url);
+  if (scan.error) {
+    // Stable tokens: these strings are what knownDisagreement records.
+    const detail =
+      scan.error.code === 'non-html-document'
+        ? 'not-run: non-html-document'
+        : `axe did not run: ${scan.error.message}`;
+    return { item, ok: false, detail };
+  }
+  const seen = new Set<string>();
+  const actual: ExpectedEntry[] = [];
+  for (const f of scan.findings) {
+    const entry = { engine: 'axe-core' as const, ruleId: f.source.ruleId, outcome: f.outcome };
+    const k = `${entry.ruleId} ${entry.outcome}`;
+    if (!seen.has(k)) actual.push(entry);
+    seen.add(k);
   }
 
   if (item.source === 'corpus') {
@@ -118,20 +113,18 @@ async function check(context: BrowserContext, item: ManifestItem): Promise<Outco
 
 const manifest = readManifest();
 const items = manifest.items.filter((i) => i.kind === 'web');
-const browser = await chromium.launch();
+const scanner = await WebScanner.launch({ fileRoot: corpusDir, intercept: offline });
+const confirmedBy = `axe-core ${scanner.engineVersion}`;
 const results: Outcome[] = [];
 try {
   const queue = [...items];
   const workers = Array.from({ length: 4 }, async () => {
-    const context = await browser.newContext();
-    await isolate(context);
     for (let item = queue.shift(); item; item = queue.shift())
-      results.push(await check(context, item));
-    await context.close();
+      results.push(await check(scanner, item));
   });
   await Promise.all(workers);
 } finally {
-  await browser.close();
+  await scanner.close();
 }
 results.sort((a, b) => a.item.path.localeCompare(b.item.path));
 
@@ -143,23 +136,53 @@ for (const r of corpus.filter((r) => !r.ok)) {
 }
 
 const act = results.filter((r) => r.item.source === 'act');
-let disagree = 0;
+const counts = { agree: 0, known: 0 };
+const fail = (path: string, why: string) => {
+  failures++;
+  console.error(`FAIL ${path}: ${why}`);
+};
 for (const r of act) {
   const file = readExpected(r.item.expected);
-  const downgrade = !file.provisional && !r.ok;
-  if (downgrade && !(record && allowDowngrade)) {
-    failures++;
-    console.error(`FAIL ${r.item.path}: ${r.detail}`);
-  } else if (record) {
-    writeJson(r.item.expected, {
-      ...file,
-      confirmedBy: r.ok ? confirmedBy : null,
-      provisional: !r.ok,
-    });
-    if (r.ok) delete r.item.note;
-    else r.item.note = `Provisional: ${r.detail}.`;
+  const known = r.item.knownDisagreement;
+  const isKnown = !r.ok && known?.engine === confirmedBy && known.result === r.detail;
+  if (r.ok) counts.agree++;
+  if (isKnown) counts.known++;
+
+  if (!record) {
+    if (r.ok && known)
+      fail(r.item.path, 'known disagreement no longer occurs; rerun with --record');
+    else if (r.ok && file.provisional)
+      fail(r.item.path, 'agrees but is not recorded; rerun with --record');
+    else if (!r.ok && !isKnown) fail(r.item.path, `new disagreement: ${r.detail}`);
+    continue;
   }
-  if (!r.ok) disagree++;
+  if (!r.ok && !file.provisional && !allowDowngrade) {
+    fail(r.item.path, `confirmed item now disagrees: ${r.detail}`);
+    continue;
+  }
+  writeJson(r.item.expected, {
+    ...file,
+    confirmedBy: r.ok ? confirmedBy : null,
+    provisional: !r.ok,
+  });
+  if (r.ok) {
+    if (known) {
+      console.log(
+        `recorded ${r.item.path}:\n  old: ${known.engine}: ${known.result}\n  new: agrees`,
+      );
+    }
+    delete r.item.note;
+    delete r.item.knownDisagreement;
+  } else {
+    if (known && !isKnown) {
+      console.log(
+        `recorded ${r.item.path}:\n  old: ${known.engine}: ${known.result}\n  new: ${confirmedBy}: ${r.detail}`,
+      );
+    }
+    r.item.note = `Known disagreement: the expected outcome is the ACT outcome; ${confirmedBy} differs (${r.detail}).`;
+    r.item.knownDisagreement = { engine: confirmedBy, result: r.detail };
+    if (!isKnown) counts.known++;
+  }
 }
 if (record) writeJson('manifest.json', manifest);
 
@@ -167,7 +190,8 @@ console.log(
   `corpus/web: ${corpus.filter((r) => r.ok).length}/${corpus.length} pages match ${confirmedBy}`,
 );
 console.log(
-  `corpus/act: ${act.length - disagree}/${act.length} test cases agree with ${confirmedBy}` +
+  `corpus/act: ${counts.agree}/${act.length} test cases agree with ${confirmedBy}, ` +
+    `${counts.known} known disagreements, ${manifest.notVendored.length} not vendored (skipped)` +
     (record ? ' (recorded)' : ''),
 );
 if (failures) {

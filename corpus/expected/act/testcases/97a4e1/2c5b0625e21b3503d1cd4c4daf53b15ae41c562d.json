@@ -1,0 +1,24 @@
+{
+  "item": "act/testcases/97a4e1/2c5b0625e21b3503d1cd4c4daf53b15ae41c562d.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-command-name",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "button-name",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "input-button-name",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

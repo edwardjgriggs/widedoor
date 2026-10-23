@@ -1,0 +1,1608 @@
+{
+  "$id": "urn:widedoor:schema:report:v1",
+  "title": "Widedoor Scan Report v1",
+  "description": "One Widedoor scan: run metadata, assets, findings (automated and manual) and the per-criterion roll-up. Finding ids can repeat across records; they are not unique keys.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "tool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "widedoor"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "engines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "axe-core",
+              "verapdf",
+              "widedoor"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "runner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "name",
+          "version"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "profile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "508",
+            "wcag21aa",
+            "508+wcag21aa"
+          ]
+        },
+        "pdfDocumentType": {
+          "type": "string",
+          "enum": [
+            "non-web",
+            "web"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "pdfDocumentType"
+      ],
+      "additionalProperties": false
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "web": {
+          "type": "object",
+          "properties": {
+            "urls": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "sitemap": {
+              "type": "string",
+              "minLength": 1
+            },
+            "crawl": {
+              "type": "object",
+              "properties": {
+                "sameOrigin": {
+                  "type": "boolean"
+                },
+                "maxPages": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "sameOrigin",
+                "maxPages"
+              ],
+              "additionalProperties": false
+            },
+            "maxPages": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "urls",
+            "truncated"
+          ],
+          "additionalProperties": false
+        },
+        "pdf": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "include": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "files",
+            "include"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "web",
+              "pdf"
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "kind",
+          "uri",
+          "contentHash"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "titles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "criteria": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "wcag"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "section508"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "fail",
+                  "needs-review",
+                  "not-applicable",
+                  "not-tested"
+                ]
+              },
+              "impact": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "serious",
+                  "moderate",
+                  "minor"
+                ]
+              },
+              "plain": {
+                "type": "object",
+                "properties": {
+                  "what": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "who": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fix": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "what",
+                  "who",
+                  "fix"
+                ],
+                "additionalProperties": false
+              },
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "snippet": {
+                    "type": "string"
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "viewport": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "asset": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "web"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "uri",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "selector": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "selector"
+                ],
+                "additionalProperties": false
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "axe-core",
+                      "verapdf",
+                      "widedoor"
+                    ]
+                  },
+                  "engineVersion": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ruleId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actRuleId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "engine",
+                  "engineVersion",
+                  "ruleId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "id",
+              "criteria",
+              "outcome",
+              "asset",
+              "location",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "criteria": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "wcag"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "section508"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "fail",
+                  "needs-review",
+                  "not-applicable",
+                  "not-tested"
+                ]
+              },
+              "impact": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "serious",
+                  "moderate",
+                  "minor"
+                ]
+              },
+              "plain": {
+                "type": "object",
+                "properties": {
+                  "what": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "who": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fix": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "what",
+                  "who",
+                  "fix"
+                ],
+                "additionalProperties": false
+              },
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "snippet": {
+                    "type": "string"
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "viewport": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "asset": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "web"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "uri",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "selector": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "selector"
+                ],
+                "additionalProperties": false
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "engine": {
+                    "type": "string",
+                    "const": "manual"
+                  },
+                  "engineVersion": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ruleId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actRuleId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "engine",
+                  "engineVersion",
+                  "ruleId"
+                ],
+                "additionalProperties": false
+              },
+              "review": {
+                "type": "object",
+                "properties": {
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "expiresOnChangeOf": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "reviewer",
+                  "date",
+                  "expiresOnChangeOf"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "id",
+              "criteria",
+              "outcome",
+              "asset",
+              "location",
+              "source",
+              "review"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "criteria": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "wcag"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "section508"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "fail",
+                  "needs-review",
+                  "not-applicable",
+                  "not-tested"
+                ]
+              },
+              "impact": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "serious",
+                  "moderate",
+                  "minor"
+                ]
+              },
+              "plain": {
+                "type": "object",
+                "properties": {
+                  "what": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "who": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fix": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "what",
+                  "who",
+                  "fix"
+                ],
+                "additionalProperties": false
+              },
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "snippet": {
+                    "type": "string"
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "viewport": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "asset": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pdf"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "uri",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "structPath": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "axe-core",
+                      "verapdf",
+                      "widedoor"
+                    ]
+                  },
+                  "engineVersion": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ruleId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actRuleId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "engine",
+                  "engineVersion",
+                  "ruleId"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "id",
+              "criteria",
+              "outcome",
+              "asset",
+              "location",
+              "source"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "criteria": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "wcag"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "wcag": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^\\d\\.\\d{1,2}\\.\\d{1,2}$"
+                        }
+                      },
+                      "section508": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^(?:[A-Z]\\d{3}|\\d{3})(?:\\.\\d+)*$"
+                        }
+                      },
+                      "baselineTest": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "section508"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "fail",
+                  "needs-review",
+                  "not-applicable",
+                  "not-tested"
+                ]
+              },
+              "impact": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "serious",
+                  "moderate",
+                  "minor"
+                ]
+              },
+              "plain": {
+                "type": "object",
+                "properties": {
+                  "what": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "who": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fix": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "what",
+                  "who",
+                  "fix"
+                ],
+                "additionalProperties": false
+              },
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "snippet": {
+                    "type": "string"
+                  },
+                  "screenshot": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "viewport": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "width",
+                      "height"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "asset": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "pdf"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "uri",
+                  "contentHash"
+                ],
+                "additionalProperties": false
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "structPath": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "engine": {
+                    "type": "string",
+                    "const": "manual"
+                  },
+                  "engineVersion": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ruleId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actRuleId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "engine",
+                  "engineVersion",
+                  "ruleId"
+                ],
+                "additionalProperties": false
+              },
+              "review": {
+                "type": "object",
+                "properties": {
+                  "reviewer": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "expiresOnChangeOf": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "required": [
+                  "reviewer",
+                  "date",
+                  "expiresOnChangeOf"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "id",
+              "criteria",
+              "outcome",
+              "asset",
+              "location",
+              "source",
+              "review"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "informational": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "engine": {
+            "type": "string",
+            "const": "verapdf"
+          },
+          "ruleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "not-applicable"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uri",
+          "engine",
+          "ruleId",
+          "outcome",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "web",
+              "pdf"
+            ]
+          },
+          "uri": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "verapdf",
+              "widedoor"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "uri",
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finalUri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "uri",
+          "finalUri",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scopeGaps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rollup": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "508",
+            "wcag21aa",
+            "508+wcag21aa"
+          ]
+        },
+        "standards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "standard": {
+                "type": "string",
+                "enum": [
+                  "508",
+                  "wcag21aa"
+                ]
+              },
+              "criteria": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "wcag",
+                        "section508"
+                      ]
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "asset",
+                        "product"
+                      ]
+                    },
+                    "condition": {
+                      "type": "object",
+                      "properties": {
+                        "provision": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "provision",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "level": {
+                      "type": "string",
+                      "enum": [
+                        "Supports",
+                        "Partially Supports",
+                        "Does Not Support",
+                        "Not Applicable",
+                        "Not Evaluated"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^wd_[0-9a-f]{16}$"
+                      }
+                    },
+                    "assets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "uri": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "web",
+                              "pdf"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "fail",
+                              "not-applicable",
+                              "not-evaluated"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "automated-fail",
+                              "manual-fail",
+                              "deciding-automated-pass",
+                              "manual-pass",
+                              "profile-not-applicable",
+                              "manual-not-applicable",
+                              "no-deciding-result",
+                              "no-results",
+                              "not-scanned"
+                            ]
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^wd_[0-9a-f]{16}$"
+                            }
+                          },
+                          "undecided": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^wd_[0-9a-f]{16}$"
+                            }
+                          },
+                          "expired": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^wd_[0-9a-f]{16}$"
+                            }
+                          },
+                          "exception": {
+                            "type": "object",
+                            "properties": {
+                              "provision": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "reason": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "provision",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "uri",
+                          "kind",
+                          "state",
+                          "reason",
+                          "evidence",
+                          "undecided",
+                          "expired"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pass",
+                            "fail",
+                            "not-applicable",
+                            "not-evaluated"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "automated-fail",
+                            "manual-fail",
+                            "deciding-automated-pass",
+                            "manual-pass",
+                            "profile-not-applicable",
+                            "manual-not-applicable",
+                            "no-deciding-result",
+                            "no-results",
+                            "not-scanned"
+                          ]
+                        },
+                        "evidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wd_[0-9a-f]{16}$"
+                          }
+                        },
+                        "undecided": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wd_[0-9a-f]{16}$"
+                          }
+                        },
+                        "expired": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wd_[0-9a-f]{16}$"
+                          }
+                        },
+                        "exception": {
+                          "type": "object",
+                          "properties": {
+                            "provision": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "reason": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "provision",
+                            "reason"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "reason",
+                        "evidence",
+                        "undecided",
+                        "expired"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "scope",
+                    "level",
+                    "reason",
+                    "evidence",
+                    "assets"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "standard",
+              "criteria"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "profile",
+        "standards"
+      ],
+      "additionalProperties": false
+    },
+    "disclaimer": {
+      "type": "string",
+      "const": "This report documents the testing performed. It is not a certification of conformance."
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "tool",
+    "engines",
+    "profile",
+    "startedAt",
+    "finishedAt",
+    "scope",
+    "assets",
+    "titles",
+    "findings",
+    "informational",
+    "errors",
+    "skipped",
+    "warnings",
+    "rollup",
+    "disclaimer"
+  ],
+  "additionalProperties": false
+}

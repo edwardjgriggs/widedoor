@@ -50,23 +50,40 @@
     },
     {
       "engine": "widedoor",
+      "ruleId": "pdf-alt-text-quality",
+      "outcome": "needs-review"
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-bookmarks",
+      "outcome": "not-applicable"
+    },
+    {
+      "engine": "widedoor",
       "ruleId": "pdf-image-only",
-      "outcome": "pass",
-      "provisional": true
+      "outcome": "pass"
     },
     {
       "engine": "widedoor",
       "ruleId": "pdf-language",
-      "outcome": "fail",
-      "provisional": true
+      "outcome": "fail"
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-reading-order",
+      "outcome": "needs-review"
+    },
+    {
+      "engine": "widedoor",
+      "ruleId": "pdf-table-logic",
+      "outcome": "needs-review"
     },
     {
       "engine": "widedoor",
       "ruleId": "pdf-title-displayed",
-      "outcome": "fail",
-      "provisional": true
+      "outcome": "fail"
     }
   ],
-  "confirmedBy": "veraPDF 1.30.3",
-  "provisional": true
+  "confirmedBy": "veraPDF 1.30.3, Widedoor 0.0.0",
+  "provisional": false
 }

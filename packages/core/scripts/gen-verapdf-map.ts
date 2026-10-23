@@ -13,118 +13,154 @@ const BRANCH = 'rel/1.30';
 const COMMIT = 'c4f57effb0d3618827c87bd71882930d752be6e3';
 const PROFILE = 'PDF_UA/PDFUA-1.xml';
 
-type Mapped = { wcag: string[]; basis: string };
+/**
+ * impact is the default severity of a fail (the Task 1.4 failOn threshold reads
+ * it): critical when the document as a whole is unusable with assistive
+ * technology (no structure tree, AT access denied), serious when content or its
+ * structure, alternatives, language or title are missing, moderate otherwise.
+ */
+type Mapped = {
+  wcag: string[];
+  impact: 'critical' | 'serious' | 'moderate' | 'minor';
+  basis: string;
+};
 type Unmapped = { reason: string };
 
 const TAGGED: Mapped = {
+  impact: 'critical',
   wcag: ['1.3.1'],
   basis:
     'Every W3C PDF technique for structure (PDF6, PDF9, PDF21) applies to tagged PDF; without a valid structure tree, structure and relationships are not programmatically determinable (SC 1.3.1).',
 };
+// Same basis as TAGGED, but one element or form XObject at fault, not the whole document.
+const TAGGED_PART: Mapped = { ...TAGGED, impact: 'serious' };
 const ARTIFACT: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1'],
   basis:
     'Matterhorn checkpoint 01 (real content tagged). Real content must sit in the structure tree and only incidental content may be an Artifact (PDF4), or structure is not programmatically determinable (SC 1.3.1).',
 };
 const ROLE_MAP: Mapped = {
+  impact: 'moderate',
   wcag: ['1.3.1'],
   basis:
     'Matterhorn checkpoint 02 (role mapping). Assistive technology reads semantics from standard structure types, which PDF6, PDF9 and PDF21 rely on for SC 1.3.1.',
 };
 const TITLE: Mapped = {
+  impact: 'serious',
   wcag: ['2.4.2'],
   basis:
     'PDF18 (document title, shown via DisplayDocTitle) relates to SC 2.4.2 Page Titled (Sufficient with G88).',
 };
 const LANG: Mapped = {
+  impact: 'serious',
   wcag: ['3.1.1', '3.1.2'],
   basis:
     'PDF16 (default language via /Lang) relates to SC 3.1.1; PDF19 (/Lang for passages) relates to SC 3.1.1 and 3.1.2.',
 };
 const TABLE: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1'],
   basis: 'PDF6 (table elements for table markup) and PDF20 relate to SC 1.3.1.',
 };
 const LIST: Mapped = {
+  impact: 'moderate',
   wcag: ['1.3.1'],
   basis: 'PDF21 (List tags for lists) relates to SC 1.3.1.',
 };
 const TOC: Mapped = {
+  impact: 'moderate',
   wcag: ['1.3.1'],
   basis:
     'Matterhorn checkpoint 09 (appropriate tags). TOC and TOCI nesting is how a table of contents structure is programmatically determined (SC 1.3.1).',
 };
 const HEADING: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1'],
   basis: 'PDF9 (heading tags) relates to SC 1.3.1.',
 };
 const FIGURE_ALT: Mapped = {
+  impact: 'serious',
   wcag: ['1.1.1'],
   basis: 'PDF1 (Alt entry as text alternative for images) relates to SC 1.1.1.',
 };
 const FORMULA_ALT: Mapped = {
+  impact: 'serious',
   wcag: ['1.1.1'],
   basis:
     'A formula without Alt or ActualText is non-text content without a text alternative; PDF1 is the Alt technique for SC 1.1.1.',
 };
 const NOTE_ID: Mapped = {
+  impact: 'moderate',
   wcag: ['1.3.1'],
   basis:
     'Matterhorn checkpoint 19 (notes and references). Unique Note ids let the reference-to-note relationship be programmatically determined (SC 1.3.1).',
 };
 const ANNOT_TAGGED: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1'],
   basis:
     'Matterhorn checkpoint 28 (annotations). Annotations outside the structure tree are outside structure and reading order; PDF11 uses the same structure-plus-annotation pattern for SC 1.3.1.',
 };
 const ANNOT_ALT: Mapped = {
+  impact: 'serious',
   wcag: ['1.1.1'],
   basis: "An annotation's Contents or Alt entry is its text alternative (SC 1.1.1).",
 };
 const FIELD_NAME: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1', '4.1.2'],
   basis:
     'PDF10 and PDF12: the TU entry or Alt supplies the accessible name of a form field (SC 4.1.2; also SC 1.3.1).',
 };
 const TAB_ORDER: Mapped = {
+  impact: 'moderate',
   wcag: ['2.4.3'],
   basis: 'PDF3 (correct tab and reading order) relates to SC 2.4.3 Focus Order.',
 };
 const WIDGET: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1', '4.1.2'],
   basis:
     'PDF12 (name, role, value for form fields): the Form structure element exposes the role of the widget (SC 4.1.2, 1.3.1).',
 };
 const LINK_TAGGED: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1', '2.4.4'],
   basis: 'PDF11 (Link annotation with Link structure element) relates to SC 1.3.1 and 2.4.4.',
 };
 const LINK_ALT: Mapped = {
+  impact: 'serious',
   wcag: ['2.4.4'],
   basis: 'PDF13 (replacement text for links) relates to SC 2.4.4.',
 };
 const MEDIA_ALT: Mapped = {
+  impact: 'serious',
   wcag: ['1.1.1'],
   basis:
     'SC 1.1.1 requires time-based media to have a text alternative that at least identifies it; the media clip Alt key carries it.',
 };
 
 const UNICODE: Mapped = {
+  impact: 'serious',
   wcag: ['1.1.1', '1.3.1'],
   basis:
     'WCAG defines text as a sequence of characters that can be programmatically determined, and non-text content as any content that is not. Glyphs without a Unicode mapping cannot be extracted by assistive technology, so they are non-text content without a text alternative (SC 1.1.1) and their information is not programmatically determinable (SC 1.3.1).',
 };
 const AT_PERMISSION: Mapped = {
+  impact: 'critical',
   wcag: ['1.3.1', '4.1.2'],
   basis:
     'If the encryption permissions deny content extraction for accessibility, assistive technology cannot read the text, structure or form fields, so structure (SC 1.3.1) and name, role and value of controls (SC 4.1.2) are not programmatically determinable.',
 };
 const DYNAMIC_XFA: Mapped = {
+  impact: 'serious',
   wcag: ['1.3.1', '4.1.2'],
   basis:
     'Dynamic XFA content and fields are not expressed in the tagged PDF structure tree, so structure (SC 1.3.1) and the form field name, role and value that PDF12 exposes (SC 4.1.2) are not available to assistive technology through PDF accessibility support.',
 };
 const REFERENCE_XOBJECT: Mapped = {
+  impact: 'moderate',
   wcag: ['1.3.1'],
   basis:
     'A reference XObject imports content from another file, which is not part of the structure tree of this document, so its structure is not programmatically determinable (SC 1.3.1).',
@@ -156,7 +192,7 @@ const MAP: Record<string, Mapped | Unmapped> = {
   '7.1-9': TITLE,
   '7.1-10': TITLE,
   '7.1-11': TAGGED,
-  '7.1-12': TAGGED,
+  '7.1-12': TAGGED_PART,
   '7.2-2': LANG,
   '7.2-3': TABLE,
   '7.2-4': TABLE,
@@ -226,7 +262,7 @@ const MAP: Record<string, Mapped | Unmapped> = {
   '7.18.6.2-2': MEDIA_ALT,
   '7.18.8-1': { reason: 'PrinterMark annotations are print production artifacts. ' + FORMAT },
   '7.20-1': REFERENCE_XOBJECT,
-  '7.20-2': TAGGED,
+  '7.20-2': TAGGED_PART,
   '7.21.3.1-1': { reason: FONT },
   '7.21.3.2-1': { reason: FONT },
   '7.21.3.3-1': { reason: FONT },
@@ -267,6 +303,7 @@ for (const { clause, testNumber } of ids) {
       clause,
       testNumber,
       wcag: [...entry.wcag],
+      impact: entry.impact,
       decides: false,
       basis: entry.basis,
     });
@@ -286,7 +323,10 @@ await writeYaml(
     'Rule id is "<clause>-<testNumber>" as veraPDF reports it for specification "ISO 14289-1:2014"',
     '(the profile names it ISO_14289_1). Mapping basis: W3C PDF techniques PDF1 to PDF23 and the',
     'Matterhorn Protocol 1.1 checkpoints. decides is false for every rule: a PDF/UA pass does not',
-    'show that the content meets the SC (for example Alt present is not Alt equivalent).',
+    'show that the content meets the SC (for example Alt present is not Alt equivalent). impact is',
+    'the default severity of a fail: critical when the whole document is unusable with assistive',
+    'technology, serious when content, structure, alternatives, language or title are missing,',
+    'moderate otherwise.',
     'Regenerate: npm run data:verapdf -w @widedoor/core',
   ],
   {

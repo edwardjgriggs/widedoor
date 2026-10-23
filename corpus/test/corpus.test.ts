@@ -1,7 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { loadStandardsData } from '../../packages/core/src/data.ts';
-import { ACT_BASE, ACT_TO_OUTCOME } from '../scripts/lib/act.ts';
+import { ACT_BASE, ACT_MIRROR, ACT_TO_OUTCOME } from '../scripts/lib/act.ts';
+import { ALLOWED_FONT, pdfFonts } from '../scripts/lib/pdf-fonts.ts';
 import {
   ExpectedFileSchema,
   UNLISTED,
@@ -55,11 +57,18 @@ describe('corpus manifest', () => {
     }
   });
 
-  it('has the four PDF cases', () => {
+  it('has the XSS page for the HTML report test, outside the families', () => {
+    const xss = manifest.items.find((i) => i.path === 'web/xss.html');
+    expect(xss?.family).toBeUndefined();
+    expect(
+      manifest.items.filter((i) => i.kind === 'web' && i.source === 'corpus' && !i.family),
+    ).toEqual([xss]);
+  });
+
+  it('has the five PDF cases', () => {
     const pdfs = manifest.items.filter((i) => i.kind === 'pdf').map((i) => i.path);
-    expect(pdfs.sort()).toEqual(
-      ['clean-pdfua', 'scanned-image-only', 'tagged-broken', 'untagged'].map((n) => `pdf/${n}.pdf`),
-    );
+    const names = ['clean-pdfua', 'malformed', 'scanned-image-only', 'tagged-broken', 'untagged'];
+    expect(pdfs.sort()).toEqual(names.map((n) => `pdf/${n}.pdf`));
   });
 });
 
@@ -99,7 +108,7 @@ describe('corpus/web pages', () => {
   };
 
   it('pair a finding on the target rule with a clean twin that passes it', () => {
-    for (const page of pages) {
+    for (const page of pages.filter((p) => p.family !== undefined)) {
       const target = TARGET[page.family!];
       expect(target, page.path).toBeDefined();
       const entries = readExpected(page.expected).expected;
@@ -117,6 +126,36 @@ describe('corpus/web pages', () => {
           outcome: 'pass',
         });
       }
+    }
+  });
+});
+
+describe('corpus PDF fonts', () => {
+  it('vendor Liberation Sans exactly as recorded in fonts/source.json', () => {
+    const source = JSON.parse(readFileSync(corpusPath('fonts/source.json'), 'utf8'));
+    expect(Object.keys(source.files).sort()).toEqual(
+      files
+        .filter((f) => f.startsWith('fonts/') && f !== 'fonts/source.json')
+        .map((f) => f.slice(6)),
+    );
+    for (const [file, sha256] of Object.entries(source.files)) {
+      const bytes = readFileSync(corpusPath(`fonts/${file}`));
+      expect(createHash('sha256').update(bytes).digest('hex'), file).toBe(sha256);
+    }
+  });
+
+  it('embed no font other than Liberation Sans', async () => {
+    const readable = manifest.items.filter(
+      (i) => i.kind === 'pdf' && readExpected(i.expected).error === undefined,
+    );
+    for (const item of readable) {
+      const fonts = await pdfFonts(readFileSync(corpusPath(item.path)));
+      expect(
+        fonts.filter((f) => !ALLOWED_FONT.test(f)),
+        item.path,
+      ).toEqual([]);
+      const scanned = item.path === 'pdf/scanned-image-only.pdf';
+      expect(fonts.length === 0, item.path).toBe(scanned);
     }
   });
 });
@@ -146,19 +185,25 @@ describe('expected files', () => {
     }
   });
 
-  it('confirm every corpus web page with axe-core and every PDF with veraPDF', () => {
+  it('confirm every corpus web page with axe-core and every PDF with veraPDF and Widedoor', () => {
     for (const item of manifest.items.filter((i) => i.source === 'corpus')) {
       const file = readExpected(item.expected);
-      const engine = item.kind === 'web' ? 'axe-core' : 'veraPDF';
-      expect(file.confirmedBy, item.path).toMatch(new RegExp(`^${engine} `));
-      // Web pages are fully confirmed; PDFs only miss the Widedoor checks of Task 1.2.
-      const open = file.expected.filter((e) => e.provisional);
+      const engines =
+        item.kind === 'web' ? 'axe-core [0-9.]+' : 'veraPDF [0-9.]+, Widedoor [0-9.]+';
+      expect(file.confirmedBy, item.path).toMatch(new RegExp(`^${engines}$`));
+      expect(file.provisional, item.path).toBe(false);
       expect(
-        open.every((e) => e.engine === 'widedoor'),
+        file.expected.filter((e) => e.provisional),
         item.path,
-      ).toBe(true);
-      expect(file.provisional, item.path).toBe(open.length > 0);
+      ).toEqual([]);
+      if (item.kind === 'web') expect(file.error, item.path).toBeUndefined();
     }
+  });
+
+  it('expect a scan error only with no findings, and only for the malformed PDF', () => {
+    const withError = manifest.items.filter((i) => readExpected(i.expected).error !== undefined);
+    expect(withError.map((i) => i.path)).toEqual(['pdf/malformed.pdf']);
+    expect(readExpected('expected/pdf/malformed.json').error).toEqual({ code: 'malformed-pdf' });
   });
 
   it('reject malformed files', () => {
@@ -176,6 +221,8 @@ describe('expected files', () => {
         ],
       },
       { ...good, extra: true },
+      { ...good, error: { code: 'malformed-pdf' } },
+      { ...good, expected: [], error: { code: '' } },
     ];
     for (const b of bad)
       expect(ExpectedFileSchema.safeParse(b).success, JSON.stringify(b)).toBe(false);
@@ -231,6 +278,61 @@ describe('vendored ACT test cases', () => {
       const act = item.act!;
       expect(file.expected.map((e) => e.ruleId).sort()).toEqual(rulesFor(act.ruleId));
       for (const e of file.expected) expect(e.outcome).toBe(ACT_TO_OUTCOME[act.outcome]);
+    }
+  });
+
+  it('are byte-identical to the copies recorded in act/source.json', () => {
+    if (!vendoredAny) return;
+    const source = JSON.parse(readFileSync(corpusPath('act/source.json'), 'utf8'));
+    const recorded = source.sha256 as Record<string, string>;
+    const vendored = files
+      .filter((f) => f.startsWith('act/testcases/') || f.startsWith('act/test-assets/'))
+      .map((f) => f.slice('act/'.length));
+    expect(Object.keys(recorded).sort()).toEqual([...vendored].sort());
+    const drift = vendored.filter((f) => {
+      const bytes = readFileSync(corpusPath(`act/${f}`));
+      return createHash('sha256').update(bytes).digest('hex') !== recorded[f];
+    });
+    expect(drift).toEqual([]);
+  });
+
+  it('stay under 5 MB, with no vendored asset over 1 MB', () => {
+    const vendored = files.filter(
+      (f) => f.startsWith('act/testcases/') || f.startsWith('act/test-assets/'),
+    );
+    const size = (f: string) => statSync(corpusPath(f)).size;
+    expect(vendored.reduce((n, f) => n + size(f), 0)).toBeLessThan(5 * 1024 * 1024);
+    for (const f of vendored.filter((f) => f.startsWith('act/test-assets/'))) {
+      expect(size(f), f).toBeLessThanOrEqual(1024 * 1024);
+    }
+  });
+
+  it('list every test case left out with its pinned upstream copy and a reason', () => {
+    if (!vendoredAny) return expect(manifest.notVendored).toEqual([]);
+    const source = JSON.parse(readFileSync(corpusPath('act/source.json'), 'utf8'));
+    expect(source.testcasesNotVendored).toBe(manifest.notVendored.length);
+    const vendoredIds = new Set(actItems.map((i) => i.act!.testcaseId + i.act!.ruleId));
+    for (const n of manifest.notVendored) {
+      const rel = n.act.url.slice(ACT_BASE.length);
+      expect(n.act.url.startsWith(ACT_BASE), n.act.url).toBe(true);
+      expect(n.upstream).toBe(`${ACT_MIRROR}${rel}`);
+      expect(n.reason).toMatch(/over 1048576 bytes/);
+      expect(existsSync(corpusPath(`act/${rel}`)), rel).toBe(false);
+      expect(vendoredIds.has(n.act.testcaseId + n.act.ruleId), rel).toBe(false);
+    }
+  });
+
+  it('confirm agreeing test cases and track the rest as known disagreements', () => {
+    for (const item of actItems) {
+      const file = readExpected(item.expected);
+      if (file.provisional) {
+        expect(file.confirmedBy, item.path).toBeNull();
+        expect(item.knownDisagreement?.engine, item.path).toMatch(/^axe-core [0-9]/);
+        expect(item.note, item.path).toMatch(/^Known disagreement/);
+      } else {
+        expect(file.confirmedBy, item.path).toMatch(/^axe-core [0-9]/);
+        expect(item.knownDisagreement, item.path).toBeUndefined();
+      }
     }
   });
 });

@@ -5,6 +5,12 @@ import {
   type StandardsData,
   type WcagCriterion,
 } from './data.js';
+import {
+  PROFILE_IDS,
+  type PdfDocumentType,
+  type ProfileId,
+  type StandardId,
+} from './profile-ids.js';
 import type { AssetKind } from './schema.js';
 
 /*
@@ -15,11 +21,7 @@ import type { AssetKind } from './schema.js';
  * Task 0.6 roll-up consumes this object; there is no other applicability source.
  */
 
-export const PROFILE_IDS = ['508', 'wcag21aa', '508+wcag21aa'] as const;
-export type ProfileId = (typeof PROFILE_IDS)[number];
-export type StandardId = '508' | 'wcag21aa';
-/** Whether a PDF counts as a non-web document (E205.4 exceptions apply) or as web content. */
-export type PdfDocumentType = 'non-web' | 'web';
+export * from './profile-ids.js';
 
 export type ProfileCriterion = Pick<WcagCriterion, 'id' | 'title' | 'level' | 'version'>;
 

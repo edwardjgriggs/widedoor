@@ -1,0 +1,11 @@
+{
+  "name": "SARIF 2.1.0 JSON schema (OASIS Standard plus Errata 01)",
+  "file": "sarif-schema-2.1.0.json",
+  "sha256": "c3b4bb2d6093897483348925aaa73af03b3e3f4bd4ca38cef26dcb4212a2682e",
+  "repository": "https://github.com/oasis-tcs/sarif-spec",
+  "commit": "1742a253eb654bf8a4ed7c60eaef7412b2c23553",
+  "path": "sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "published": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "retrieved": "2026-10-22",
+  "note": "The file at the commit and the published OASIS Standard file are byte-identical."
+}

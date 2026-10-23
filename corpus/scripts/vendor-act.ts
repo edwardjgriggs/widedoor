@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve, sep } from 'node:path';
 import { loadStandardsData } from '../../packages/core/src/data.ts';
@@ -26,11 +27,13 @@ import {
  * outcome and replaces the ACT entries in manifest.json. Run verify-web.ts with
  * --record afterwards to confirm them against axe-core.
  *
- * Refuses to write more than MAX_BYTES unless --allow-large is passed.
+ * Assets over MAX_ASSET_BYTES are not vendored; a test case that needs one is
+ * listed in manifest.notVendored with its pinned upstream URL instead. Nothing
+ * is written when the vendored total would exceed MAX_BYTES.
  */
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const allowLarge = process.argv.includes('--allow-large');
+const MAX_ASSET_BYTES = 1024 * 1024;
 
 interface Testcase {
   ruleId: string;
@@ -102,35 +105,56 @@ for (const t of cases) {
 const withoutCases = [...axeRulesFor.keys()].filter((id) => !cases.some((t) => t.ruleId === id));
 
 const files = new Map<string, Buffer>();
-const pending: string[] = [];
+const refs = new Map<string, string[]>();
 for (const t of cases) {
   const body = await get(t.url);
   files.set(t.url, body);
-  pending.push(...assetRefs(body, t.url));
+  refs.set(t.url, assetRefs(body, t.url));
 }
 const missingAssets: string[] = [];
+const pending = [...new Set([...refs.values()].flat())];
 for (let url = pending.shift(); url; url = pending.shift()) {
   if (files.has(url) || missingAssets.includes(url)) continue;
   try {
     const body = await get(url);
     files.set(url, body);
-    if (textual(url)) pending.push(...assetRefs(body, url));
+    refs.set(url, textual(url) ? assetRefs(body, url) : []);
+    pending.push(...(refs.get(url) ?? []));
   } catch (e) {
     missingAssets.push(url);
     console.warn(`asset not fetched: ${(e as Error).message}`);
   }
 }
 
-const total = [...files.values()].reduce((n, b) => n + b.length, 0);
-console.log(`${cases.length} test cases, ${files.size} files, ${total} bytes`);
-if (total > MAX_BYTES && !allowLarge) {
-  const caseBytes = cases.reduce((n, t) => n + (files.get(t.url)?.length ?? 0), 0);
-  console.error(`test cases ${caseBytes} bytes, test assets ${total - caseBytes} bytes; largest:`);
-  [...files]
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 8)
-    .forEach(([url, body]) => console.error(`  ${body.length} ${url.slice(ACT_BASE.length)}`));
-  console.error(`over ${MAX_BYTES} bytes; nothing written (pass --allow-large to vendor anyway)`);
+/** Every fetched asset a test case loads, directly or through another asset. */
+function closure(url: string): string[] {
+  const seen = new Set<string>();
+  const queue = [...(refs.get(url) ?? [])];
+  for (let next = queue.shift(); next; next = queue.shift()) {
+    if (seen.has(next) || !files.has(next)) continue;
+    seen.add(next);
+    queue.push(...(refs.get(next) ?? []));
+  }
+  return [...seen].sort();
+}
+
+const rel = (url: string) => url.slice(ACT_BASE.length);
+const vendored: Testcase[] = [];
+const skipped: { testcase: Testcase; large: string[] }[] = [];
+for (const t of cases) {
+  const large = closure(t.url).filter((u) => (files.get(u)?.length ?? 0) > MAX_ASSET_BYTES);
+  if (large.length) skipped.push({ testcase: t, large });
+  else vendored.push(t);
+}
+const keep = new Set(vendored.flatMap((t) => [t.url, ...closure(t.url)]));
+const total = [...keep].reduce((n, u) => n + (files.get(u)?.length ?? 0), 0);
+const caseBytes = vendored.reduce((n, t) => n + (files.get(t.url)?.length ?? 0), 0);
+console.log(
+  `${vendored.length}/${cases.length} test cases vendored, ${keep.size} files, ${total} bytes ` +
+    `(test cases ${caseBytes}, assets ${total - caseBytes}); ${skipped.length} need an asset over ${MAX_ASSET_BYTES} bytes`,
+);
+if (total > MAX_BYTES) {
+  console.error(`over ${MAX_BYTES} bytes; nothing written`);
   process.exit(1);
 }
 
@@ -138,16 +162,16 @@ rmSync(corpusPath('act/testcases'), { recursive: true, force: true });
 rmSync(corpusPath('act/test-assets'), { recursive: true, force: true });
 rmSync(corpusPath('expected/act'), { recursive: true, force: true });
 const actRoot = resolve(corpusPath('act'));
-const write = (rel: string, body: Buffer | string) => {
-  if (!resolve(corpusPath(rel)).startsWith(actRoot + sep))
-    throw new Error(`outside corpus/act: ${rel}`);
-  mkdirSync(dirname(corpusPath(rel)), { recursive: true });
-  writeFileSync(corpusPath(rel), body);
+const write = (path: string, body: Buffer | string) => {
+  if (!resolve(corpusPath(path)).startsWith(actRoot + sep))
+    throw new Error(`outside corpus/act: ${path}`);
+  mkdirSync(dirname(corpusPath(path)), { recursive: true });
+  writeFileSync(corpusPath(path), body);
 };
-for (const [url, body] of files) write(`act/${url.slice(ACT_BASE.length)}`, body);
+for (const url of keep) write(`act/${rel(url)}`, files.get(url)!);
 
 const retrieved = new Date().toISOString().slice(0, 10);
-const items: ManifestItem[] = cases.map((t) => {
+const items: ManifestItem[] = vendored.map((t) => {
   const path = `act/${t.relativePath}`;
   const expected = expectedPathFor(path);
   const outcome = ACT_TO_OUTCOME[t.expected];
@@ -191,18 +215,40 @@ writeJson('act/source.json', {
   selection: 'test cases of every ACT rule referenced by packages/core/data/axe-map.yaml',
   actRules: [...axeRulesFor.keys()].sort(),
   actRulesWithoutTestcases: withoutCases.sort(),
-  testcases: cases.length,
-  files: files.size,
+  testcases: vendored.length,
+  testcasesNotVendored: skipped.length,
+  maxAssetBytes: MAX_ASSET_BYTES,
+  files: keep.size,
   bytes: total,
   assetsNotFetched: missingAssets.sort(),
+  /** sha256 of every vendored file as fetched; npm test rehashes the files against it. */
+  sha256: Object.fromEntries(
+    [...keep]
+      .map((u) => [rel(u), createHash('sha256').update(files.get(u)!).digest('hex')])
+      .sort(([a], [b]) => a!.localeCompare(b!)),
+  ),
 });
 
 const manifest = readManifest();
-const assets = [...files.keys()]
+const assets = [...keep]
   .filter((u) => u.startsWith(`${ACT_BASE}test-assets/`))
   .map((u) => `act/${u.slice(ACT_BASE.length)}`)
   .sort();
 manifest.items = [...manifest.items.filter((i) => i.source !== 'act'), ...items];
+manifest.notVendored = skipped.map(({ testcase: t, large }) => ({
+  act: {
+    ruleId: t.ruleId,
+    testcaseId: t.testcaseId,
+    title: t.testcaseTitle,
+    outcome: t.expected,
+    ...(t.approved === undefined ? {} : { approved: t.approved }),
+    url: t.url,
+  },
+  upstream: `${ACT_MIRROR}${rel(t.url)}`,
+  reason: `needs assets over ${MAX_ASSET_BYTES} bytes: ${large
+    .map((u) => `${rel(u)} (${files.get(u)?.length} bytes)`)
+    .join(', ')}`,
+}));
 manifest.supportFiles = [
   ...manifest.supportFiles.filter((f) => !f.path.startsWith('act/')),
   {
@@ -217,5 +263,6 @@ manifest.supportFiles = [
 ];
 writeJson('manifest.json', ManifestSchema.parse(manifest));
 console.log(
-  `wrote ${items.length} expected files; ${withoutCases.length} ACT rules have no test cases`,
+  `wrote ${items.length} expected files; ${skipped.length} test cases not vendored; ` +
+    `${withoutCases.length} ACT rules have no test cases`,
 );

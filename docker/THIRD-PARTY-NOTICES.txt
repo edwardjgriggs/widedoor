@@ -1,0 +1,38 @@
+Third-party software in the Widedoor Docker image
+
+Widedoor itself is Apache-2.0 (/app/LICENSE, /app/NOTICE). The image also
+contains the components below. Each keeps its own license. The image's
+org.opencontainers.image.licenses label lists the main licenses; the
+LicenseRef-Widedoor-Bundled-Third-Party term in it stands for the rest,
+described here.
+
+Source availability: no Widedoor image is published yet. Before an image is
+distributed, a written source offer (or the corresponding source) for the GPL
+components below must accompany it.
+
+veraPDF 1.30.3
+  /opt/verapdf, copied unmodified from verapdf/cli:v1.30.3.
+  License: GPL-3.0-or-later or MPL-2.0 (at the distributor's choice).
+  Source: https://github.com/veraPDF/veraPDF-apps (tag v1.30.3) and the
+  veraPDF libraries it lists.
+
+Java runtime (Eclipse Temurin 11.0.32.1+1, reduced with jlink)
+  /opt/java/openjdk. License: GPL-2.0-only WITH Classpath-exception-2.0, plus
+  the third-party notices in /opt/java/openjdk/legal/.
+  Source: https://github.com/adoptium/jdk11u (tag jdk-11.0.32.1+1).
+
+Chromium headless shell (installed by Playwright 1.64.0)
+  /ms-playwright. License terms:
+  /ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/LICENSE.headless_shell
+  Source: https://chromium.googlesource.com/chromium/src (the revision named in
+  the ABOUT file next to it).
+
+Node.js 24.19.0 and the npm packages in /app/node_modules
+  Node.js: MIT and the bundled licenses in its distribution
+  (https://github.com/nodejs/node, tag v24.19.0). Each npm package carries its
+  license in its own folder under /app/node_modules.
+
+Debian 12 (bookworm) packages
+  The base system and Chromium's libraries. Each package's license is in
+  /usr/share/doc/<package>/copyright. Source: https://sources.debian.org/ or
+  apt-get source <package> for the installed version (dpkg -l lists them).

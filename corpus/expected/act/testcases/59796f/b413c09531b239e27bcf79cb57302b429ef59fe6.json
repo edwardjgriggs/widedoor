@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/59796f/b413c09531b239e27bcf79cb57302b429ef59fe6.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "input-image-alt",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

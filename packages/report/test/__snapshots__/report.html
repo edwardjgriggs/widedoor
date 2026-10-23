@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;sha256-CQoxWh2fLtA486fJvIfQOc5B7bSUElm1RUh0rQZEISw=&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Accessibility report</title>
+<style>
+:root { color-scheme: light; --ink: #1b1b1b; --muted: #4a4a4a; --line: #c9c9c9; --bg: #ffffff;
+  --panel: #f4f4f2; --fail: #a4161a; --review: #7a4b00; --link: #0b4f9c; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--ink); background: var(--bg); }
+header, main, footer { max-width: 60rem; margin: 0 auto; padding: 1rem 1.25rem; }
+h1 { font-size: 1.9rem; margin: 0.5rem 0; }
+h2 { font-size: 1.45rem; margin-top: 2.5rem; border-bottom: 2px solid var(--line); }
+h3 { font-size: 1.2rem; margin: 0 0 0.5rem; }
+h4 { font-size: 1.05rem; margin: 0.25rem 0; }
+.lead { color: var(--muted); }
+.cards, .findings { list-style: none; padding: 0; }
+.card, .finding { border: 1px solid var(--line); border-radius: 6px; padding: 1rem; margin: 0 0 1rem;
+  background: var(--panel); }
+.badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.badge { border: 1px solid currentColor; border-radius: 999px; padding: 0 0.6rem; font-size: 0.9rem;
+  font-weight: 600; }
+.fail { color: var(--fail); }
+.review { color: var(--review); }
+.label { font-weight: 700; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--line);
+  padding: 0.5rem; margin: 0.5rem 0; font-size: 0.9rem; }
+code, .uri { overflow-wrap: anywhere; }
+img.shot { max-width: 100%; height: auto; border: 1px solid var(--line); background: var(--bg); }
+details { margin-top: 0.5rem; }
+summary { cursor: pointer; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+caption { text-align: left; font-weight: 700; font-size: 1.1rem; padding: 0.5rem 0; }
+th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+thead th { background: var(--panel); }
+dt { font-weight: 700; margin-top: 0.75rem; }
+dd { margin-left: 0; }
+.disclaimer { border: 2px solid var(--ink); padding: 1rem; font-weight: 700; }
+a { color: var(--link); }
+</style>
+</head>
+<body>
+<header>
+<h1>Accessibility report</h1>
+<p class="lead">Profile wcag21aa. 2 pages and files scanned, finished 2026-10-22T12:05:00.000Z.</p>
+</header>
+<main>
+<section aria-labelledby="fix">
+<h2 id="fix">What to fix first</h2>
+<ol class="cards">
+<li class="card">
+<h3>A form field has no label.</h3>
+<ul class="badges">
+<li class="badge">Critical</li>
+<li class="badge fail">2 problems</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users do not know what to type.</p>
+<p><span class="label">How to fix it:</span> Add a label tag that names the field and points to it.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html">4.1.2 Name, Role, Value</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/label">label</a></li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>Text does not stand out enough from its background.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> People with low vision or color blindness may not be able to read it.</p>
+<p><span class="label">How to fix it:</span> Make the text darker or the background lighter. Aim for a contrast ratio of at least 4.5 to 1.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">1.4.3 Contrast (Minimum)</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/color-contrast">color-contrast</a></li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>A link has no text.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users hear link but not where it goes.</p>
+<p><span class="label">How to fix it:</span> Add link text, or add alt text to the image inside the link.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html">2.4.4 Link Purpose (In Context)</a></li>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html">4.1.2 Name, Role, Value</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/link-name">link-name</a></li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>An image has no alt text.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users miss what the image shows.</p>
+<p><span class="label">How to fix it:</span> Add alt text to the image in Acrobat, or in the program you made the file with.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: veraPDF 1.30.3, 7.3-1</li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>The PDF does not show a title in its window.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users hear a file name that may not say what the file is.</p>
+<p><span class="label">How to fix it:</span> Add a title in the file properties and set the file to show it.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html">2.4.2 Page Titled</a></li>
+<li>Rule: Widedoor PDF checks 0.0.0, pdf-title-displayed</li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>An image has no text alternative.</h3>
+<ul class="badges">
+<li class="badge">Moderate</li>
+<li class="badge review">1 item to check by hand</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users miss what the image shows.</p>
+<p><span class="label">How to fix it:</span> Add alt text that says what the image shows. Use empty alt text for images that are only for looks.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/image-alt">image-alt</a></li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>A person needs to check that the tags read in the same order as the page.</h3>
+<ul class="badges">
+<li class="badge">Moderate</li>
+<li class="badge review">1 item to check by hand</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> If the order is wrong, screen reader users hear the content mixed up.</p>
+<p><span class="label">How to fix it:</span> Check the reading order in Acrobat and fix any parts that are out of place.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/meaningful-sequence.html">1.3.2 Meaningful Sequence</a></li>
+<li>Rule: Widedoor PDF checks 0.0.0, pdf-reading-order</li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+<section aria-labelledby="by-asset">
+<h2 id="by-asset">Results by page and file</h2>
+<section aria-labelledby="asset-1">
+<h3 id="asset-1">Contact us &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</h3>
+<p class="uri">https://example.com/contact?q=&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;</p>
+<p class="lead">Web page. 4 problems, 1 item to check by hand.</p>
+<ol class="findings">
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Critical</li>
+</ul>
+<h4>A form field has no label.</h4>
+<p>Element: form &gt; input#phone</p>
+<pre><code>&lt;input id=&quot;phone&quot; type=&quot;tel&quot;&gt;</code></pre>
+<p>Screenshot left out: no evidence folder was given.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html">4.1.2 Name, Role, Value</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/label">label</a></li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Critical</li>
+</ul>
+<h4>A form field has no label.</h4>
+<p>Element: form &gt; input#phone</p>
+<pre><code>&lt;input id=&quot;phone&quot; aria-label=&#39;&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;&#39;&gt;</code></pre>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html">4.1.2 Name, Role, Value</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/label">label</a></li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>Text does not stand out enough from its background.</h4>
+<p>Element: p[title=&quot;&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;&quot;]</p>
+<p>Seen only on a small screen (320 by 256 pixels).</p>
+<pre><code>&lt;p class=&quot;faint&quot;&gt;&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;&lt;/p&gt;</code></pre>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">1.4.3 Contrast (Minimum)</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/color-contrast">color-contrast</a></li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>A link has no text.</h4>
+<p>Element: a[href^=&quot;javascript:&quot;][id=&quot;{0} [Fix guide](https://evil.example/login) [x](1) \[y\]&quot;]</p>
+<pre><code>&lt;a href=&quot;javascript:alert(4)&quot;&gt;&lt;/a&gt;</code></pre>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html">2.4.4 Link Purpose (In Context)</a></li>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html">4.1.2 Name, Role, Value</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/link-name">link-name</a></li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge review">Check by hand</li>
+<li class="badge">Moderate</li>
+</ul>
+<h4>An image has no text alternative.</h4>
+<p>Element: img.logo</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/image-alt">image-alt</a></li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+<section aria-labelledby="asset-2">
+<h3 id="asset-2" class="uri">docs/annual report.pdf</h3>
+<p class="lead">PDF. 2 problems, 1 item to check by hand.</p>
+<ol class="findings">
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>An image has no alt text.</h4>
+<p>In the file: page 2, tag path Document/Sect[1]/Figure[1]</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: veraPDF 1.30.3, 7.3-1</li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>The PDF does not show a title in its window.</h4>
+<p>The whole file</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html">2.4.2 Page Titled</a></li>
+<li>Rule: Widedoor PDF checks 0.0.0, pdf-title-displayed</li>
+</ul>
+</details>
+</li>
+<li class="finding">
+<ul class="badges">
+<li class="badge review">Check by hand</li>
+<li class="badge">Moderate</li>
+</ul>
+<h4>A person needs to check that the tags read in the same order as the page.</h4>
+<p>The whole file</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/meaningful-sequence.html">1.3.2 Meaningful Sequence</a></li>
+<li>Rule: Widedoor PDF checks 0.0.0, pdf-reading-order</li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+<section aria-labelledby="asset-3">
+<h3 id="asset-3" class="uri">javascript:alert(5)</h3>
+<p class="lead">Web page. Not scanned (unsupported-url): cannot scan &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</p>
+</section>
+<section aria-labelledby="asset-4">
+<h3 id="asset-4" class="uri">docs/broken.pdf</h3>
+<p class="lead">PDF. Not scanned (malformed-pdf): not a PDF</p>
+</section>
+<section aria-labelledby="asset-5">
+<h3 id="asset-5" class="uri">https://example.com/out</h3>
+<p class="lead">Web page. Not scanned: it went to <span class="uri">https://evil.example/&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</span> (redirect-off-origin)</p>
+</section>
+</section>
+<section aria-labelledby="summary">
+<h2 id="summary">Summary</h2>
+<table>
+<caption>Counts</caption>
+<thead><tr><th scope="col">What</th><th scope="col">Number</th></tr></thead>
+<tbody>
+<tr><th scope="row">Problems found (fail)</th><td>6</td></tr>
+<tr><th scope="row">Items to check by hand (needs review)</th><td>2</td></tr>
+<tr><th scope="row">Criteria not tested (no deciding result)</th><td>50</td></tr>
+<tr><th scope="row">Pages and files scanned</th><td>2</td></tr>
+<tr><th scope="row">Pages and files that could not be scanned</th><td>2</td></tr>
+<tr><th scope="row">Pages skipped</th><td>1</td></tr>
+</tbody>
+</table>
+<table>
+<caption>Problems by impact</caption>
+<thead><tr><th scope="col">Impact</th><th scope="col">Problems</th><th scope="col">To check by hand</th></tr></thead>
+<tbody>
+<tr><th scope="row">Critical</th><td>2</td><td>0</td></tr>
+<tr><th scope="row">Serious</th><td>4</td><td>0</td></tr>
+<tr><th scope="row">Moderate</th><td>0</td><td>2</td></tr>
+<tr><th scope="row">Minor</th><td>0</td><td>0</td></tr>
+<tr><th scope="row">Impact not rated</th><td>0</td><td>0</td></tr>
+</tbody>
+</table>
+</section>
+<section aria-labelledby="rollup">
+<h2 id="rollup">Results by criterion</h2>
+<table>
+<caption>WCAG 2.1 Level AA</caption>
+<thead><tr><th scope="col">Criterion</th><th scope="col">Name</th><th scope="col">Result</th><th scope="col">Why</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.1</th><td>Non-text Content</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">1.2.1</th><td>Audio-only and Video-only (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.2</th><td>Captions (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.3</th><td>Audio Description or Media Alternative (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.4</th><td>Captions (Live)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.5</th><td>Audio Description (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.1</th><td>Info and Relationships</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.2</th><td>Meaningful Sequence</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.3</th><td>Sensory Characteristics</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.4</th><td>Orientation</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.5</th><td>Identify Input Purpose</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.1</th><td>Use of Color</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.2</th><td>Audio Control</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.3</th><td>Contrast (Minimum)</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">1.4.4</th><td>Resize Text</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.5</th><td>Images of Text</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.10</th><td>Reflow</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.11</th><td>Non-text Contrast</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.12</th><td>Text Spacing</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.13</th><td>Content on Hover or Focus</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.1</th><td>Keyboard</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.2</th><td>No Keyboard Trap</td><td>Not Evaluated</td><td>4 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.4</th><td>Character Key Shortcuts</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.1</th><td>Timing Adjustable</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.2</th><td>Pause, Stop, Hide</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.3.1</th><td>Three Flashes or Below Threshold</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.1</th><td>Bypass Blocks</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.2</th><td>Page Titled</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">2.4.3</th><td>Focus Order</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.4</th><td>Link Purpose (In Context)</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">2.4.5</th><td>Multiple Ways</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.6</th><td>Headings and Labels</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.7</th><td>Focus Visible</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.1</th><td>Pointer Gestures</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.2</th><td>Pointer Cancellation</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.3</th><td>Label in Name</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.4</th><td>Motion Actuation</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.1</th><td>Language of Page</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.2</th><td>Language of Parts</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.1</th><td>On Focus</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.2</th><td>On Input</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.3</th><td>Consistent Navigation</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.4</th><td>Consistent Identification</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.1</th><td>Error Identification</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.2</th><td>Labels or Instructions</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.3</th><td>Error Suggestion</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.4</th><td>Error Prevention (Legal, Financial, Data)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">4.1.1</th><td>Parsing</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">4.1.2</th><td>Name, Role, Value</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">4.1.3</th><td>Status Messages</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
+</tbody>
+</table>
+</section>
+<section aria-labelledby="method">
+<h2 id="method">How this was tested</h2>
+<dl>
+<dt>Tool</dt>
+<dd>Widedoor 0.0.0</dd>
+<dt>Test engines</dt>
+<dd><ul>
+<li>axe-core 4.14.0</li>
+<li>veraPDF 1.30.3 (docker runner)</li>
+<li>Widedoor PDF checks 0.0.0</li>
+</ul></dd>
+<dt>Profile</dt>
+<dd>wcag21aa, with PDFs treated as non-web documents</dd>
+<dt>Dates</dt>
+<dd>Started 2026-10-22T12:00:00.000Z, finished 2026-10-22T12:05:00.000Z (UTC)</dd>
+<dt>Scope</dt>
+<dd><ul>
+<li>Web page: <span class="uri">https://example.com/contact?q=&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;</span></li>
+<li>Web page: <span class="uri">javascript:alert(5)</span></li>
+<li>PDF: <span class="uri">docs/annual report.pdf</span></li>
+<li>PDF: <span class="uri">docs/broken.pdf</span></li>
+</ul></dd>
+<dt>What was not tested</dt>
+<dd><p>Automated checks find only some accessibility problems. These criteria have no deciding result for at least one page or file and need a person to test them:</p>
+<ul>
+<li>1.1.1 Non-text Content: 4 of 5 pages and files not evaluated</li>
+<li>1.2.1 Audio-only and Video-only (Prerecorded): 5 of 5 pages and files not evaluated</li>
+<li>1.2.2 Captions (Prerecorded): 5 of 5 pages and files not evaluated</li>
+<li>1.2.3 Audio Description or Media Alternative (Prerecorded): 5 of 5 pages and files not evaluated</li>
+<li>1.2.4 Captions (Live): 5 of 5 pages and files not evaluated</li>
+<li>1.2.5 Audio Description (Prerecorded): 5 of 5 pages and files not evaluated</li>
+<li>1.3.1 Info and Relationships: 5 of 5 pages and files not evaluated</li>
+<li>1.3.2 Meaningful Sequence: 5 of 5 pages and files not evaluated</li>
+<li>1.3.3 Sensory Characteristics: 5 of 5 pages and files not evaluated</li>
+<li>1.3.4 Orientation: 5 of 5 pages and files not evaluated</li>
+<li>1.3.5 Identify Input Purpose: 5 of 5 pages and files not evaluated</li>
+<li>1.4.1 Use of Color: 5 of 5 pages and files not evaluated</li>
+<li>1.4.2 Audio Control: 5 of 5 pages and files not evaluated</li>
+<li>1.4.3 Contrast (Minimum): 4 of 5 pages and files not evaluated</li>
+<li>1.4.4 Resize Text: 5 of 5 pages and files not evaluated</li>
+<li>1.4.5 Images of Text: 5 of 5 pages and files not evaluated</li>
+<li>1.4.10 Reflow: 5 of 5 pages and files not evaluated</li>
+<li>1.4.11 Non-text Contrast: 5 of 5 pages and files not evaluated</li>
+<li>1.4.12 Text Spacing: 5 of 5 pages and files not evaluated</li>
+<li>1.4.13 Content on Hover or Focus: 5 of 5 pages and files not evaluated</li>
+<li>2.1.1 Keyboard: 5 of 5 pages and files not evaluated</li>
+<li>2.1.2 No Keyboard Trap: 4 of 5 pages and files not evaluated</li>
+<li>2.1.4 Character Key Shortcuts: 5 of 5 pages and files not evaluated</li>
+<li>2.2.1 Timing Adjustable: 5 of 5 pages and files not evaluated</li>
+<li>2.2.2 Pause, Stop, Hide: 5 of 5 pages and files not evaluated</li>
+<li>2.3.1 Three Flashes or Below Threshold: 5 of 5 pages and files not evaluated</li>
+<li>2.4.1 Bypass Blocks: 5 of 5 pages and files not evaluated</li>
+<li>2.4.2 Page Titled: 4 of 5 pages and files not evaluated</li>
+<li>2.4.3 Focus Order: 5 of 5 pages and files not evaluated</li>
+<li>2.4.4 Link Purpose (In Context): 4 of 5 pages and files not evaluated</li>
+<li>2.4.5 Multiple Ways: 5 of 5 pages and files not evaluated</li>
+<li>2.4.6 Headings and Labels: 5 of 5 pages and files not evaluated</li>
+<li>2.4.7 Focus Visible: 5 of 5 pages and files not evaluated</li>
+<li>2.5.1 Pointer Gestures: 5 of 5 pages and files not evaluated</li>
+<li>2.5.2 Pointer Cancellation: 5 of 5 pages and files not evaluated</li>
+<li>2.5.3 Label in Name: 5 of 5 pages and files not evaluated</li>
+<li>2.5.4 Motion Actuation: 5 of 5 pages and files not evaluated</li>
+<li>3.1.1 Language of Page: 5 of 5 pages and files not evaluated</li>
+<li>3.1.2 Language of Parts: 5 of 5 pages and files not evaluated</li>
+<li>3.2.1 On Focus: 5 of 5 pages and files not evaluated</li>
+<li>3.2.2 On Input: 5 of 5 pages and files not evaluated</li>
+<li>3.2.3 Consistent Navigation: 5 of 5 pages and files not evaluated</li>
+<li>3.2.4 Consistent Identification: 5 of 5 pages and files not evaluated</li>
+<li>3.3.1 Error Identification: 5 of 5 pages and files not evaluated</li>
+<li>3.3.2 Labels or Instructions: 5 of 5 pages and files not evaluated</li>
+<li>3.3.3 Error Suggestion: 5 of 5 pages and files not evaluated</li>
+<li>3.3.4 Error Prevention (Legal, Financial, Data): 5 of 5 pages and files not evaluated</li>
+<li>4.1.1 Parsing: 5 of 5 pages and files not evaluated</li>
+<li>4.1.2 Name, Role, Value: 4 of 5 pages and files not evaluated</li>
+<li>4.1.3 Status Messages: 5 of 5 pages and files not evaluated</li>
+</ul></dd>
+<dt>Reviewers</dt>
+<dd><ul>
+<li>Edward &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;: 1 record, reviewed 2026-10-21</li>
+</ul></dd>
+<dt>Manual review records</dt>
+<dd><ul>
+<li>Edward &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;, 2026-10-21: pass for WCAG 2.1.2 on <span class="uri">https://example.com/contact?q=&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;</span>. Notes: Tabbed through the whole page.</li>
+</ul></dd>
+<dt>Pages and files that could not be scanned</dt>
+<dd><ul>
+<li><span class="uri">javascript:alert(5)</span>: unsupported-url, cannot scan &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</li>
+<li><span class="uri">docs/broken.pdf</span>: malformed-pdf (veraPDF), not a PDF</li>
+</ul></dd>
+<dt>Pages skipped</dt>
+<dd><ul>
+<li><span class="uri">https://example.com/out</span> went to <span class="uri">https://evil.example/&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</span> (redirect-off-origin)</li>
+</ul></dd>
+<dt>Warnings</dt>
+<dd><ul>
+<li>Chromium ran without its OS sandbox &lt;b&gt;&lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;&lt;/b&gt;</li>
+</ul></dd>
+<dt>Other PDF checks</dt>
+<dd>veraPDF results for rules with no WCAG link: 1. The JSON report lists them.</dd>
+</dl>
+</section>
+<section aria-labelledby="disclaimer">
+<h2 id="disclaimer">About this report</h2>
+<p class="disclaimer">This report documents the testing performed. It is not a certification of conformance.</p>
+</section>
+</main>
+<footer><p>Made with Widedoor 0.0.0.</p></footer>
+</body>
+</html>

@@ -1,6 +1,14 @@
-import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import {
+  PdfScanner,
+  VERAPDF_VERSION,
+  WIDEDOOR_PDF_VERSION,
+  parseVerapdfOutput,
+  type PdfFileScan,
+} from '@widedoor/pdf';
 import {
   compareExact,
+  corpusDir,
   corpusPath,
   readExpected,
   readManifest,
@@ -8,89 +16,82 @@ import {
 } from './lib/corpus.ts';
 
 /*
- * Validates every PDF in the manifest with veraPDF (PDF/UA-1 profile, Docker
- * image pinned below, no network) and compares the veraPDF entries of each
- * expected file exactly (see README). Widedoor-engine entries are provisional
- * until Task 1.2 implements those checks, so they are not compared here.
+ * Scans every PDF in the manifest with the shipped PDF adapter (@widedoor/pdf,
+ * built first by tsc -b): veraPDF PDF/UA-1 through its sandboxed runner, plus
+ * the Widedoor PDF checks. Both engines' entries are compared exactly (see
+ * README); veraPDF's unmapped rules count as veraPDF results. An item whose
+ * expected file names a scan error must get that error and no findings, and
+ * veraPDF run directly must refuse the file the same way.
  */
 
-const VERAPDF_IMAGE = 'verapdf/cli:v1.30.3';
-const VERAPDF_VERSION = '1.30.3';
-const confirmedBy = `veraPDF ${VERAPDF_VERSION}`;
+const confirmedBy = `veraPDF ${VERAPDF_VERSION}, Widedoor ${WIDEDOOR_PDF_VERSION}`;
 
-interface RuleSummary {
-  clause: string;
-  testNumber: number;
-  status: 'passed' | 'failed';
+function triples(scan: PdfFileScan): ExpectedEntry[] {
+  return [
+    ...scan.findings.map((f) => ({
+      engine: f.source.engine as ExpectedEntry['engine'],
+      ruleId: f.source.ruleId,
+      outcome: f.outcome,
+    })),
+    ...scan.informational.map((i) => ({ engine: i.engine, ruleId: i.ruleId, outcome: i.outcome })),
+  ];
 }
 
-function verapdf(file: string): ExpectedEntry[] {
-  let stdout: string;
-  try {
-    stdout = execFileSync(
-      'docker',
-      [
-        'run',
-        '--rm',
-        '--network',
-        'none',
-        '--mount',
-        `type=bind,src=${corpusPath('pdf')},dst=/data,readonly`,
-        VERAPDF_IMAGE,
-        '--flavour',
-        'ua1',
-        '--format',
-        'json',
-        '--success',
-        '--maxfailuresdisplayed',
-        '1',
-        `/data/${file}`,
-      ],
-      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-  } catch (e) {
-    // veraPDF exits 1 when the file is not compliant; the report is still on stdout.
-    const out = (e as { stdout?: string }).stdout;
-    if (!out) throw new Error(`veraPDF did not run on ${file}`, { cause: e });
-    stdout = out;
-  }
-  const report = JSON.parse(stdout).report;
-  const version = report.buildInformation.releaseDetails.find(
-    (d: { id: string }) => d.id === 'core',
-  )?.version;
-  if (version !== VERAPDF_VERSION)
-    throw new Error(`expected veraPDF ${VERAPDF_VERSION}, got ${version}`);
-  const result = report.jobs[0].validationResult[0];
-  return (result.details.ruleSummaries as RuleSummary[]).map((r) => ({
-    engine: 'verapdf' as const,
-    ruleId: `${r.clause}-${r.testNumber}`,
-    outcome: r.status === 'failed' ? ('fail' as const) : ('pass' as const),
-  }));
-}
+const scanner = await PdfScanner.create({ baseDir: corpusDir });
+if (!scanner.runner)
+  throw new Error('veraPDF is not available; see the scanner error for how to get it');
+for (const w of scanner.warnings) console.warn(`warning: ${w}`);
 
 let failures = 0;
 const items = readManifest().items.filter((i) => i.kind === 'pdf');
 for (const item of items) {
   const expected = readExpected(item.expected);
-  if (!item.path.startsWith('pdf/') || item.path.slice(4).includes('/')) {
-    throw new Error(`not a corpus/pdf file: ${item.path}`);
+  const scan = await scanner.scanFile(item.path);
+  const lines: string[] = [];
+  if (expected.confirmedBy !== confirmedBy) lines.push(`confirmedBy is ${expected.confirmedBy}`);
+  if (expected.error) {
+    if (scan.error?.code !== expected.error.code)
+      lines.push(`expected error ${expected.error.code}, got ${scan.error?.code ?? 'none'}`);
+    if (scan.findings.length) lines.push(`${scan.findings.length} findings despite the error`);
+    const direct = parseVerapdfOutput(
+      await scanner.runner.run(readFileSync(corpusPath(item.path)), {
+        timeoutMs: 120_000,
+        maxOutputBytes: 1024 * 1024,
+        maxFailuresDisplayed: 1,
+      }),
+    );
+    if (direct.ok || direct.code !== expected.error.code)
+      lines.push(`veraPDF alone gives ${direct.ok ? 'a report' : direct.code}`);
+  } else if (scan.error) {
+    lines.push(`scan error ${scan.error.code}: ${scan.error.message}`);
+  } else {
+    const actual = triples(scan);
+    for (const engine of ['verapdf', 'widedoor'] as const) {
+      const { missing, unexpected } = compareExact(engine, expected.expected, actual);
+      lines.push(
+        ...missing.map((k) => `missing ${k}`),
+        ...unexpected.map((k) => `unexpected ${k}`),
+      );
+    }
+    if (scan.findings.some((f) => f.asset.contentHash !== scan.asset?.contentHash))
+      lines.push('a finding carries another content hash');
   }
-  const actual = verapdf(item.path.slice('pdf/'.length));
-  const { missing, unexpected } = compareExact('verapdf', expected.expected, actual);
-  const failed = actual.filter((a) => a.outcome === 'fail').map((a) => a.ruleId);
-  if (missing.length || unexpected.length || expected.confirmedBy !== confirmedBy) {
+  if (lines.length) {
     failures++;
-    const lines = [
-      ...missing.map((k) => `missing ${k}`),
-      ...unexpected.map((k) => `unexpected ${k}`),
-    ];
-    if (expected.confirmedBy !== confirmedBy) lines.push(`confirmedBy is ${expected.confirmedBy}`);
     console.error(`FAIL ${item.path}: ${lines.join('; ')}`);
   } else {
-    console.log(
-      `ok ${item.path}: ${failed.length ? `fails ${failed.sort().join(', ')}` : 'no failed rules'}`,
-    );
+    const found = triples(scan)
+      .filter((a) => a.outcome === 'fail' || a.outcome === 'needs-review')
+      .map((a) => `${a.engine} ${a.ruleId} ${a.outcome}`);
+    const summary = expected.error
+      ? `error ${expected.error.code}`
+      : found.length
+        ? [...new Set(found)].sort().join(', ')
+        : 'no findings';
+    console.log(`ok ${item.path}: ${summary}`);
   }
 }
-console.log(`corpus/pdf: ${items.length - failures}/${items.length} files match ${confirmedBy}`);
+console.log(
+  `corpus/pdf: ${items.length - failures}/${items.length} files match ${confirmedBy} (runner: ${scanner.runner.kind})`,
+);
 if (failures) process.exitCode = 1;

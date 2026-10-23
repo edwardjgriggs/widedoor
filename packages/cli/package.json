@@ -5,5 +5,25 @@
   "type": "module",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "widedoor": "./dist/bin.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.4",
+    "@widedoor/core": "0.0.0",
+    "@widedoor/pdf": "0.0.0",
+    "@widedoor/report": "0.0.0",
+    "@widedoor/ui": "0.0.0",
+    "@widedoor/web": "0.0.0",
+    "hono": "4.13.13",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-draft-04": "1.0.0",
+    "ajv-formats": "3.0.1",
+    "parse5": "8.0.1"
+  }
 }

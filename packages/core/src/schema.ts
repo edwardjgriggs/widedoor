@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 /*
@@ -105,8 +104,18 @@ export type Criteria = z.infer<typeof CriteriaSchema>;
 export const PlainSchema = z.object({ what: nonEmpty, who: nonEmpty, fix: nonEmpty }).strict();
 export type Plain = z.infer<typeof PlainSchema>;
 
+export const ViewportSchema = z
+  .object({ width: z.number().int().min(1), height: z.number().int().min(1) })
+  .strict();
+export type Viewport = z.infer<typeof ViewportSchema>;
+
 export const EvidenceSchema = z
-  .object({ snippet: z.string().optional(), screenshot: nonEmpty.optional() })
+  .object({
+    snippet: z.string().optional(),
+    screenshot: nonEmpty.optional(),
+    /** Set when the result was seen only at a non-default viewport (the web reflow pass). */
+    viewport: ViewportSchema.optional(),
+  })
   .strict();
 export type Evidence = z.infer<typeof EvidenceSchema>;
 
@@ -174,28 +183,4 @@ export function buildFindingJsonSchema(): Record<string, unknown> {
 /** Exact bytes of schema/finding.v1.json; shared by the generator script and the snapshot test. */
 export function serializeFindingJsonSchema(): string {
   return `${JSON.stringify(buildFindingJsonSchema(), null, 2)}\n`;
-}
-
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(value).sort()) {
-      const v = (value as Record<string, unknown>)[key];
-      if (v !== undefined) out[key] = canonicalize(v);
-    }
-    return out;
-  }
-  return value;
-}
-
-/** Stable finding id: wd_ + first 16 hex chars of SHA-256 over a canonical serialization. */
-export function findingId(
-  assetUri: string,
-  location: Location,
-  engine: Engine,
-  ruleId: string,
-): string {
-  const canonical = JSON.stringify(canonicalize([assetUri, location, engine, ruleId]));
-  return `wd_${createHash('sha256').update(canonical).digest('hex').slice(0, 16)}`;
 }
