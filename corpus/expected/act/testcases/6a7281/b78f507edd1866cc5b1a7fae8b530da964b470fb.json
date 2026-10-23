@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/6a7281/b78f507edd1866cc5b1a7fae8b530da964b470fb.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-valid-attr-value",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

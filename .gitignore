@@ -15,3 +15,4 @@ id_ed25519*
 *.keystore
 *storageState*.json
 .auth/
+widedoor-report/

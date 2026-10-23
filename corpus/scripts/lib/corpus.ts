@@ -36,9 +36,18 @@ export const ExpectedFileSchema = z
     kind: z.enum(['web', 'pdf']),
     source: z.enum(['corpus', 'act']),
     expected: z.array(ExpectedEntrySchema),
+    /**
+     * Set when the item cannot be scanned: the adapter must report this scan
+     * error code (run metadata, not a Finding) and no findings.
+     */
+    error: z.strictObject({ code: text }).optional(),
     confirmedBy: text.nullable(),
     provisional: z.boolean(),
   })
+  .refine(
+    (f) => f.error === undefined || f.expected.length === 0,
+    'a file that expects a scan error expects no findings',
+  )
   .refine(
     (f) => !f.expected.some((e) => e.provisional) || f.provisional,
     'a file with a provisional entry must itself be provisional',
@@ -49,6 +58,15 @@ export const ExpectedFileSchema = z
   );
 export type ExpectedFile = z.infer<typeof ExpectedFileSchema>;
 
+export const ActTestcaseSchema = z.strictObject({
+  ruleId: z.string().regex(/^[0-9a-z]{6}$/),
+  testcaseId: z.string().regex(/^[0-9a-f]{40}$/),
+  title: text,
+  outcome: z.enum(['passed', 'failed', 'inapplicable']),
+  approved: z.boolean().optional(),
+  url: z.url(),
+});
+
 export const ManifestItemSchema = z.strictObject({
   path: relPath,
   kind: z.enum(['web', 'pdf']),
@@ -58,16 +76,12 @@ export const ManifestItemSchema = z.strictObject({
   /** Rule family for corpus/web pages (labels, alt, contrast, ...). */
   family: text.optional(),
   /** ACT rule and test case for vendored ACT items. */
-  act: z
-    .strictObject({
-      ruleId: z.string().regex(/^[0-9a-z]{6}$/),
-      testcaseId: z.string().regex(/^[0-9a-f]{40}$/),
-      title: text,
-      outcome: z.enum(['passed', 'failed', 'inapplicable']),
-      approved: z.boolean().optional(),
-      url: z.url(),
-    })
-    .optional(),
+  act: ActTestcaseSchema.optional(),
+  /**
+   * For an ACT item: the engine result last recorded where it differs from the
+   * ACT outcome. verify-web.ts accepts exactly this result; any other is new.
+   */
+  knownDisagreement: z.strictObject({ engine: text, result: text }).optional(),
   /** Why an item is provisional, or anything a reader must know about its expectations. */
   note: text.optional(),
 });
@@ -78,6 +92,8 @@ export const ManifestSchema = z.strictObject({
   items: z.array(ManifestItemSchema),
   /** Files that are not corpus items: ACT assets, license and source records. */
   supportFiles: z.array(z.strictObject({ path: relPath, description: text })),
+  /** ACT test cases left out of corpus/act, with the pinned upstream copy and why. */
+  notVendored: z.array(z.strictObject({ act: ActTestcaseSchema, upstream: z.url(), reason: text })),
 });
 export type Manifest = z.infer<typeof ManifestSchema>;
 

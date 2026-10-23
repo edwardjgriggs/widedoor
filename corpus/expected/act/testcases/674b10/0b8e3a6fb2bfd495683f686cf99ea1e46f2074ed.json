@@ -1,0 +1,19 @@
+{
+  "item": "act/testcases/674b10/0b8e3a6fb2bfd495683f686cf99ea1e46f2074ed.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-deprecated-role",
+      "outcome": "not-applicable"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-roles",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

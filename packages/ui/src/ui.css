@@ -1,0 +1,29 @@
+/* Viewer additions to the HTML report style sheet (virtual:widedoor-report.css). */
+.tools {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 1rem 1rem;
+  margin: 1rem 0;
+}
+.tools h2 {
+  margin-top: 1rem;
+}
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+label {
+  display: block;
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem;
+}
+select,
+input[type='file'] {
+  font: inherit;
+  max-width: 100%;
+}
+.error {
+  color: var(--fail);
+  font-weight: 700;
+}

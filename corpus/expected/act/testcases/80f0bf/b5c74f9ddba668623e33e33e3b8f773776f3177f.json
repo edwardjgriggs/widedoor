@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/80f0bf/b5c74f9ddba668623e33e33e3b8f773776f3177f.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "no-autoplay-audio",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

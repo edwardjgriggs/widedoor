@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/307n5z/b9f6f775efc8d7cdc38782087ccc6abaa88babb6.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "nested-interactive",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

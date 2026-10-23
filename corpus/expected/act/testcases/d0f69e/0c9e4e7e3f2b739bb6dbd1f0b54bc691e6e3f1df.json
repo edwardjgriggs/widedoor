@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/d0f69e/0c9e4e7e3f2b739bb6dbd1f0b54bc691e6e3f1df.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "th-has-data-cells",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

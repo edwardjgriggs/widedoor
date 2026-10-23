@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/afw4f7/04344f745bd9bad51292748e7893f146c045aae4.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "color-contrast",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

@@ -1,0 +1,84 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { ISOLATED_HOST_ENV, VERAPDF_IMAGE_REF } from '@widedoor/pdf';
+import { ROOT } from './helpers.ts';
+
+/*
+ * Offline checks of the Dockerfile and the Chromium seccomp profile, so a
+ * base image bump or an edit cannot quietly unpin an image, desync veraPDF
+ * from the Docker runner or turn the browser sandbox off. The image itself
+ * is tested by npm run test:image.
+ */
+
+const dockerfile = readFileSync(join(ROOT, 'Dockerfile'), 'utf8');
+const froms = [...dockerfile.matchAll(/^FROM\s+(\S+)/gm)].map((m) => m[1] as string);
+
+describe('Dockerfile', () => {
+  it('pins every base image by tag and digest', () => {
+    expect(froms.length).toBeGreaterThan(0);
+    for (const ref of froms) expect(ref).toMatch(/^[a-z0-9./-]+:[\w.-]+@sha256:[0-9a-f]{64}$/);
+  });
+
+  it('takes veraPDF from the image the Docker runner pins', () => {
+    expect(froms).toContain(VERAPDF_IMAGE_REF);
+  });
+
+  it('marks the image as the isolation boundary and runs as a fixed non-root user', () => {
+    expect(dockerfile).toMatch(new RegExp(`^\\s+${ISOLATED_HOST_ENV}=1$`, 'm'));
+    const users = [...dockerfile.matchAll(/^USER\s+(\S+)/gm)].map((m) => m[1]);
+    expect(users).toEqual(['10001:10001']);
+  });
+
+  it('never turns the Chromium sandbox off', () => {
+    expect(dockerfile).not.toMatch(/no-sandbox|unsafeNoSandbox|SYS_ADMIN|unconfined/i);
+  });
+
+  it('carries no base image labels a Dependabot bump could leave stale', () => {
+    expect(dockerfile).not.toContain('org.opencontainers.image.base.');
+  });
+
+  it('labels the bundled licenses and points to the notices file it copies in', () => {
+    expect(dockerfile).toContain('org.opencontainers.image.licenses="Apache-2.0 AND ');
+    expect(dockerfile).toContain('io.widedoor.third-party-notices="/app/THIRD-PARTY-NOTICES.txt"');
+    expect(dockerfile).toMatch(/^COPY .*docker\/THIRD-PARTY-NOTICES\.txt \.\/$/m);
+  });
+
+  it('installs Chromium before any Widedoor build output, so a source edit reuses that layer', () => {
+    const install = dockerfile.indexOf('playwright install');
+    const runtime = dockerfile.indexOf(' AS runtime');
+    const firstApp = dockerfile.indexOf('COPY --from=build', runtime);
+    expect(install).toBeGreaterThan(runtime);
+    expect(firstApp).toBeGreaterThan(install);
+  });
+});
+
+describe('docker/chromium-seccomp.json', () => {
+  const profile = JSON.parse(
+    readFileSync(join(ROOT, 'docker', 'chromium-seccomp.json'), 'utf8'),
+  ) as {
+    defaultAction: string;
+    syscalls: { names: string[]; action: string; includes?: unknown; excludes?: unknown }[];
+  };
+
+  it("is Docker's deny-by-default profile with one unconditional rule for the sandbox calls", () => {
+    expect(profile.defaultAction).toBe('SCMP_ACT_ERRNO');
+    const added = profile.syscalls.at(-1);
+    expect(added).toMatchObject({
+      names: ['chroot', 'clone', 'unshare'],
+      action: 'SCMP_ACT_ALLOW',
+    });
+    expect(added?.includes).toBeUndefined();
+    expect(added?.excludes).toBeUndefined();
+  });
+
+  it("keeps every other rule exactly as Docker's default (moby/profiles seccomp v0.2.3)", () => {
+    // SHA-256 of JSON.stringify of the parsed upstream default.json (raw file sha256
+    // 536529b665dd0972c37bfb569f5d4ac8a53592e7b00752bc39ff063ca9864c74). See docker/README.md.
+    const upstream = { ...profile, syscalls: profile.syscalls.slice(0, -1) };
+    expect(createHash('sha256').update(JSON.stringify(upstream)).digest('hex')).toBe(
+      'afb4934b023cfceaaec1a9d752ca3f801aaa96eb2e59abe6e7ea16976948e080',
+    );
+  });
+});

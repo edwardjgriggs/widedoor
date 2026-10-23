@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/73f2c2/2ed049a75aaa549c0ba477c5048f7f2bb34cb160.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "autocomplete-valid",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

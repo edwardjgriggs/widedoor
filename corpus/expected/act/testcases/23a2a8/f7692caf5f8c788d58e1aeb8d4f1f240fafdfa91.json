@@ -1,0 +1,19 @@
+{
+  "item": "act/testcases/23a2a8/f7692caf5f8c788d58e1aeb8d4f1f240fafdfa91.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "image-alt",
+      "outcome": "not-applicable"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "role-img-alt",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/afb423/e76fd82b8a71085be3a7a2ad96c1ce12522116e2.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "audio-caption",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

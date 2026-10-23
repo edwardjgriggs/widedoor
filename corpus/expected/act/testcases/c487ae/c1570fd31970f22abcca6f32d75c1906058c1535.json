@@ -1,0 +1,19 @@
+{
+  "item": "act/testcases/c487ae/c1570fd31970f22abcca6f32d75c1906058c1535.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "area-alt",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "link-name",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

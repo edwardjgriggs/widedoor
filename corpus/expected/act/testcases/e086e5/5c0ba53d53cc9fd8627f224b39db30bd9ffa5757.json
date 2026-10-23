@@ -1,0 +1,29 @@
+{
+  "item": "act/testcases/e086e5/5c0ba53d53cc9fd8627f224b39db30bd9ffa5757.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-input-field-name",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-toggle-field-name",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "label",
+      "outcome": "fail"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "select-name",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

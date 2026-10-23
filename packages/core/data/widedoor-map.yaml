@@ -1,6 +1,9 @@
 # Widedoor's own PDF checks (Phase 1 Task 1.2), mapped to WCAG SC. Basis cites the W3C
 # Techniques for WCAG 2.1 for PDF (https://www.w3.org/WAI/WCAG21/Techniques/#pdf), each of
 # which states the SC it relates to. decides is false for every check (see each basis).
+# impact is the default severity of a fail or needs-review finding: critical when the page
+# content is unusable with assistive technology (image-only), serious for a missing title,
+# language, alternative or table structure, moderate otherwise.
 
 meta:
   sources:
@@ -12,6 +15,7 @@ rules:
   - id: pdf-title-displayed
     title: Document title is set and shown in the title bar
     wcag: ['2.4.2']
+    impact: serious
     decides: false
     basis: >-
       PDF18 (Title entry plus DisplayDocTitle) relates to SC 2.4.2 Page Titled (Sufficient when
@@ -19,6 +23,7 @@ rules:
   - id: pdf-language
     title: Document language is set
     wcag: ['3.1.1']
+    impact: serious
     decides: false
     basis: >-
       PDF16 (default language via /Lang in the catalog) relates to SC 3.1.1 Language of Page
@@ -26,17 +31,50 @@ rules:
   - id: pdf-image-only
     title: Page has no real text (image-only page)
     wcag: ['1.1.1', '1.4.5']
+    impact: critical
     decides: false
     basis: >-
       PDF7 (OCR a scanned document to provide actual text) relates to SC 1.4.5 Images of Text
       (Sufficient). A page image of text is non-text content, so without a text alternative it
       also fails SC 1.1.1 (PDF1 is the Alt technique). The check finds the problem; it never
-      shows conformance.
+      shows conformance. A page counts as image-only when it draws an image and has no text
+      layer at all; a scanned page with one real text stamp (a Bates or page number) passes, so
+      the check can miss such pages.
   - id: pdf-bookmarks
     title: Long document has bookmarks
     wcag: ['2.4.5']
+    impact: moderate
     decides: false
     basis: >-
       PDF2 (bookmarks) relates to SC 2.4.5 Multiple Ways as Advisory only, so a missing bookmark
       is not by itself a 2.4.5 failure; report as needs review. Under the 508 profile 2.4.5 is not
       applicable to non-web documents (E205.4 exception).
+  - id: pdf-reading-order
+    title: Reading order matches the visual order (review)
+    wcag: ['1.3.2']
+    impact: moderate
+    decides: false
+    basis: >-
+      PDF3 (correct tab and reading order) relates to SC 1.3.2 Meaningful Sequence (Sufficient).
+      Whether the tag order matches the intended reading order needs a person, so a tagged PDF
+      always gets this as needs review. An untagged PDF has no tag order to review; that it is
+      untagged is already a veraPDF fail (6.2-1), and tagging it comes before reviewing order.
+  - id: pdf-alt-text-quality
+    title: Figure alt text serves the purpose of the image (review)
+    wcag: ['1.1.1']
+    impact: serious
+    decides: false
+    basis: >-
+      PDF1 (Alt entries on Figure tags) relates to SC 1.1.1 Non-text Content (Sufficient). veraPDF
+      checks that Alt is present; whether it is an equivalent needs a person, so a PDF with Figure
+      elements gets this as needs review.
+  - id: pdf-table-logic
+    title: Table headers and cell order are logical (review)
+    wcag: ['1.3.1']
+    impact: serious
+    decides: false
+    basis: >-
+      PDF6 (table elements for table markup) relates to SC 1.3.1 Info and Relationships
+      (Sufficient). A header row tagged as TD cells passes every PDF/UA-1 check, so whether headers
+      and cell order carry the table's relationships needs a person; a PDF with Table elements gets
+      this as needs review.

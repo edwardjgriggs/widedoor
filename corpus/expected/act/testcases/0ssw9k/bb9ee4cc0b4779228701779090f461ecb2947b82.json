@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/0ssw9k/bb9ee4cc0b4779228701779090f461ecb2947b82.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "scrollable-region-focusable",
+      "outcome": "not-applicable"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

@@ -1,0 +1,31 @@
+# A denylist: the build needs the lockfile, the package sources and docker/.
+# Patterns start with **/ so they match in every folder, not only the root.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+.claude
+.vscode
+corpus
+packages/*/test
+sbom.json
+**/widedoor-report
+**/widedoor-review
+**/evidence
+**/.widedoor
+Dockerfile
+.dockerignore
+
+# Secrets never enter the build context.
+**/.env*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/id_rsa*
+**/id_ed25519*
+**/*.keystore
+**/*storageState*.json
+**/.auth

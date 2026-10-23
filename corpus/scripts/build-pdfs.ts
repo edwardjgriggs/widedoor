@@ -1,20 +1,48 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser } from 'playwright';
 import { PDFDict, PDFDocument, PDFHexString, PDFName } from 'pdf-lib';
 import { corpusPath } from './lib/corpus.ts';
+import { ALLOWED_FONT, pdfFonts } from './lib/pdf-fonts.ts';
 
 /*
- * Builds the four corpus PDFs from HTML defined below. Chromium renders them
- * (page.pdf, tagged where the case needs it) and pdf-lib sets metadata and
+ * Builds the corpus PDFs: four from HTML defined below, plus malformed.pdf
+ * (fixed bytes, no objects). Chromium renders the four (page.pdf, tagged
+ * where the case needs it) and pdf-lib sets metadata and
  * replaces every time-dependent value (dates, document ID), so a rebuild with
- * the same Chromium build and fonts gives the same bytes. See corpus/README.md.
+ * the same Chromium build gives the same bytes. The only font is the vendored
+ * Liberation Sans in corpus/fonts (checked against its recorded sha256), loaded
+ * through @font-face with no fallback, so no host font reaches the output.
+ * See corpus/README.md.
  */
 
 const FIXED_DATE = new Date('2026-01-01T00:00:00Z');
 const PRODUCER = 'Widedoor corpus build (Chromium page.pdf, pdf-lib)';
 const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+const FONT_SOURCE = JSON.parse(readFileSync(corpusPath('fonts/source.json'), 'utf8')) as {
+  files: Record<string, string>;
+};
+
+/** A vendored font as a data URL, after checking it is the file source.json records. */
+function font(file: string): string {
+  const bytes = readFileSync(corpusPath(`fonts/${file}`));
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  if (sha256 !== FONT_SOURCE.files[file])
+    throw new Error(`fonts/${file}: sha256 ${sha256} is not the recorded one`);
+  return `data:font/ttf;base64,${bytes.toString('base64')}`;
+}
+
+const FONT_FACES = [
+  ['LiberationSans-Regular.ttf', 400],
+  ['LiberationSans-Bold.ttf', 700],
+]
+  .map(
+    ([file, weight]) =>
+      `  @font-face { font-family: 'Corpus Sans'; font-weight: ${weight}; src: url('${font(String(file))}') format('truetype'); }`,
+  )
+  .join('\n');
 
 interface Variant {
   lang: boolean;
@@ -35,7 +63,8 @@ function html(v: Variant): string {
 <meta charset="utf-8">
 ${v.title ? `<title>${TITLE}</title>` : ''}
 <style>
-  body { font-family: Arial, sans-serif; font-size: 12pt; color: #000; background: #fff; margin: 0; }
+${FONT_FACES}
+  body { font-family: 'Corpus Sans'; font-size: 12pt; color: #000; background: #fff; margin: 0; }
   table { border-collapse: collapse; }
   th, td { border: 1px solid #000; padding: 4pt 8pt; text-align: left; }
   td.head { font-weight: bold; }
@@ -159,6 +188,13 @@ async function postProcess(bytes: Uint8Array, name: string, mode: Mode): Promise
 }
 
 const out = (name: string) => corpusPath(`pdf/${name}.pdf`);
+
+/** A file that starts like a PDF and has no objects, cross-reference table or trailer. */
+const MALFORMED =
+  '%PDF-1.7\n' +
+  'This file starts like a PDF but has no objects, no cross-reference table and no trailer.\n' +
+  '%%EOF\n';
+
 mkdirSync(corpusPath('pdf'), { recursive: true });
 const browser = await chromium.launch();
 try {
@@ -188,11 +224,19 @@ try {
   ];
   for (const [name, build] of builds) {
     const bytes = await build();
+    const fonts = await pdfFonts(bytes);
+    const foreign = fonts.filter((f) => !ALLOWED_FONT.test(f));
+    if (foreign.length)
+      throw new Error(
+        `pdf/${name}.pdf embeds fonts other than Liberation Sans: ${foreign.join(', ')}`,
+      );
     writeFileSync(out(name), bytes);
     console.log(
-      `pdf/${name}.pdf ${bytes.length} bytes ${createHash('sha256').update(bytes).digest('hex')}`,
+      `pdf/${name}.pdf ${bytes.length} bytes ${createHash('sha256').update(bytes).digest('hex')} fonts: ${fonts.join(', ') || 'none'}`,
     );
   }
+  writeFileSync(out('malformed'), MALFORMED);
+  console.log(`pdf/malformed.pdf ${MALFORMED.length} bytes (no objects)`);
 } finally {
   await browser.close();
 }

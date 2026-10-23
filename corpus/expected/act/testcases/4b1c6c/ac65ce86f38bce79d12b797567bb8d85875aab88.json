@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/4b1c6c/ac65ce86f38bce79d12b797567bb8d85875aab88.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "frame-title-unique",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": null,
+  "provisional": true
+}

@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/78fd32/9280b9961f4e24943080fabb67c041b65036f69c.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "avoid-inline-spacing",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

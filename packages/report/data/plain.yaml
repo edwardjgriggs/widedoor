@@ -1,0 +1,623 @@
+# Plain-language text for every mapped rule: what the problem is, who it affects and how to fix
+# it. Keys are rule ids from packages/core/data (axe-map.yaml, verapdf-map.yaml rules,
+# widedoor-map.yaml). Readers are small business owners, not developers, so keep it short and
+# free of jargon. packages/report/test/plain.test.ts checks that every mapped rule has an entry
+# and that each entry reads at Flesch-Kincaid grade 8 or lower.
+
+axe-core:
+  area-alt:
+    what: A clickable part of an image map has no text.
+    who: Screen reader users do not know where this link goes.
+    fix: Add alt text to each area tag that says where the link goes.
+  aria-allowed-attr:
+    what: A part of the page uses an ARIA setting that does not fit its role.
+    who: Screen readers may give wrong or mixed up details about it.
+    fix: Remove the setting, or use one that the role allows.
+  aria-braille-equivalent:
+    what: A part of the page has braille text but no matching plain text.
+    who: People who do not use a braille display get no name or label for it.
+    fix: Add a normal label or description next to the braille one.
+  aria-command-name:
+    what: A button, link or menu item built with ARIA code has no name.
+    who: Screen reader users hear only what kind of control it is, not what it does.
+    fix: Give it visible text or an aria-label that says what it does.
+  aria-conditional-attr:
+    what: An ARIA setting is used in a way its role does not allow.
+    who: Screen readers may report the wrong state, such as checked or open.
+    fix: Use the setting only the way the rules for that role describe.
+  aria-deprecated-role:
+    what: A part of the page uses an old ARIA role that is no longer supported.
+    who: Screen readers may ignore it or describe it the wrong way.
+    fix: Replace the role with a current one that fits, or remove it.
+  aria-hidden-body:
+    what: The whole page body is hidden from screen readers.
+    who: Screen reader users cannot reach any content on the page.
+    fix: Remove aria-hidden from the body tag.
+  aria-hidden-focus:
+    what: A hidden part of the page can still get keyboard focus.
+    who: Keyboard and screen reader users land on something they cannot hear or see.
+    fix: Take it out of the tab order, or stop hiding it from screen readers.
+  aria-input-field-name:
+    what: A text box or list built with ARIA code has no name.
+    who: Screen reader users do not know what to type or pick.
+    fix: Add a visible label and link it to the field, or add an aria-label.
+  aria-meter-name:
+    what: A meter, such as a level or score bar, has no name.
+    who: Screen reader users hear a number but not what it measures.
+    fix: Give the meter a label that says what it shows.
+  aria-progressbar-name:
+    what: A progress bar has no name.
+    who: Screen reader users do not know what task the bar tracks.
+    fix: Give the progress bar a label, such as Upload progress.
+  aria-prohibited-attr:
+    what: A part of the page uses an ARIA setting its role does not permit.
+    who: Screen readers may skip the setting, so its words are lost.
+    fix: Remove the setting, or move its text into the visible content.
+  aria-required-attr:
+    what: A part of the page with an ARIA role is missing a setting that role needs.
+    who: Screen readers cannot report key facts, such as a heading level or a checked state.
+    fix: Add the missing setting with the right value.
+  aria-required-children:
+    what: A list, menu, grid or similar group is missing the items it must hold.
+    who: Screen readers cannot tell how many items there are or how they fit together.
+    fix: Put the right items inside it, such as list items in a list.
+  aria-required-parent:
+    what: An item, such as a menu item or a tab, is not inside the group it belongs to.
+    who: Screen readers cannot tell which group the item is part of.
+    fix: Place the item inside the right group, such as a menu or a tab list.
+  aria-roledescription:
+    what: A role description is used on a part of the page that has no role.
+    who: Screen readers may read a made up name that hides what the part is.
+    fix: Use a role description only where there is a real role.
+  aria-roles:
+    what: A part of the page uses an ARIA role that does not exist.
+    who: Screen readers cannot tell what it is or how to use it.
+    fix: Fix the spelling, or use a valid role that fits.
+  aria-tab-name:
+    what: A tab has no name.
+    who: Screen reader users cannot tell the tabs apart.
+    fix: Give each tab visible text or an aria-label.
+  aria-toggle-field-name:
+    what: A checkbox, switch or other on and off control has no name.
+    who: Screen reader users hear on or off but not what it controls.
+    fix: Add a visible label for the control and link it to the control.
+  aria-tooltip-name:
+    what: A tooltip has no text that screen readers can read.
+    who: Screen reader users miss the hint it gives.
+    fix: Put the tooltip text inside it, or give it an aria-label.
+  aria-valid-attr:
+    what: An ARIA setting name is misspelled or made up.
+    who: Screen readers ignore it, so the details it should give are lost.
+    fix: Fix the spelling, or remove the setting.
+  aria-valid-attr-value:
+    what: An ARIA setting has a value that is not allowed.
+    who: Screen readers may report the wrong state or skip it.
+    fix: Use one of the values the setting allows, such as true or false.
+  audio-caption:
+    what: An audio clip has no captions or transcript.
+    who: People who are deaf or hard of hearing miss what is said.
+    fix: Add a text transcript or captions for the audio.
+  autocomplete-valid:
+    what: A form field uses an autofill value that browsers do not know.
+    who: People who rely on autofill must type it all by hand. That is hard for many people with motor or memory problems.
+    fix: Use a standard value, such as email, tel or postal-code.
+  avoid-inline-spacing:
+    what: Code on the page locks the spacing of text so users cannot change it.
+    who: People with low vision or dyslexia who widen the spacing to read cannot do so.
+    fix: Remove the important flag from spacing set in style attributes.
+  blink:
+    what: Text on the page blinks.
+    who: Blinking text is hard to read and can distract people who have trouble with focus or sight.
+    fix: Remove the blink tag.
+  button-name:
+    what: A button has no text that says what it does.
+    who: Screen reader users hear just button and do not know what it does.
+    fix: Add text inside the button, or add an aria-label.
+  bypass:
+    what: There is no quick way to skip past menus to the main content.
+    who: Keyboard and screen reader users must move through every link on each page.
+    fix: Add a skip to main content link at the top, or put the main content in a main tag.
+  color-contrast:
+    what: Text does not stand out enough from its background.
+    who: People with low vision or color blindness may not be able to read it.
+    fix: Make the text darker or the background lighter. Aim for a contrast ratio of at least 4.5 to 1.
+  css-orientation-lock:
+    what: The page works in only one screen direction, tall or wide.
+    who: People with a tablet or phone fixed in one position cannot use it.
+    fix: Let the page work when the screen is turned either way.
+  definition-list:
+    what: A list of terms and meanings holds things that do not belong in it.
+    who: Screen readers may not read the terms and their meanings as a list.
+    fix: Put only term and meaning pairs, such as dt and dd tags, inside the dl tag.
+  dlitem:
+    what: A term or its meaning is not inside a list of terms.
+    who: Screen readers do not know it is part of a list.
+    fix: Wrap the dt and dd tags in a dl tag.
+  document-title:
+    what: The page has no title.
+    who: Screen reader users, and anyone with many tabs open, cannot tell what the page is.
+    fix: Add a short title tag that names the page and the site.
+  duplicate-id-aria:
+    what: Two or more parts of the page share an ID that a label or ARIA code points to.
+    who: Screen readers may read the wrong label for a field or control.
+    fix: Give each part its own ID.
+  form-field-multiple-labels:
+    what: A form field has more than one label.
+    who: Screen readers may read only one label, or read them in a confusing way.
+    fix: Use one label per field. Move any extra hints into a description.
+  frame-focusable-content:
+    what: A frame with buttons or links inside is skipped by the keyboard.
+    who: Keyboard users cannot reach the controls in the frame.
+    fix: Remove the tabindex value of -1 from the frame.
+  frame-title:
+    what: A frame has no title.
+    who: Screen reader users do not know what the frame holds.
+    fix: Add a title to the iframe tag that says what is in it.
+  frame-title-unique:
+    what: Two frames have the same title.
+    who: Screen reader users cannot tell the frames apart.
+    fix: Give each frame its own title.
+  html-has-lang:
+    what: The page does not say what language it is in.
+    who: Screen readers may read the text with the wrong accent or rules.
+    fix: Add a lang value to the html tag, such as en for English.
+  html-lang-valid:
+    what: The page language code is not a real language code.
+    who: Screen readers may read the text with the wrong voice.
+    fix: Use a valid code in the lang value, such as en or es.
+  html-xml-lang-mismatch:
+    what: The page names two different languages in its html tag.
+    who: Screen readers may pick the wrong one.
+    fix: Make lang and xml:lang name the same language.
+  image-alt:
+    what: An image has no text alternative.
+    who: Screen reader users miss what the image shows.
+    fix: Add alt text that says what the image shows. Use empty alt text for images that are only for looks.
+  input-button-name:
+    what: An input button has no text.
+    who: Screen reader users do not know what the button does.
+    fix: Add a value or aria-label that says what the button does.
+  input-image-alt:
+    what: An image used as a button has no text alternative.
+    who: Screen reader users do not know what the button does.
+    fix: Add alt text that says what the button does, such as Search.
+  label:
+    what: A form field has no label.
+    who: Screen reader users do not know what to type.
+    fix: Add a label tag that names the field and points to it.
+  label-content-name-mismatch:
+    what: The words you see on a control are not part of its hidden name.
+    who: People who use voice control say the words they see, and nothing happens.
+    fix: Make the hidden name start with the words people see.
+  link-in-text-block:
+    what: A link in a paragraph is shown only by its color.
+    who: People who cannot see colors well cannot find the link.
+    fix: Underline links in text, or add some other clear mark.
+  link-name:
+    what: A link has no text.
+    who: Screen reader users hear link but not where it goes.
+    fix: Add link text, or add alt text to the image inside the link.
+  list:
+    what: A list holds things that are not list items.
+    who: Screen readers may not read it as a list or count its items right.
+    fix: Put only li tags right inside ul and ol tags.
+  listitem:
+    what: A list item is not inside a list.
+    who: Screen readers do not know it is part of a list.
+    fix: Wrap list items in a ul or ol tag.
+  marquee:
+    what: Text on the page scrolls by on its own.
+    who: Moving text is hard to read and can distract people who have trouble with focus or sight.
+    fix: Remove the marquee tag and show the text so it stays still.
+  meta-refresh:
+    what: The page reloads or moves to another page on a timer.
+    who: People who read slowly, or who use screen readers, lose their place.
+    fix: Remove the timed refresh, or let users choose when to move on.
+  meta-viewport:
+    what: The page stops people from zooming in on phones.
+    who: People with low vision cannot make the text big enough to read.
+    fix: Remove user-scalable=no and maximum-scale from the viewport tag.
+  nested-interactive:
+    what: A control is placed inside another control.
+    who: Screen readers may skip the inner control, and keyboard users may not reach it.
+    fix: Move the inner control out, so each one stands on its own.
+  no-autoplay-audio:
+    what: Sound plays on its own when the page opens.
+    who: Screen reader users cannot hear their screen reader over it.
+    fix: Do not play sound on its own. If you must, stop it within 3 seconds and give a way to turn it off.
+  object-alt:
+    what: An embedded object has no text alternative.
+    who: Screen reader users miss what the object shows or does.
+    fix: Add text inside the object tag, or an aria-label, that says what it is.
+  p-as-heading:
+    what: Bold or large text is used as a heading but is not marked as one.
+    who: Screen reader users cannot jump to it or see how the page is laid out.
+    fix: Use real heading tags, such as h2 and h3, for headings.
+  role-img-alt:
+    what: A part of the page marked as an image has no text alternative.
+    who: Screen reader users miss what the image shows.
+    fix: Add an aria-label that says what the image shows.
+  scrollable-region-focusable:
+    what: A box that scrolls cannot be reached with the keyboard.
+    who: Keyboard users cannot scroll to see all of what is in it.
+    fix: Let the box take keyboard focus, or put a link or button inside it.
+  select-name:
+    what: A drop down list has no label.
+    who: Screen reader users do not know what they are choosing.
+    fix: Add a label tag for the list and point it to the list.
+  server-side-image-map:
+    what: An image map works only by clicking a spot with a mouse.
+    who: Keyboard and screen reader users cannot use its links.
+    fix: Use plain links, or an image map with an area tag for each link.
+  summary-name:
+    what: A summary that opens hidden content has no text.
+    who: Screen reader users do not know what the hidden part holds.
+    fix: Add text inside the summary tag.
+  svg-img-alt:
+    what: A drawing or icon marked as an image has no text alternative.
+    who: Screen reader users miss what the image shows.
+    fix: Add a title inside the svg tag, or an aria-label, that says what it shows.
+  table-fake-caption:
+    what: A table uses a cell as its title instead of a caption.
+    who: Screen readers read the title as if it were table data.
+    fix: Move the title into a caption tag.
+  td-has-header:
+    what: Cells in a large table are not linked to their headers.
+    who: Screen reader users hear a value but not what it means.
+    fix: Mark header cells with th tags, and say whether each heads a row or a column.
+  td-headers-attr:
+    what: A table cell points to headers that are not in the same table.
+    who: Screen reader users hear the wrong headers, or none, for the cell.
+    fix: Make the headers value list only IDs of header cells in this table.
+  th-has-data-cells:
+    what: A table header does not label any data cells.
+    who: Screen readers may read headers that do not match the data.
+    fix: Remove empty headers, or fix the table so each header has data under it.
+  valid-lang:
+    what: A part of the page uses a language code that is not real.
+    who: Screen readers may read that part with the wrong voice.
+    fix: Use a valid code, such as fr for French.
+  video-caption:
+    what: A video has no captions.
+    who: People who are deaf or hard of hearing miss what is said.
+    fix: Add captions to the video.
+
+verapdf:
+  6.2-1:
+    what: The PDF is not tagged.
+    who: Screen readers cannot tell headings, lists or tables apart, and may read the text in the wrong order.
+    fix: Save the file as a PDF again with tags turned on. In Word, use Save As PDF with the option for tags. Or add tags in Acrobat.
+  7.1-1:
+    what: Some content marked as decoration sits inside real tagged content.
+    who: Screen readers may skip parts that matter, or read parts that do not.
+    fix: Fix the tags in Acrobat so decoration and real content are kept apart.
+  7.1-2:
+    what: Some real content is inside a part marked as decoration.
+    who: Screen readers skip it, so users miss it.
+    fix: In Acrobat, move the content out of the decoration part and tag it.
+  7.1-3:
+    what: Some content is not tagged and not marked as decoration.
+    who: Screen readers may skip it or read it out of order.
+    fix: Tag the content, or mark it as decoration if it is only for looks.
+  7.1-5:
+    what: The PDF uses custom tag names that are not linked to standard tags.
+    who: Screen readers do not know what these parts are, such as a heading or a list.
+    fix: Link each custom tag to a standard tag in the role map, or save the PDF again with standard tags.
+  7.1-6:
+    what: Custom tags point to each other in a loop.
+    who: Screen readers cannot work out what these parts are.
+    fix: Fix the role map so each custom tag ends at a standard tag.
+  7.1-7:
+    what: A standard tag has been changed to mean something else.
+    who: Screen readers may report parts as the wrong type.
+    fix: Remove the change to the standard tag from the role map.
+  7.1-9:
+    what: The PDF has no title in its file details.
+    who: Screen reader users, and anyone with many files open, cannot tell what the file is.
+    fix: Add a title in the file properties. In Word, you can set it under File, then Info.
+  7.1-10:
+    what: The PDF shows its file name instead of its title.
+    who: Screen reader users hear a file name that may not mean anything.
+    fix: Set the file to show its title in the window. In Acrobat, this is on the Initial View tab of the file properties.
+  7.1-11:
+    what: The PDF has no tag tree.
+    who: Screen readers cannot tell the parts of the file apart.
+    fix: Save the file as a PDF again with tags turned on, or add tags in Acrobat.
+  7.1-12:
+    what: A tag is not linked to the tag it sits inside.
+    who: Screen readers may not read the file in order.
+    fix: Fix or rebuild the tags in Acrobat.
+  7.2-2:
+    what: Bookmarks do not say what language they are in.
+    who: Screen readers may read bookmark names with the wrong voice.
+    fix: Set the document language in the file properties.
+  7.2-3:
+    what: A table holds parts that are not rows, row groups or a caption.
+    who: Screen readers may not read the table as a table.
+    fix: Fix the table tags so the table holds only rows, row groups and a caption.
+  7.2-4:
+    what: A table row is not inside a table.
+    who: Screen readers may not know the row is part of a table.
+    fix: Move the row tag inside its table tag.
+  7.2-5:
+    what: A group of header rows is not inside a table.
+    who: Screen readers may not know the headers are part of a table.
+    fix: Move the header group tag inside its table tag.
+  7.2-6:
+    what: A group of body rows is not inside a table.
+    who: Screen readers may not know the rows are part of a table.
+    fix: Move the body group tag inside its table tag.
+  7.2-7:
+    what: A group of footer rows is not inside a table.
+    who: Screen readers may not know the rows are part of a table.
+    fix: Move the footer group tag inside its table tag.
+  7.2-8:
+    what: A header cell is not inside a table row.
+    who: Screen readers may not link the header to the right cells.
+    fix: Move the header cell tag inside a row tag.
+  7.2-9:
+    what: A data cell is not inside a table row.
+    who: Screen readers may not read the cell as part of the table.
+    fix: Move the data cell tag inside a row tag.
+  7.2-10:
+    what: A table row holds parts that are not cells.
+    who: Screen readers may read the row wrong.
+    fix: Fix the row so it holds only header cells and data cells.
+  7.2-11:
+    what: A table has more than one group of header rows.
+    who: Screen readers may read the headers wrong.
+    fix: Put all the header rows in one header group.
+  7.2-12:
+    what: A table has more than one group of footer rows.
+    who: Screen readers may read the table wrong.
+    fix: Put all the footer rows in one footer group.
+  7.2-13:
+    what: A table has a footer group but no body group.
+    who: Screen readers may not find the table data.
+    fix: Put the data rows in a body group.
+  7.2-14:
+    what: A table has a header group but no body group.
+    who: Screen readers may not find the table data.
+    fix: Put the data rows in a body group.
+  7.2-15:
+    what: Table cells overlap each other.
+    who: Screen readers may read cells in the wrong order or link them to the wrong headers.
+    fix: Fix the row and column spans so no two cells cover the same spot.
+  7.2-16:
+    what: A table caption is not the first or last part of the table.
+    who: Screen readers may read the caption in the middle of the data.
+    fix: Move the caption to the start or end of the table.
+  7.2-17:
+    what: A list item is not inside a list.
+    who: Screen readers do not know it is part of a list.
+    fix: Move the list item tag inside a list tag.
+  7.2-18:
+    what: The body of a list item is not inside a list item.
+    who: Screen readers may not read it as part of the list.
+    fix: Move the body tag inside its list item tag.
+  7.2-19:
+    what: A list holds parts that are not list items, lists or a caption.
+    who: Screen readers may not read it as a list or count its items right.
+    fix: Fix the list tags so the list holds only items, inner lists and a caption.
+  7.2-20:
+    what: A list item holds parts other than a label and a body.
+    who: Screen readers may read the item wrong.
+    fix: Fix the item so it holds only a label, such as a bullet, and a body.
+  7.2-21:
+    what: Replacement text does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that tag.
+  7.2-22:
+    what: Alt text does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that tag.
+  7.2-23:
+    what: The full form of a short word does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that tag.
+  7.2-24:
+    what: A comment or note does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language in the file properties.
+  7.2-25:
+    what: A form field tooltip does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language in the file properties.
+  7.2-26:
+    what: An entry in a table of contents is not inside the table of contents.
+    who: Screen readers may not read it as part of the contents list.
+    fix: Move the entry tag inside the table of contents tag.
+  7.2-27:
+    what: A table of contents holds parts that are not entries.
+    who: Screen readers may not read it as a contents list.
+    fix: Fix the tags so it holds only entries, inner lists and a caption.
+  7.2-28:
+    what: A table of contents caption is not the first part.
+    who: Screen readers may read the caption in the middle of the list.
+    fix: Move the caption to the start of the table of contents.
+  7.2-29:
+    what: A language code in the PDF is not a real code.
+    who: Screen readers may read the text with the wrong voice.
+    fix: Use a valid code, such as en-US.
+  7.2-30:
+    what: Replacement text on a piece of a line does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that text.
+  7.2-31:
+    what: Alt text on a piece of a line does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that text.
+  7.2-32:
+    what: The full form of a short word on a piece of a line does not say what language it is in.
+    who: Screen readers may read it with the wrong voice.
+    fix: Set the document language, or set a language on that text.
+  7.2-33:
+    what: The file details, such as the title, do not say what language they are in.
+    who: Screen readers may read them with the wrong voice.
+    fix: Set the document language in the file properties.
+  7.2-34:
+    what: The text in the PDF does not say what language it is in.
+    who: Screen readers may read the whole file with the wrong voice or rules.
+    fix: Set the document language in the file properties, or in the program you made the file with.
+  7.2-36:
+    what: A group of header rows holds parts that are not rows.
+    who: Screen readers may read the headers wrong.
+    fix: Fix the group so it holds only rows.
+  7.2-37:
+    what: A group of body rows holds parts that are not rows.
+    who: Screen readers may read the table wrong.
+    fix: Fix the group so it holds only rows.
+  7.2-38:
+    what: A group of footer rows holds parts that are not rows.
+    who: Screen readers may read the table wrong.
+    fix: Fix the group so it holds only rows.
+  7.2-39:
+    what: A table has more than one caption.
+    who: Screen readers may read the wrong caption, or read it in the middle of the data.
+    fix: Keep one caption and remove the rest.
+  7.2-40:
+    what: A list caption is not the first part of the list.
+    who: Screen readers may read the caption in the middle of the list.
+    fix: Move the caption to the start of the list.
+  7.2-41:
+    what: The columns of a table do not all have the same number of rows.
+    who: Screen readers may link cells to the wrong headers.
+    fix: Add missing cells or fix the spans so every column is complete.
+  7.2-42:
+    what: The rows of a table do not all have the same number of cells.
+    who: Screen readers may link cells to the wrong headers.
+    fix: Add missing cells or fix the spans so every row is complete.
+  7.2-43:
+    what: Some rows of a table are shorter or longer than the rest.
+    who: Screen readers may link cells to the wrong headers.
+    fix: Add missing cells or fix the spans so every row has the same number of cells.
+  7.3-1:
+    what: An image has no alt text.
+    who: Screen reader users miss what the image shows.
+    fix: Add alt text to the image in Acrobat, or in the program you made the file with.
+  7.4.2-1:
+    what: Heading levels skip a step or do not start at level 1.
+    who: Screen reader users may think content is missing or get lost in the outline.
+    fix: Start with a level 1 heading, and do not skip levels, such as going from 2 to 4.
+  7.4.4-1:
+    what: A section has more than one plain heading tag.
+    who: Screen readers may not know which heading leads the section.
+    fix: Use one heading per section, or use numbered heading levels.
+  7.4.4-2:
+    what: The PDF mixes two ways of tagging headings.
+    who: Screen readers may read the outline of the file wrong.
+    fix: Use numbered headings, such as H1 and H2, all through the file.
+  7.4.4-3:
+    what: The PDF uses both plain and numbered heading tags.
+    who: Screen readers may read the outline of the file wrong.
+    fix: Pick one kind. Numbered headings, such as H1 and H2, work best.
+  7.5-1:
+    what: A table header cell does not say if it heads a row or a column.
+    who: Screen reader users may hear the wrong header for a cell.
+    fix: In Acrobat, set each header cell to row or column.
+  7.5-2:
+    what: A table does not show which headers go with each cell.
+    who: Screen reader users may hear the wrong header for a cell.
+    fix: In Acrobat, set each header cell to row or column, or link cells to their headers.
+  7.7-1:
+    what: A math formula has no text version.
+    who: Screen reader users cannot hear the formula.
+    fix: Tag the formula and add alt text that reads it out.
+  7.9-1:
+    what: A footnote or endnote has no ID.
+    who: Screen readers cannot link the note to the place that points to it.
+    fix: Fix the note tags so each note has an ID.
+  7.9-2:
+    what: Two notes share the same ID.
+    who: Screen readers may link a note to the wrong place.
+    fix: Give each note its own ID.
+  7.15-1:
+    what: The PDF uses a dynamic XFA form.
+    who: Screen readers cannot read the form fields or their order.
+    fix: Rebuild the form as a standard PDF form, such as in Acrobat.
+  7.16-1:
+    what: The security settings of the PDF block screen readers from reading the text.
+    who: Screen reader users cannot read the file at all.
+    fix: In the security settings, let screen readers copy the text. Or remove the password.
+  7.18.1-1:
+    what: A comment, note or other mark is not tagged.
+    who: Screen readers may skip it or read it out of order.
+    fix: Tag the mark in Acrobat so it sits in the right place.
+  7.18.1-2:
+    what: A comment, note or other mark has no text.
+    who: Screen reader users do not know what it is for.
+    fix: Add a description to the mark.
+  7.18.1-3:
+    what: A form field has no name or tooltip.
+    who: Screen reader users do not know what to type or choose.
+    fix: Add a tooltip in the field properties that says what the field is for.
+  7.18.3-1:
+    what: A page with links or fields does not set its tab order to follow the tags.
+    who: Keyboard users may jump around the page in the wrong order.
+    fix: In the page properties, set the tab order to use the document structure.
+  7.18.4-1:
+    what: A form field is not tagged as a form.
+    who: Screen readers may not report it as a field.
+    fix: Tag the field with a Form tag in Acrobat.
+  7.18.4-2:
+    what: A Form tag holds more than its one field.
+    who: Screen readers may not report the field right.
+    fix: Fix the Form tag so it holds only the field.
+  7.18.5-1:
+    what: A link is not tagged as a link.
+    who: Screen readers may not report it as a link.
+    fix: Tag the link with a Link tag in Acrobat.
+  7.18.5-2:
+    what: A link has no description.
+    who: Screen reader users do not know where the link goes.
+    fix: Add a description to the link that says where it goes.
+  7.18.6.2-2:
+    what: A media clip has no text that says what it is.
+    who: Screen reader users do not know what the clip is.
+    fix: Add a short description to the media clip.
+  7.20-1:
+    what: The PDF pulls in content from another file.
+    who: Screen readers cannot read the content from the other file.
+    fix: Put the content into this file and tag it.
+  7.20-2:
+    what: Content in a reused block of the page is not tagged.
+    who: Screen readers may skip it or read it out of order.
+    fix: Tag the content in Acrobat, or save the file as a PDF again with tags turned on.
+  7.21.7-1:
+    what: Some text cannot be turned back into real letters.
+    who: Screen readers read nothing or nonsense, and search and copy do not work.
+    fix: Use a different font, or save the PDF again with the full fonts included.
+  7.21.7-2:
+    what: Some letters in the PDF map to empty or broken characters.
+    who: Screen readers read nothing or nonsense, and search and copy do not work.
+    fix: Use a different font and save the PDF again.
+
+widedoor:
+  pdf-title-displayed:
+    what: The PDF does not show a title in its window.
+    who: Screen reader users hear a file name that may not say what the file is.
+    fix: Add a title in the file properties and set the file to show it.
+  pdf-language:
+    what: The PDF does not say what language it is in.
+    who: Screen readers may read it with the wrong voice or rules.
+    fix: Set the document language in the file properties.
+  pdf-image-only:
+    what: A page is only a picture of text, with no real text.
+    who: Screen reader users hear nothing, and no one can search or copy the text.
+    fix: Run text recognition, also called OCR, on the page. Or save the PDF again from the first file.
+  pdf-bookmarks:
+    what: This long PDF has no bookmarks.
+    who: People who use screen readers or keyboards have a hard time moving around the file.
+    fix: Add bookmarks for the main headings. Most programs can make them from headings when you save the PDF.
+  pdf-reading-order:
+    what: A person needs to check that the tags read in the same order as the page.
+    who: If the order is wrong, screen reader users hear the content mixed up.
+    fix: Check the reading order in Acrobat and fix any parts that are out of place.
+  pdf-alt-text-quality:
+    what: A person needs to check that the alt text of each image says what the image means.
+    who: Poor alt text leaves screen reader users without the facts the image gives.
+    fix: Read each alt text and rewrite any that do not match the image.
+  pdf-table-logic:
+    what: A person needs to check that table headers and cell order make sense.
+    who: If the headers are wrong, screen reader users hear values without their meaning.
+    fix: Check that header cells are tagged as headers and read in a sensible order.

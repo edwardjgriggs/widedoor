@@ -1,0 +1,443 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Widedoor",
+          "version": "0.0.0",
+          "rules": [
+            {
+              "id": "axe-core/color-contrast",
+              "name": "color-contrast",
+              "shortDescription": {
+                "text": "Text does not stand out enough from its background."
+              },
+              "fullDescription": {
+                "text": "Text does not stand out enough from its background. People with low vision or color blindness may not be able to read it."
+              },
+              "help": {
+                "text": "Make the text darker or the background lighter. Aim for a contrast ratio of at least 4.5 to 1."
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.14/color-contrast",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 1.4.3"
+                ],
+                "engine": "axe-core",
+                "wcag": [
+                  "1.4.3"
+                ]
+              }
+            },
+            {
+              "id": "axe-core/label",
+              "name": "label",
+              "shortDescription": {
+                "text": "A form field has no label."
+              },
+              "fullDescription": {
+                "text": "A form field has no label. Screen reader users do not know what to type."
+              },
+              "help": {
+                "text": "Add a label tag that names the field and points to it."
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.14/label",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 4.1.2"
+                ],
+                "engine": "axe-core",
+                "wcag": [
+                  "4.1.2"
+                ]
+              }
+            },
+            {
+              "id": "axe-core/link-name",
+              "name": "link-name",
+              "shortDescription": {
+                "text": "A link has no text."
+              },
+              "fullDescription": {
+                "text": "A link has no text. Screen reader users hear link but not where it goes."
+              },
+              "help": {
+                "text": "Add link text, or add alt text to the image inside the link."
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.14/link-name",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 2.4.4",
+                  "WCAG 4.1.2"
+                ],
+                "engine": "axe-core",
+                "wcag": [
+                  "2.4.4",
+                  "4.1.2"
+                ]
+              }
+            },
+            {
+              "id": "verapdf/7.3-1",
+              "name": "7.3-1",
+              "shortDescription": {
+                "text": "An image has no alt text."
+              },
+              "fullDescription": {
+                "text": "An image has no alt text. Screen reader users miss what the image shows."
+              },
+              "help": {
+                "text": "Add alt text to the image in Acrobat, or in the program you made the file with."
+              },
+              "helpUri": "https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 1.1.1"
+                ],
+                "engine": "verapdf",
+                "wcag": [
+                  "1.1.1"
+                ]
+              }
+            },
+            {
+              "id": "widedoor/pdf-title-displayed",
+              "name": "pdf-title-displayed",
+              "shortDescription": {
+                "text": "The PDF does not show a title in its window."
+              },
+              "fullDescription": {
+                "text": "The PDF does not show a title in its window. Screen reader users hear a file name that may not say what the file is."
+              },
+              "help": {
+                "text": "Add a title in the file properties and set the file to show it."
+              },
+              "helpUri": "https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 2.4.2"
+                ],
+                "engine": "widedoor",
+                "wcag": [
+                  "2.4.2"
+                ]
+              }
+            }
+          ]
+        },
+        "extensions": [
+          {
+            "name": "axe-core",
+            "version": "4.14.0"
+          },
+          {
+            "name": "veraPDF",
+            "version": "1.30.3"
+          },
+          {
+            "name": "Widedoor PDF checks",
+            "version": "0.0.0"
+          }
+        ]
+      },
+      "invocations": [
+        {
+          "executionSuccessful": false,
+          "startTimeUtc": "2026-10-22T12:00:00.000Z",
+          "endTimeUtc": "2026-10-22T12:05:00.000Z",
+          "toolExecutionNotifications": [
+            {
+              "level": "error",
+              "message": {
+                "text": "unsupported-url: cannot scan </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)> (javascript:alert(5))"
+              },
+              "properties": {
+                "code": "unsupported-url",
+                "uri": "javascript:alert(5)"
+              }
+            },
+            {
+              "level": "error",
+              "message": {
+                "text": "malformed-pdf: not a PDF"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "docs/broken.pdf"
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "code": "malformed-pdf",
+                "uri": "docs/broken.pdf",
+                "engine": "verapdf"
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "not scanned (redirect-off-origin): https://example.com/out (went to https://evil.example/</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>)"
+              },
+              "properties": {
+                "code": "redirect-off-origin",
+                "uri": "https://example.com/out",
+                "finalUri": "https://evil.example/</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+              }
+            }
+          ]
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "axe-core/label",
+          "ruleIndex": 1,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "A form field has no label. At element form > input#phone."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.com/contact?q=%22%3E%3Cscript%3Ealert(3)%3C/script%3E"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "form > input#phone",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_3cec12c46032865a"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_3cec12c46032865a",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "critical",
+            "snippet": "<input id=\"phone\" type=\"tel\">"
+          }
+        },
+        {
+          "ruleId": "axe-core/label",
+          "ruleIndex": 1,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "A form field has no label. At element form > input#phone."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.com/contact?q=%22%3E%3Cscript%3Ealert(3)%3C/script%3E"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "form > input#phone",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_3cec12c46032865a"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_3cec12c46032865a",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "critical",
+            "snippet": "<input id=\"phone\" aria-label='</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>'>"
+          }
+        },
+        {
+          "ruleId": "axe-core/color-contrast",
+          "ruleIndex": 0,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Text does not stand out enough from its background. At element p\\[title=\"</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>\"\\]."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.com/contact?q=%22%3E%3Cscript%3Ealert(3)%3C/script%3E"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "p[title=\"</style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>\"]",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_636b5b8952d4c8eb"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_636b5b8952d4c8eb",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "serious",
+            "snippet": "<p class=\"faint\"></style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)></p>",
+            "viewport": {
+              "width": 320,
+              "height": 256
+            }
+          }
+        },
+        {
+          "ruleId": "axe-core/link-name",
+          "ruleIndex": 2,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "A link has no text. At element a\\[href^=\"javascript:\"\\]\\[id=\"{{0}} \\[Fix guide\\](https://evil.example/login) \\[x\\](1) \\\\\\[y\\\\\\]\"\\]."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.com/contact?q=%22%3E%3Cscript%3Ealert(3)%3C/script%3E"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "a[href^=\"javascript:\"][id=\"{0} [Fix guide](https://evil.example/login) [x](1) \\[y\\]\"]",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_87dfc58f7b9a558c"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_87dfc58f7b9a558c",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "serious",
+            "snippet": "<a href=\"javascript:alert(4)\"></a>"
+          }
+        },
+        {
+          "ruleId": "verapdf/7.3-1",
+          "ruleIndex": 3,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "An image has no alt text. At page 2."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docs/annual%20report.pdf"
+                },
+                "properties": {
+                  "page": 2
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Document/Sect[1]/Figure[1]",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_d11e353cd504d30d"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_d11e353cd504d30d",
+            "engineVersion": "1.30.3",
+            "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "impact": "serious"
+          }
+        },
+        {
+          "ruleId": "widedoor/pdf-title-displayed",
+          "ruleIndex": 4,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "The PDF does not show a title in its window. At the whole file."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docs/annual%20report.pdf"
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_6ace2f5d3c1bf90a"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_6ace2f5d3c1bf90a",
+            "engineVersion": "0.0.0",
+            "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "impact": "serious"
+          }
+        }
+      ],
+      "properties": {
+        "disclaimer": "This report documents the testing performed. It is not a certification of conformance.",
+        "profile": "wcag21aa",
+        "pdfDocumentType": "non-web",
+        "engines": [
+          {
+            "name": "axe-core",
+            "version": "4.14.0"
+          },
+          {
+            "name": "verapdf",
+            "version": "1.30.3",
+            "runner": "docker"
+          },
+          {
+            "name": "widedoor",
+            "version": "0.0.0"
+          }
+        ],
+        "scopeComplete": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/8fc3b6/dcb42362e4cd8108444dd64c8538ef0523de0aa7.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "object-alt",
+      "outcome": "fail"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

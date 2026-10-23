@@ -1,0 +1,14 @@
+{
+  "item": "act/testcases/b40fd1/9eb0cf411e23f4457a013123e3066e2bfa4652da.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "bypass",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

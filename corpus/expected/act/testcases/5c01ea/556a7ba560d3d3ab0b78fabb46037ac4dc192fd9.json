@@ -1,0 +1,24 @@
+{
+  "item": "act/testcases/5c01ea/556a7ba560d3d3ab0b78fabb46037ac4dc192fd9.html",
+  "kind": "web",
+  "source": "act",
+  "expected": [
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-allowed-attr",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-conditional-attr",
+      "outcome": "pass"
+    },
+    {
+      "engine": "axe-core",
+      "ruleId": "aria-prohibited-attr",
+      "outcome": "pass"
+    }
+  ],
+  "confirmedBy": "axe-core 4.14.0",
+  "provisional": false
+}

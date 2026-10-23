@@ -1,0 +1,18 @@
+{
+  "font": "Liberation Sans",
+  "version": "2.1.5",
+  "license": "SIL Open Font License 1.1 (see LICENSE in this folder)",
+  "release": "https://github.com/liberationfonts/liberation-fonts/releases/tag/2.1.5",
+  "archive": {
+    "url": "https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-2.1.5.tar.gz",
+    "sha256": "7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0",
+    "sha512": "b9f178fae43c9214ba6de36c6da613fcf59bd98084058afaaa9151d00f2406942bc360430be0a8f35ea6b5529146eef371c7cf75bdd7910403d449254f943fed",
+    "sha512CrossCheck": "https://src.fedoraproject.org/rpms/liberation-fonts/raw/rawhide/f/sources"
+  },
+  "retrieved": "2026-10-21",
+  "files": {
+    "LiberationSans-Regular.ttf": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+    "LiberationSans-Bold.ttf": "788abee4c806d660e8aee46689dd8540cd4bb98da03dcc9d171ce3efd99a9173",
+    "LICENSE": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b"
+  }
+}

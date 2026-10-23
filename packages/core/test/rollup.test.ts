@@ -798,3 +798,107 @@ describe('decidingRulesFrom', () => {
     expect(() => decidingRulesFrom(data)).toThrow(/exactly one/);
   });
 });
+
+describe('rollup id lists', () => {
+  it('lists a finding id once when several records share it', () => {
+    const fail = automated({ outcome: 'fail' });
+    const again = { ...fail, evidence: { snippet: '<img>' } };
+    const review = automated({ outcome: 'needs-review' });
+    const stale = automated({ outcome: 'pass', contentHash: OLD });
+    const result = rollup({
+      findings: [fail, again, review, { ...review }, stale, { ...stale }],
+      reviews: [],
+      profile: wcag21,
+      assets: [A],
+    });
+    const row = criterion(result, 'wcag21aa', '1.1.1');
+    expect(row.evidence).toEqual([fail.id]);
+    expect(row.assets[0]?.evidence).toEqual([fail.id]);
+    expect(row.assets[0]?.undecided).toEqual([review.id]);
+    expect(row.assets[0]?.expired).toEqual([stale.id]);
+  });
+});
+
+describe('assets in scope that were not scanned', () => {
+  it('keep a criterion from Supports when another asset passes it', () => {
+    const pass = manual({ outcome: 'pass', wcag: ['2.1.2'] });
+    const result = rollup({
+      findings: [],
+      reviews: [pass],
+      profile: wcag21,
+      assets: [A],
+      unscanned: [{ uri: B.uri, kind: 'web' }],
+    });
+    const row = criterion(result, 'wcag21aa', '2.1.2');
+    expect(row.level).toBe('Not Evaluated');
+    expect(row.assets.map((a) => [a.uri, a.reason])).toEqual([
+      [A.uri, 'manual-pass'],
+      [B.uri, 'not-scanned'],
+    ]);
+  });
+
+  it('list every criterion as Not Evaluated when nothing could be scanned', () => {
+    const result = rollup({
+      findings: [],
+      reviews: [],
+      profile: getProfile('508+wcag21aa'),
+      assets: [],
+      unscanned: [
+        { uri: A.uri, kind: 'web' },
+        { uri: naPdf.uri, kind: 'pdf' },
+      ],
+    });
+    for (const s of result.standards) {
+      expect(s.criteria.length, s.standard).toBeGreaterThan(0);
+      for (const c of s.criteria.filter((c) => c.scope === 'asset'))
+        expect(['Not Evaluated', 'Not Applicable'], `${s.standard} ${c.id}`).toContain(c.level);
+    }
+    expect(criterion(result, 'wcag21aa', '1.1.1').level).toBe('Not Evaluated');
+    // The E205.4 exception is a profile decision; it holds whether or not the PDF was scanned.
+    const bypass = criterion(result, '508', '2.4.1');
+    expect(bypass.assets.find((a) => a.uri === naPdf.uri)?.reason).toBe('profile-not-applicable');
+  });
+
+  it('ignore an unscanned entry for an asset that was scanned', () => {
+    const result = rollup({
+      findings: [],
+      reviews: [manual({ outcome: 'pass', wcag: ['2.1.2'] })],
+      profile: wcag21,
+      assets: [A],
+      unscanned: [{ uri: A.uri, kind: 'web' }],
+    });
+    expect(criterion(result, 'wcag21aa', '2.1.2').level).toBe('Supports');
+  });
+
+  it('cap Supports when the scope has a gap that names no asset', () => {
+    const result = rollup({
+      findings: [],
+      reviews: [manual({ outcome: 'pass', wcag: ['2.1.2'] })],
+      profile: wcag21,
+      assets: [A],
+      scopeGaps: ['the sitemap could not be read'],
+    });
+    const row = criterion(result, 'wcag21aa', '2.1.2');
+    expect(row.level).toBe('Not Evaluated');
+    expect(row.reason).toMatch(/scope is incomplete: the sitemap could not be read/);
+  });
+});
+
+describe('product-scope items next to an unscanned asset', () => {
+  it('stay Not Evaluated even with a manual pass', () => {
+    const reviews = [
+      manual({ outcome: 'pass', wcag: ['2.1.2'] }),
+      manual({ outcome: 'pass', wcag: [], section508: ['302.1'] }),
+    ];
+    const run = (unscanned: { uri: string; kind: 'web' }[]) =>
+      rollup({ findings: [], reviews, profile: s508, assets: [A], unscanned });
+    expect(criterion(run([]), '508', '2.1.2').level).toBe('Supports');
+    expect(criterion(run([]), '508', '302.1').level).toBe('Supports');
+    const result = run([{ uri: B.uri, kind: 'web' }]);
+    expect(criterion(result, '508', '2.1.2').level).toBe('Not Evaluated');
+    const product = criterion(result, '508', '302.1');
+    expect(product.level).toBe('Not Evaluated');
+    expect(product.reason).toMatch(/1 page or file in scope was not scanned/);
+    expect(product.evidence).toEqual([reviews[1]?.id]);
+  });
+});
