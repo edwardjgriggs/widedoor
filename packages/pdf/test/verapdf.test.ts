@@ -237,6 +237,7 @@ describe('resolveRunner', () => {
     const r = await resolveRunner('auto', opts(spawn));
     expect(r.ok && r.runner.kind).toBe('local');
     expect(r.ok && r.runner.warnings).toEqual([NOT_ISOLATED_WARNING]);
+    expect(r.ok && r.runner.isolatedHost).toBe(false);
     // The warning names no host path.
     expect(r.ok && r.runner.description).toBe(basename(cli));
   });
@@ -246,6 +247,8 @@ describe('resolveRunner', () => {
     const r = await resolveRunner('local', opts(spawn, { isolatedHost: true }));
     expect(r.ok && r.runner.kind).toBe('local');
     expect(r.ok && r.runner.warnings).toEqual([IN_CONTAINER_WARNING]);
+    // The structural signal callers use (pdf.fetch), set by the same check as the warning.
+    expect(r.ok && r.runner.isolatedHost).toBe(true);
   });
 
   it('skips a local CLI at another version', async () => {

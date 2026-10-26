@@ -161,6 +161,13 @@
                 "type": "string",
                 "minLength": 1
               }
+            },
+            "urls": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           },
           "required": [
@@ -189,6 +196,10 @@
             "minLength": 1
           },
           "contentHash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "reviewHash": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           }
@@ -385,6 +396,10 @@
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "reviewHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
                   }
                 },
                 "required": [
@@ -610,6 +625,10 @@
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "reviewHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
                   }
                 },
                 "required": [
@@ -677,6 +696,21 @@
                   "expiresOnChangeOf": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "overrides": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^wd_[0-9a-f]{16}$"
+                    },
+                    "description": "Ids of automated fails on the same asset and criterion that the reviewer sets aside as false positives. Allowed only on a manual pass (outcome \"pass\"), and counted only with non-empty notes."
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$)).+$"
+                    }
                   }
                 },
                 "required": [
@@ -857,6 +891,10 @@
                     "minLength": 1
                   },
                   "contentHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "reviewHash": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
                   }
@@ -1086,6 +1124,10 @@
                   "contentHash": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "reviewHash": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
                   }
                 },
                 "required": [
@@ -1155,6 +1197,21 @@
                   "expiresOnChangeOf": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "overrides": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^wd_[0-9a-f]{16}$"
+                    },
+                    "description": "Ids of automated fails on the same asset and criterion that the reviewer sets aside as false positives. Allowed only on a manual pass (outcome \"pass\"), and counted only with non-empty notes."
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$)).+$"
+                    }
                   }
                 },
                 "required": [
@@ -1418,6 +1475,8 @@
                               "manual-fail",
                               "deciding-automated-pass",
                               "manual-pass",
+                              "manual-override",
+                              "errata",
                               "profile-not-applicable",
                               "manual-not-applicable",
                               "no-deciding-result",
@@ -1440,6 +1499,13 @@
                             }
                           },
                           "expired": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^wd_[0-9a-f]{16}$"
+                            }
+                          },
+                          "overridden": {
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -1496,6 +1562,8 @@
                             "manual-fail",
                             "deciding-automated-pass",
                             "manual-pass",
+                            "manual-override",
+                            "errata",
                             "profile-not-applicable",
                             "manual-not-applicable",
                             "no-deciding-result",
@@ -1518,6 +1586,13 @@
                           }
                         },
                         "expired": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^wd_[0-9a-f]{16}$"
+                          }
+                        },
+                        "overridden": {
                           "type": "array",
                           "items": {
                             "type": "string",
@@ -1580,6 +1655,137 @@
         "standards"
       ],
       "additionalProperties": false
+    },
+    "checklist": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "byStatus": {
+          "type": "object",
+          "properties": {
+            "open": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "done": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "expired": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "failed-automated": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "open",
+            "done",
+            "expired",
+            "failed-automated"
+          ],
+          "additionalProperties": false
+        },
+        "unscanned": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "total",
+        "byStatus",
+        "unscanned"
+      ],
+      "additionalProperties": false
+    },
+    "overrides": {
+      "description": "Derived and informational: the automated fails a reviewer set aside, recomputed by every renderer and the exit gate from rollup and findings. Editing it changes nothing.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "string",
+            "pattern": "^wd_[0-9a-f]{16}$"
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "axe-core",
+              "verapdf",
+              "widedoor"
+            ]
+          },
+          "ruleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "record": {
+            "type": "string",
+            "pattern": "^wd_[0-9a-f]{16}$"
+          },
+          "criterion": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "wcag",
+                  "section508"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "type",
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "reviewer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "finding",
+          "uri",
+          "engine",
+          "ruleId",
+          "record",
+          "criterion",
+          "reviewer",
+          "date",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
     },
     "disclaimer": {
       "type": "string",

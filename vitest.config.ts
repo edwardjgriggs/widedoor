@@ -23,6 +23,7 @@ export default defineConfig({
       { find: /^@widedoor\/pdf$/, replacement: src('pdf/src/index.ts') },
       { find: /^@widedoor\/report$/, replacement: src('report/src/index.ts') },
       { find: /^@widedoor\/report\/browser$/, replacement: src('report/src/browser.ts') },
+      { find: /^@widedoor\/server$/, replacement: src('server/src/index.ts') },
     ],
   },
   test: {

@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import { loadStandardsData, type Finding, type StandardsData } from '@widedoor/core';
-import { ScreenshotLoader, type ScreenshotLimits } from './evidence.js';
+import { AttachmentLoader, ScreenshotLoader, type ScreenshotLimits } from './evidence.js';
 import { escapeHtml, html, type SafeHtml } from './escape.js';
 import { axeRuleUrl, understandingUrl } from './links.js';
 import { DISCLAIMER, type ScanReport } from './model.js';
+import { overriddenFails, overrideEntries, type OverrideTest } from './overrides.js';
 import { loadPlainData, plainFor, type PlainData } from './plain.js';
 import { REPORT_STYLE as STYLE } from './style.js';
 import { IMPACT_ORDER, notEvaluated, summarize } from './summary.js';
@@ -16,8 +17,11 @@ import {
   assetCounts,
   assetFindings,
   assetKindText,
+  attachmentAgainText,
+  attachmentLeftOut,
   cardBadges,
   cardHeading,
+  checklistRows,
   conditionText,
   crawlText,
   datesText,
@@ -31,15 +35,20 @@ import {
   findingPlace,
   informationalText,
   leadText,
+  levelsText,
   manualReviews,
   moreSkippedText,
   notTestedText,
+  overrideNotes,
+  overrideText,
   profileText,
   recordText,
+  restsOnErrata,
   reviewerText,
   smallScreenText,
   summaryRows,
   unscannedAssets,
+  unscannedReviewText,
   type Criterion,
   type FindingCard,
 } from './view.js';
@@ -48,11 +57,12 @@ export { MAX_SKIPPED_LISTED } from './view.js';
 
 /*
  * The HTML report (spec sections 8 and 10): one self-contained file with no
- * scripts. Every string from the scan goes through the html tag, which
- * escapes it. The CSP meta tag comes first in head and allows only the one
- * inline style block (by hash) and, when screenshots are embedded, data:
- * images. Finding ids are not unique keys: two records can share one, so
- * nothing here is keyed or anchored by finding id.
+ * scripts. Every string from the scan and from review files goes through the
+ * html tag, which escapes it. The CSP meta tag comes first in head and allows
+ * only the one inline style block (by hash) and, when screenshots or review
+ * attachments are embedded, data: images. Finding ids are not unique keys:
+ * two records can share one, so nothing here is keyed or anchored by finding
+ * id.
  */
 
 export interface HtmlOptions {
@@ -61,13 +71,36 @@ export interface HtmlOptions {
   /** Folder that evidence.screenshot paths are relative to. Without it no screenshots are embedded. */
   evidenceDir?: string;
   screenshots?: ScreenshotLimits;
+  /** widedoor-review/attachments, which review.attachments paths name. Without it no attachments are embedded. */
+  attachmentsDir?: string;
+  attachments?: ScreenshotLimits;
 }
 
-// The style is ours and has no character the escape changes, so the hashed text is the text the page holds.
-if (escapeHtml(STYLE) !== STYLE) throw new Error('the report style must not need escaping');
-const STYLE_HASH = createHash('sha256').update(STYLE, 'utf8').digest('base64');
+/**
+ * The Content Security Policy of a report page that holds one inline style
+ * block: that style by hash and, when the page embeds images, data: images.
+ * The style must have no character the escape changes, so the hashed text is
+ * the text the page holds; this throws otherwise.
+ */
+export function reportCsp(style: string, images = false): string {
+  if (escapeHtml(style) !== style) throw new Error('a report style must not need escaping');
+  const hash = createHash('sha256').update(style, 'utf8').digest('base64');
+  return [
+    "default-src 'none'",
+    `style-src 'sha256-${hash}'`,
+    ...(images ? ['img-src data:'] : []),
+    "base-uri 'none'",
+    "form-action 'none'",
+  ].join('; ');
+}
 
-/** Why a skipped page was not scanned, in words that fit its reason. */
+// Checked once at load, so a style that needs escaping fails fast.
+reportCsp(STYLE);
+
+/**
+ * Why a skipped page was not scanned, in words that fit its reason. pdf-url
+ * comes only from reports written before PDFs were fetched by URL.
+ */
 const skipNote = (s: ScanReport['skipped'][number]) =>
   s.reason === 'pdf-url'
     ? html`${TEXT.pdfUrlSkip}`
@@ -90,8 +123,13 @@ interface Context {
   report: ScanReport;
   plain: PlainData;
   shots: ScreenshotLoader;
+  files: AttachmentLoader;
+  /** Attachment paths already rendered. */
+  shown: Set<string>;
+  overridden: OverrideTest;
   wcagTitle: Map<string, string>;
   provisionTitle: Map<string, string>;
+  errata: Map<string, readonly { name: string; url: string }[]>;
 }
 
 function standards(ctx: Context, f: Finding, wcag: Iterable<string>, s508: Iterable<string>) {
@@ -116,7 +154,7 @@ function standards(ctx: Context, f: Finding, wcag: Iterable<string>, s508: Itera
 }
 
 function cards(ctx: Context): SafeHtml {
-  const sorted = findingCards(ctx.report.findings, ctx.report.assets);
+  const sorted = findingCards(ctx.report.findings, ctx.report.assets, ctx.overridden);
   if (sorted.length === 0)
     return html`<p>${ctx.report.assets.length === 0 ? TEXT.nothingScanned : TEXT.noFindings}</p>\n`;
 
@@ -166,7 +204,7 @@ function assets(ctx: Context): SafeHtml {
   const { unscanned, skippedOver } = unscannedAssets(report);
   if (report.assets.length === 0 && unscanned.length === 0) return html`<p>${TEXT.noAssets}</p>\n`;
   const section = (uri: string, kind: string, i: number, note?: SafeHtml) => {
-    const found = assetFindings(report.findings, uri, report.assets);
+    const found = assetFindings(report.findings, uri, report.assets, ctx.overridden);
     const body =
       note !== undefined && found.length === 0
         ? ''
@@ -212,14 +250,61 @@ ${summaryRows(s).map(([label, n]) => row(label, n))}</tbody>
 <thead><tr><th scope="col">${t.impact}</th><th scope="col">${t.problems}</th><th scope="col">${t.toCheck}</th></tr></thead>
 <tbody>
 ${IMPACT_ORDER.map((i) => row(IMPACT_LABEL[i], s.failsByImpact[i], s.needsReviewByImpact[i]))}</tbody>
-</table>\n`;
+</table>
+${s.criteria.map((c) => html`<p>${levelsText(c)}</p>\n`)}`;
 }
 
-/** The level's reason, plus the applicability condition and any profile exception (spec section 4). */
-function why(c: Criterion): SafeHtml {
+/** Progress of the manual review checklist and the fails reviewers set aside. */
+function manual(ctx: Context): SafeHtml {
+  const { checklist } = ctx.report;
+  const t = TEXT.manual;
+  const progress = checklist
+    ? html`<table>
+<caption>${t.caption}</caption>
+<thead><tr><th scope="col">${t.status}</th><th scope="col">${t.items}</th></tr></thead>
+<tbody>
+${checklistRows(checklist).map(([label, n]) => html`<tr><th scope="row">${label}</th><td>${n}</td></tr>\n`)}</tbody>
+</table>
+${checklist.unscanned > 0 ? html`<p>${unscannedReviewText(checklist.unscanned)}</p>\n` : ''}`
+    : html`<p>${t.noChecklist}</p>\n`;
+  const overrides = overrideEntries(ctx.report).map(
+    (o) => html`${overrideText(o)}<span class="uri">${o.uri}</span>${overrideNotes(o)}`,
+  );
+  return html`<p>${t.lead}</p>
+${progress}<h3 id="overridden">${TEXT.heading.overridden}</h3>
+<p>${t.overriddenLead}</p>
+${overrides.length > 0 ? html`${list(overrides)}\n` : html`<p>${t.noOverrides}</p>\n`}`;
+}
+
+/** The images a review record names, each through the attachment loader, or why one is left out. */
+function attachments(ctx: Context, paths: readonly string[]): SafeHtml {
+  return html`${paths.map((path) => {
+    // Each path is loaded and embedded once; a record that names it again points back.
+    if (ctx.shown.has(path)) return html`\n<p>${attachmentAgainText(path)}</p>`;
+    const image = ctx.files.load(path);
+    ctx.shown.add(path);
+    return image.ok
+      ? html`\n<img class="shot" src="${image.dataUri}" alt="${TEXT.attachmentAlt}">`
+      : html`\n<p>${attachmentLeftOut(path, image.reason)}</p>`;
+  })}`;
+}
+
+/**
+ * The level's reason, plus the applicability condition, any profile exception (spec section 4)
+ * and, for a criterion that passes on the errata basis, links to the errata.
+ */
+function why(ctx: Context, c: Criterion): SafeHtml {
   const notes: SafeHtml[] = [html`${c.reason}`];
   if (c.condition) notes.push(html`${conditionText(c.condition)}`);
   for (const e of exceptionNotes(c)) notes.push(html`${exceptionText(e)}`);
+  // The data allows only https citation urls; a link is written for nothing else either way.
+  const errata = (restsOnErrata(c) ? (ctx.errata.get(c.id) ?? []) : []).filter((e) =>
+    /^https:\/\//.test(e.url),
+  );
+  if (errata.length > 0)
+    notes.push(
+      html`${TEXT.errataBasis} ${errata.map((e, i) => html`${i > 0 ? '; ' : ''}<a href="${e.url}">${e.name}</a>`)}`,
+    );
   return html`${notes.map((n, i) => html`${i > 0 ? html`<br>\n` : ''}${n}`)}`;
 }
 
@@ -229,7 +314,7 @@ function rollupTables(ctx: Context): SafeHtml {
 <caption>${STANDARD_LABEL[s.standard] ?? s.standard}</caption>
 <thead><tr>${head}</tr></thead>
 <tbody>
-${s.criteria.map((c) => html`<tr><th scope="row">${c.id}</th><td>${c.title}</td><td>${c.level}</td><td>${why(c)}</td></tr>\n`)}</tbody>
+${s.criteria.map((c) => html`<tr><th scope="row">${c.id}</th><td>${c.title}</td><td>${c.level}</td><td>${why(ctx, c)}</td></tr>\n`)}</tbody>
 </table>\n`;
   return html`${ctx.report.rollup.standards.map(table)}`;
 }
@@ -245,12 +330,13 @@ function methodology(ctx: Context): SafeHtml {
     ...(web?.truncated ? [html`${TEXT.truncated}`] : []),
     ...(pdf?.files ?? []).map((u) => html`PDF: <span class="uri">${u}</span>`),
     ...(pdf?.include ?? []).map((u) => html`PDFs matching: <span class="uri">${u}</span>`),
+    ...(pdf?.urls ?? []).map((u) => html`PDF by URL: <span class="uri">${u}</span>`),
   ];
   const untested = notEvaluated(report).map((u) => html`${notTestedText(u)}`);
   const { reviewers, records: reviews } = manualReviews(report);
   const records = reviews.map((r) => {
     const notes = r.notes ? html`. Notes: ${r.notes}` : '';
-    return html`${recordText(r)}<span class="uri">${r.uri}</span>${r.expired ? EXPIRED_NOTE : ''}${notes}`;
+    return html`${recordText(r)}<span class="uri">${r.uri}</span>${r.expired ? EXPIRED_NOTE : ''}${notes}${attachments(ctx, r.attachments)}`;
   });
   const people = reviewers.map((p) => html`${reviewerText(p)}`);
   const engines = report.engines.map((e) => html`${engineText(e)}`);
@@ -289,8 +375,12 @@ export function renderHtml(report: ScanReport, options: HtmlOptions = {}): strin
     report,
     plain: options.plain ?? loadPlainData(),
     shots: new ScreenshotLoader(options.evidenceDir, options.screenshots),
+    files: new AttachmentLoader(options.attachmentsDir, options.attachments),
+    shown: new Set(),
+    overridden: overriddenFails(report),
     wcagTitle: new Map(data.wcag.criteria.map((c) => [c.id, c.title])),
     provisionTitle: new Map(data.section508.provisions.map((p) => [p.id, p.title])),
+    errata: new Map(data.errata.criteria.map((c) => [c.id, c.citations])),
   };
   const h = TEXT.heading;
   const body = html`<header>
@@ -298,6 +388,9 @@ export function renderHtml(report: ScanReport, options: HtmlOptions = {}): strin
 <p class="lead">${leadText(report)}</p>
 </header>
 <main>
+<section aria-labelledby="manual">
+<h2 id="manual">${h.manual}</h2>
+${manual(ctx)}</section>
 <section aria-labelledby="fix">
 <h2 id="fix">${h.fix}</h2>
 ${cards(ctx)}</section>
@@ -320,14 +413,8 @@ ${methodology(ctx)}</section>
 </main>
 <footer><p>Made with Widedoor ${report.tool.version}.</p></footer>`;
 
-  // Rendered after the body: the CSP allows data: images only if a screenshot was embedded.
-  const csp = [
-    "default-src 'none'",
-    `style-src 'sha256-${STYLE_HASH}'`,
-    ...(ctx.shots.embedded ? ['img-src data:'] : []),
-    "base-uri 'none'",
-    "form-action 'none'",
-  ].join('; ');
+  // Rendered after the body: the CSP allows data: images only if an image was embedded.
+  const csp = reportCsp(STYLE, ctx.shots.embedded || ctx.files.embedded);
   const page = html`<!doctype html>
 <html lang="en">
 <head>

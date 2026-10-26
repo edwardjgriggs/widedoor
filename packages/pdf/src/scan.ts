@@ -207,10 +207,15 @@ export class PdfScanner {
     return this.runner?.kind ?? null;
   }
 
-  /** Scans one PDF. Never throws for file problems; they come back as `error`. */
-  async scanFile(path: string): Promise<PdfFileScan> {
+  /**
+   * Scans one PDF, recorded under uri (default: its path, see pdfUri). Never
+   * throws for file problems; they come back as `error`.
+   */
+  async scanFile(
+    path: string,
+    uri = pdfUri(path, this.options.baseDir ?? process.cwd()),
+  ): Promise<PdfFileScan> {
     const o = this.options;
-    const uri = pdfUri(path, o.baseDir ?? process.cwd());
     const fail = (code: PdfScanErrorCode, message: string, engine?: PdfScanError['engine']) => ({
       path,
       findings: [],
@@ -234,7 +239,8 @@ export class PdfScanner {
       return fail('scan-failed', FS_ERRORS[code ?? ''] ?? 'the file could not be read');
     }
     if (!this.runner) return fail('verapdf-unavailable', this.unavailable ?? '', 'verapdf');
-    const asset: Asset = { kind: 'pdf', uri, contentHash: sha256(bytes) };
+    const contentHash = sha256(bytes);
+    const asset: Asset = { kind: 'pdf', uri, contentHash, reviewHash: contentHash };
 
     // The cheap reader goes first: a file it cannot open is not worth a JVM.
     const inspected = await inspectPdf(
@@ -290,11 +296,39 @@ export interface PdfScope {
   files?: readonly string[];
   /** Glob patterns relative to baseDir (spec config `pdf.include`); node_modules is skipped. */
   include?: readonly string[];
+  /** PDFs fetched by URL, scanned after the rest under their URL. */
+  fetched?: readonly PdfSource[];
+}
+
+/**
+ * A PDF the scan fetches only when a worker is ready for it: load returns the
+ * file to read and the uri to record it under (undefined when it could not be
+ * had; the caller reports that), and release runs once the file is scanned.
+ */
+export interface PdfSource {
+  /** What progress names while the file is fetched and scanned (its URL). */
+  url?: string;
+  load(): Promise<{ path: string; uri: string } | undefined>;
+  release?(): Promise<void>;
 }
 
 export interface PdfScanOptions extends PdfScannerOptions {
   /** PDFs scanned in parallel. Default 2. */
   concurrency?: number;
+  /**
+   * A scanner already made with PdfScanner.create (so the caller can see its
+   * runner first). It must have the same baseDir; the scanner options here
+   * are then not used again.
+   */
+  scanner?: PdfScanner;
+  /**
+   * Stops the scan: no file is started after it fires and scanPdfs rejects
+   * with its reason. The processes of the files in flight are the caller's
+   * to stop (through the spawn functions it passed).
+   */
+  signal?: AbortSignal;
+  /** Told when a file starts and when it is done: files done, files in scope, and the file started (as given, or its URL). */
+  onProgress?: (progress: { done: number; known: number; current?: string }) => void;
 }
 
 export interface PdfScanResult {
@@ -370,16 +404,42 @@ export async function scanPdfs(
     throw new Error(`concurrency must be a positive integer, got ${concurrency}`);
   const baseDir = options.baseDir ?? process.cwd();
   const paths = await resolvePdfScope(scope, baseDir);
-  const scanner = await PdfScanner.create({ ...options, baseDir });
-  const scans: PdfFileScan[] = new Array(paths.length);
+  const fetched = scope.fetched ?? [];
+  const total = paths.length + fetched.length;
+  const scanner = options.scanner ?? (await PdfScanner.create({ ...options, baseDir }));
+  const scans: (PdfFileScan | undefined)[] = new Array(total);
+  const { signal, onProgress } = options;
   let next = 0;
+  let done = 0;
+  const progress = (current?: string) =>
+    onProgress?.({ done, known: total, ...(current !== undefined ? { current } : {}) });
   const worker = async () => {
-    while (next < paths.length) {
+    while (next < total && !signal?.aborted) {
       const i = next++;
-      scans[i] = await scanner.scanFile(paths[i] as string);
+      if (i < paths.length) {
+        progress(paths[i]);
+        scans[i] = await scanner.scanFile(paths[i] as string);
+        done++;
+        progress();
+        continue;
+      }
+      // Fetched now, not up front: at most one file per worker waits on disk.
+      const source = fetched[i - paths.length] as PdfSource;
+      progress(source.url);
+      const loaded = await source.load();
+      if (loaded !== undefined) {
+        try {
+          scans[i] = await scanner.scanFile(loaded.path, loaded.uri);
+        } finally {
+          await source.release?.();
+        }
+      }
+      done++;
+      progress();
     }
   };
   await Promise.all(Array.from({ length: concurrency }, worker));
+  signal?.throwIfAborted();
 
   const assets: Asset[] = [];
   const findings: Finding[] = [];
@@ -388,6 +448,7 @@ export async function scanPdfs(
   const seen = new Set<string>();
   const files: PdfFileScan[] = [];
   for (const scan of scans) {
+    if (!scan) continue;
     if (scan.error) errors.push(scan.error);
     // Paths that resolve alike are deduped in resolvePdfScope; this drops two spellings
     // that map to one uri. A link or a case-only difference on Windows still counts twice.

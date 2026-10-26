@@ -104,7 +104,12 @@ describe('PdfScanner', () => {
     const hash = `sha256:${createHash('sha256')
       .update(readFileSync(join(dir, name)))
       .digest('hex')}`;
-    expect(scan.asset).toEqual({ kind: 'pdf', uri: 'doc.pdf', contentHash: hash });
+    expect(scan.asset).toEqual({
+      kind: 'pdf',
+      uri: 'doc.pdf',
+      contentHash: hash,
+      reviewHash: hash,
+    });
     expect(scan.findings.length).toBeGreaterThan(0);
     for (const f of scan.findings) {
       expect(FindingSchema.safeParse(f).success).toBe(true);
@@ -401,6 +406,132 @@ describe('scope', () => {
       await expect(resolvePdfScope({ include: [pattern] }, tmpdir()), pattern).rejects.toThrow(
         /stay inside baseDir/,
       );
+  });
+
+  it('loads fetched PDFs one worker at a time, records them under their uri and releases each', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'widedoor-fetched-'));
+    try {
+      writeFileSync(join(dir, 'local.pdf'), readFileSync(join(corpus, 'pdf/untagged.pdf')));
+      const events: string[] = [];
+      let open = 0;
+      let most = 0;
+      const source = (name: string, file: string | undefined) => ({
+        load: async () => {
+          events.push(`load ${name}`);
+          most = Math.max(most, ++open);
+          if (file === undefined) open--;
+          return file === undefined
+            ? undefined
+            : { path: file, uri: `https://example.com/${name}` };
+        },
+        release: async () => {
+          open--;
+          events.push(`release ${name}`);
+        },
+      });
+      const untagged = join(corpus, 'pdf/untagged.pdf');
+      const result = await scanPdfs(
+        {
+          files: ['local.pdf'],
+          fetched: [
+            source('a.pdf', untagged),
+            source('gone.pdf', undefined),
+            source('b', join(corpus, 'pdf/clean-pdfua.pdf')),
+          ],
+        },
+        { verapdf: okRunner(), baseDir: dir, concurrency: 1 },
+      );
+      expect(result.assets.map((a) => a.uri)).toEqual([
+        'local.pdf',
+        'https://example.com/a.pdf',
+        'https://example.com/b',
+      ]);
+      expect(result.errors).toEqual([]);
+      // A source that could not be loaded is the caller's to report: no entry here.
+      expect(result.files.map((f) => f.path)).toEqual([
+        'local.pdf',
+        untagged,
+        join(corpus, 'pdf/clean-pdfua.pdf'),
+      ]);
+      expect(
+        result.findings
+          .filter((f) => f.asset.uri.startsWith('https:'))
+          .every(
+            (f) =>
+              f.asset.uri === 'https://example.com/a.pdf' ||
+              f.asset.uri === 'https://example.com/b',
+          ),
+      ).toBe(true);
+      expect(events).toEqual([
+        'load a.pdf',
+        'release a.pdf',
+        'load gone.pdf',
+        'load b',
+        'release b',
+      ]);
+      expect(most).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps one asset when two fetched sources end at the same uri, and reuses a given scanner', async () => {
+    const untagged = join(corpus, 'pdf/untagged.pdf');
+    const same = { load: async () => ({ path: untagged, uri: 'https://example.com/a.pdf' }) };
+    const scanner = await PdfScanner.create({ verapdf: okRunner(), baseDir: corpus });
+    const result = await scanPdfs(
+      { fetched: [same, same] },
+      // The runner choice here is not used again: the given scanner's is.
+      { verapdf: 'docker', baseDir: corpus, scanner },
+    );
+    expect(result.assets.map((a) => a.uri)).toEqual(['https://example.com/a.pdf']);
+    expect(result.engines.verapdf.runner).toBe(scanner.runnerKind);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('tells progress per file, and starts no file once its signal fires', async () => {
+    const files = ['pdf/untagged.pdf', 'pdf/clean-pdfua.pdf', 'pdf/tagged-broken.pdf'];
+    const fetched = { url: 'https://example.com/f.pdf', load: async () => undefined };
+    const seen: string[] = [];
+    await scanPdfs(
+      { files, fetched: [fetched] },
+      {
+        verapdf: okRunner(),
+        baseDir: corpus,
+        concurrency: 1,
+        onProgress: (p) => seen.push(`${p.done}/${p.known} ${p.current ?? '-'}`),
+      },
+    );
+    expect(seen).toEqual([
+      '0/4 pdf/untagged.pdf',
+      '1/4 -',
+      '1/4 pdf/clean-pdfua.pdf',
+      '2/4 -',
+      '2/4 pdf/tagged-broken.pdf',
+      '3/4 -',
+      '3/4 https://example.com/f.pdf',
+      '4/4 -',
+    ]);
+
+    const stop = new AbortController();
+    const started: string[] = [];
+    await expect(
+      scanPdfs(
+        { files },
+        {
+          verapdf: okRunner(),
+          baseDir: corpus,
+          concurrency: 1,
+          signal: stop.signal,
+          onProgress: (p) => {
+            if (p.current === undefined) return;
+            started.push(p.current);
+            stop.abort(new Error('cancelled'));
+          },
+        },
+      ),
+    ).rejects.toThrow('cancelled');
+    expect(started).toEqual(['pdf/untagged.pdf']);
   });
 
   it('validates concurrency', async () => {

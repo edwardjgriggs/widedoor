@@ -1,7 +1,7 @@
 import { chmod, lstat, mkdir, readdir, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { writeFileReplacing } from '@widedoor/web';
-import { FORMATS, type Format } from './args.js';
+import { FORMATS, type Format } from './settings.js';
 
 /*
  * The report folder may sit in a checkout a pull request controls, so nothing
@@ -15,7 +15,15 @@ import { FORMATS, type Format } from './args.js';
  * refused and nothing in it is touched.
  */
 
-const EXTENSION: Record<Format, string> = { html: 'html', json: 'json', sarif: 'sarif' };
+const EXTENSION: Record<Format, string> = {
+  html: 'html',
+  json: 'json',
+  sarif: 'sarif',
+  junit: 'junit.xml',
+  openacr: 'openacr.yaml',
+  'vpat-html': 'vpat.html',
+  'vpat-docx': 'vpat.docx',
+};
 /** Marks a folder as Widedoor's own report folder, which each run clears. */
 export const MARKER = '.widedoor-report';
 const MARKER_TEXT =
@@ -144,8 +152,13 @@ export async function prepareOut(out: string, restricted: boolean, roots: readon
 }
 
 /** Writes one report file without following links; checks the folder again first. */
-export async function writeReport(out: string, format: Format, text: string, restricted: boolean) {
+export async function writeReport(
+  out: string,
+  format: Format,
+  data: string | Uint8Array,
+  restricted: boolean,
+) {
   if (!(await checkFolder(out))) throw new OutputError(`${out} is gone`);
   await checkFileName(reportPath(out, format));
-  await writeFileReplacing(out, reportName(format), text, restricted ? 0o600 : 0o644);
+  await writeFileReplacing(out, reportName(format), data, restricted ? 0o600 : 0o644);
 }

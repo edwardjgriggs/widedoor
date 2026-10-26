@@ -1,0 +1,27 @@
+# Success criteria satisfied by a published erratum (Phase 2 decision P2-6). The W3C errata
+# for WCAG 2.0 and WCAG 2.1 (2023-04-18) add a note to 4.1.1 Parsing that it is always satisfied
+# for content using HTML or XML, and the ITI VPAT 2.5Rev Section 508 edition tells authors to
+# always answer Supports for 4.1.1. The roll-up passes 4.1.1 on this basis on every scanned web
+# page and PDF, in both the 508 and the WCAG 2.1 views, unless a current fail is recorded;
+# unscanned assets and scope gaps still cap it. The validator accepts no SC here but 4.1.1
+# (CLAUDE.md: the honesty rule names only the 4.1.1 errata basis).
+
+meta:
+  sources:
+    - https://www.w3.org/WAI/WCAG20/errata/
+    - https://www.w3.org/WAI/WCAG21/errata/
+    - https://www.itic.org/policy/accessibility/vpat
+  retrieved: 2026-10-23
+
+criteria:
+  - id: 4.1.1
+    citations:
+      - name: WCAG 2.0 errata
+        url: https://www.w3.org/WAI/WCAG20/errata/
+        text: This criterion should be considered as always satisfied for any content using HTML or XML.
+      - name: WCAG 2.1 errata
+        url: https://www.w3.org/WAI/WCAG21/errata/
+        text: This Success Criterion should be considered as always satisfied for any content using HTML or XML.
+      - name: ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row
+        url: https://www.itic.org/policy/accessibility/vpat
+        text: Always answer 'Supports'

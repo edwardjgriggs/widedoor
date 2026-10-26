@@ -85,12 +85,12 @@ describe('exitDecision', () => {
     expect(exitDecision(r, 'none').code).toBe(2);
   });
 
-  it('exits 2 when only skipped pages remain, such as a PDF given by URL', () => {
+  it('exits 2 when only skipped pages remain, such as an off-origin redirect', () => {
     const skipped = [
       {
-        uri: 'https://example.com/a.pdf',
-        finalUri: 'https://example.com/a.pdf',
-        reason: 'pdf-url',
+        uri: 'https://example.com/old',
+        finalUri: 'https://other.example/',
+        reason: 'redirect-off-origin',
       },
     ];
     expect(exitDecision(report([], { assets: [], skipped }), 'serious')).toEqual({
@@ -141,5 +141,52 @@ describe('exitDecision', () => {
 
   it('leaves a run with every listed page scanned to the threshold', () => {
     expect(exitDecision(report([]), 'serious', { unscannedListed: 0, maxPages: 2 }).code).toBe(0);
+  });
+
+  it('ignores an automated fail the roll-up lists as overridden, and only that one', () => {
+    const set = finding('fail', 'critical');
+    const kept = finding('fail', 'serious');
+    const unit = (overridden: string[], evidence: string[]) => ({
+      uri: PAGE.uri,
+      kind: 'web' as const,
+      state: evidence.length > 0 ? ('fail' as const) : ('pass' as const),
+      reason: evidence.length > 0 ? ('automated-fail' as const) : ('manual-override' as const),
+      evidence,
+      undecided: [],
+      expired: [],
+      overridden,
+    });
+    const row = (id: string, u: ReturnType<typeof unit>) => ({
+      id,
+      title: id,
+      type: 'wcag' as const,
+      scope: 'asset' as const,
+      level: 'Supports' as const,
+      reason: 'test',
+      evidence: [],
+      assets: [u],
+    });
+    const rollup = (units: ReturnType<typeof unit>[]) => ({
+      profile: 'wcag21aa' as const,
+      standards: [
+        { standard: 'wcag21aa' as const, criteria: units.map((u, i) => row(`1.1.${i + 1}`, u)) },
+      ],
+    });
+    const both = [set, kept];
+    expect(countingFails({ ...report(both), rollup: rollup([unit([set.id], [])]) })).toEqual([
+      kept,
+    ]);
+    expect(
+      exitDecision({ ...report(both), rollup: rollup([unit([set.id], [])]) }, 'critical'),
+    ).toEqual({ code: 0, reason: 'no failed check at or above critical' });
+    // Set aside in one criterion but still a fail in another: it counts.
+    expect(
+      countingFails({
+        ...report(both),
+        rollup: rollup([unit([set.id], []), unit([], [set.id])]),
+      }),
+    ).toEqual(both);
+    // A report without overridden lists sets nothing aside.
+    expect(countingFails(report(both))).toEqual(both);
   });
 });

@@ -11,6 +11,7 @@
     { "path": "../core" },
     { "path": "../web" },
     { "path": "../pdf" },
-    { "path": "../report" }
+    { "path": "../report" },
+    { "path": "../server" }
   ]
 }

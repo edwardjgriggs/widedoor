@@ -36,6 +36,16 @@ describe('report.v1.json', () => {
     expect(validate({ ...report, extra: true })).toBe(false);
     expect(validate({ ...report, startedAt: 'yesterday' })).toBe(false);
   });
+
+  it('accepts a report written before determinations had overridden', () => {
+    const report = JSON.parse(serializeJson(fixtureReport()));
+    for (const s of report.rollup.standards)
+      for (const c of s.criteria)
+        for (const d of [...c.assets, ...(c.product ? [c.product] : [])]) delete d.overridden;
+    const validate = validator();
+    expect(validate(report), JSON.stringify(validate.errors)).toBe(true);
+    expect(() => parseJsonReport(JSON.stringify(report))).not.toThrow();
+  });
 });
 
 describe('buildScanReport', () => {

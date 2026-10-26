@@ -1,17 +1,26 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 import {
   IN_CONTAINER_WARNING,
   ISOLATED_HOST_ENV,
   NOT_ISOLATED_WARNING,
   VERAPDF_IMAGE_REF,
 } from '@widedoor/pdf';
-import { parseJsonReport } from '@widedoor/report';
-import { CORPUS, ROOT, reportValidator } from './helpers.ts';
+import { checkOpenAcrCatalog, parseJsonReport } from '@widedoor/report';
+import { CORPUS, ROOT, openAcrValidator, reportValidator } from './helpers.ts';
 
 /*
  * The Widedoor image (npm run test:image; needs Docker and the pinned
@@ -250,6 +259,47 @@ describe('the widedoor image', () => {
       expect(readdirSync(join(out, 'evidence')).some((f) => f.endsWith('.png'))).toBe(true);
       if (asHostUser.length)
         expect(statSync(join(out, 'report.json')).uid).toBe(process.getuid?.());
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'writes an OpenACR report: the vendored schema and catalog are in the image',
+    () => {
+      const cfg = join(tmp, 'acr-config');
+      mkdirSync(cfg);
+      writeFileSync(
+        join(cfg, 'widedoor.config.yaml'),
+        `web:\n  urls: [http://${site}:8080/alt-fail.html]\nacr:\n  product: { name: Permit portal }\n`,
+      );
+      const out = join(tmp, 'acr');
+      mkdirSync(out);
+      const r = docker([
+        'run',
+        ...hardened,
+        ...seccomp,
+        ...asHostUser,
+        '--network',
+        network,
+        '--volume',
+        `${cfg}:/work/cfg:ro`,
+        '--volume',
+        `${out}:/work/out`,
+        IMAGE,
+        'scan',
+        '--config',
+        'cfg/widedoor.config.yaml',
+        '--format',
+        'openacr',
+        '--out',
+        'out',
+      ]);
+      expect(r.status, r.stdout + r.stderr).toBe(1);
+      const doc = parse(readFileSync(join(out, 'report.openacr.yaml'), 'utf8'));
+      const validate = openAcrValidator();
+      expect(validate(doc), JSON.stringify(validate.errors)).toBe(true);
+      expect(checkOpenAcrCatalog(doc)).toEqual([]);
+      expect(doc.title).toBe('DRAFT Unnamed vendor Accessibility Conformance Report');
     },
     TIMEOUT,
   );

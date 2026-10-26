@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Widedoor 0.0.0, profile 508+wcag21aa" tests="118" failures="2" errors="0" skipped="113">
+  <!-- This report documents the testing performed. It is not a certification of conformance. Scope complete: yes. -->
+  <testsuite name="https://example.gov/apply" tests="66" failures="1" errors="0" skipped="63" timestamp="2026-10-23T12:00:00">
+    <properties>
+      <property name="kind" value="web"/>
+    </properties>
+    <testcase classname="Section 508" name="1.1.1 Non-text Content">
+      <system-out>Passes here: a reviewer recorded a pass and set aside the automated fails as false positives.</system-out>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.1 Audio-only and Video-only (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.2 Captions (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.3 Audio Description or Media Alternative (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.4 Captions (Live)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.5 Audio Description (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.1 Info and Relationships">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.2 Meaningful Sequence">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.3 Sensory Characteristics">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.1 Use of Color">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.2 Audio Control">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.3 Contrast (Minimum)">
+      <failure message="Fails here: an automated check failed. Across the report: Does Not Support." type="Does Not Support">wd_768f65db469e539e axe-core color-contrast: Text does not stand out enough from its background. Element: p.faint</failure>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.4 Resize Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.5 Images of Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.1.1 Keyboard">
+      <skipped message="Not Evaluated: Passes here, but 1 of 2 applicable assets has no deciding result."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.1.2 No Keyboard Trap">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.2.1 Timing Adjustable">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.2.2 Pause, Stop, Hide">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.3.1 Three Flashes or Below Threshold">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.1 Bypass Blocks">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.2 Page Titled">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.3 Focus Order">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.4 Link Purpose (In Context)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.5 Multiple Ways">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.6 Headings and Labels">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.7 Focus Visible">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.1.1 Language of Page">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.1.2 Language of Parts">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.1 On Focus">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.2 On Input">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.3 Consistent Navigation">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.4 Consistent Identification">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.1 Error Identification">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.2 Labels or Instructions">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.3 Error Suggestion">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.4 Error Prevention (Legal, Financial, Data)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="4.1.1 Parsing">
+      <system-out>Passes here: satisfied on the errata basis, not on a test. all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): "This criterion should be considered as always satisfied for any content using HTML or XML."; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): "This Success Criterion should be considered as always satisfied for any content using HTML or XML."; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): "Always answer 'Supports'"</system-out>
+    </testcase>
+    <testcase classname="Section 508" name="4.1.2 Name, Role, Value">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.2.1 User Control of Accessibility Features">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.2.2 No Disruption of Accessibility Features">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3 Accessibility Services">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.1 Object Information">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.2 Modification of Object Information">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.3 Row, Column, and Headers">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.4 Values">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.5 Modification of Values">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.6 Label Relationships">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.7 Hierarchical Relationships">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.8 Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.9 Modification of Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.10 List of Actions">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.11 Actions on Objects">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.12 Focus Cursor">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.13 Modification of Focus Cursor">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.3.14 Event Notification">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="502.4 Platform Accessibility Features">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="503.2 User Preferences">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="503.3 Alternative User Interfaces">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="503.4 User Controls for Captions and Audio Description">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="503.4.1 Caption Controls">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="503.4.2 Audio Description Controls">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="504.2 Content Creation or Editing">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="504.2.1 Preservation of Information Provided for Accessibility in Format Conversion">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="504.2.2 PDF Export">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="504.3 Prompts">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="504.4 Templates">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+  </testsuite>
+  <testsuite name="docs/form.pdf" tests="38" failures="1" errors="0" skipped="36" timestamp="2026-10-23T12:00:00">
+    <properties>
+      <property name="kind" value="pdf"/>
+    </properties>
+    <testcase classname="Section 508" name="1.1.1 Non-text Content">
+      <failure message="Fails here: an automated check failed. Across the report: Partially Supports." type="Partially Supports">wd_5bbe0b363628261e veraPDF 7.3-1: An image has no alt text. In the file: page 1</failure>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.1 Audio-only and Video-only (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.2 Captions (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.3 Audio Description or Media Alternative (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.4 Captions (Live)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.2.5 Audio Description (Prerecorded)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.1 Info and Relationships">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.2 Meaningful Sequence">
+      <skipped message="Not Evaluated: no deciding result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.3.3 Sensory Characteristics">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.1 Use of Color">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.2 Audio Control">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.3 Contrast (Minimum)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.4 Resize Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="1.4.5 Images of Text">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.1.1 Keyboard">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.1.2 No Keyboard Trap">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.2.1 Timing Adjustable">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.2.2 Pause, Stop, Hide">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.3.1 Three Flashes or Below Threshold">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.1 Bypass Blocks">
+      <skipped message="Not Evaluated: Not applicable here, but the 1 applicable asset has no deciding result."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.2 Page Titled">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.3 Focus Order">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.4 Link Purpose (In Context)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.5 Multiple Ways">
+      <skipped message="Not Evaluated: Not applicable here, but the 1 applicable asset has no deciding result."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.6 Headings and Labels">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="2.4.7 Focus Visible">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.1.1 Language of Page">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.1.2 Language of Parts">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.1 On Focus">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.2 On Input">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.3 Consistent Navigation">
+      <skipped message="Not Evaluated: Not applicable here, but the 1 applicable asset has no deciding result."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.2.4 Consistent Identification">
+      <skipped message="Not Evaluated: Not applicable here, but the 1 applicable asset has no deciding result."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.1 Error Identification">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.2 Labels or Instructions">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.3 Error Suggestion">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="3.3.4 Error Prevention (Legal, Financial, Data)">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="4.1.1 Parsing">
+      <system-out>Passes here: satisfied on the errata basis, not on a test. all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): "This criterion should be considered as always satisfied for any content using HTML or XML."; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): "This Success Criterion should be considered as always satisfied for any content using HTML or XML."; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): "Always answer 'Supports'"</system-out>
+    </testcase>
+    <testcase classname="Section 508" name="4.1.2 Name, Role, Value">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+  </testsuite>
+  <testsuite name="Product (judged once for the whole product)" tests="14" failures="0" errors="0" skipped="14" timestamp="2026-10-23T12:00:00">
+    <properties>
+      <property name="kind" value="product"/>
+    </properties>
+    <testcase classname="Section 508" name="302.1 Without Vision">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.2 With Limited Vision">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.3 Without Perception of Color">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.4 Without Hearing">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.5 With Limited Hearing">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.6 Without Speech">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.7 With Limited Manipulation">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.8 With Limited Reach and Strength">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="302.9 With Limited Language, Cognitive, and Learning Abilities">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="602.2 Accessibility and Compatibility Features">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="602.3 Electronic Support Documentation">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="602.4 Alternate Formats for Non-Electronic Support Documentation">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="603.2 Information on Accessibility and Compatibility Features">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+    <testcase classname="Section 508" name="603.3 Accommodation of Communication Needs">
+      <skipped message="Not Evaluated: no result: a person needs to test it."/>
+    </testcase>
+  </testsuite>
+</testsuites>

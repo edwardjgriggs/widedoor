@@ -17,7 +17,7 @@ export const FAIL_ON = ['critical', 'serious', 'moderate', 'minor', 'none'] as c
 export const DEFAULT_FAIL_ON = 'serious';
 export const DEFAULT_OUT = 'widedoor-report';
 export const CONFIG_FILE = 'widedoor.config.yaml';
-/** The CLI's report folder marker (packages/cli/src/output.ts). */
+/** The CLI's report folder marker (packages/server/src/output.ts). */
 export const MARKER = '.widedoor-report';
 /** Every format, so SARIF is there to upload and the HTML and JSON reports to keep. */
 export const FORMATS = 'html,json,sarif';

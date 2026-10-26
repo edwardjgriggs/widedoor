@@ -47,6 +47,12 @@ export interface VerapdfRunner {
   description: string;
   /** Run-metadata warnings this runner always carries. */
   warnings: readonly string[];
+  /**
+   * True for the local CLI inside Widedoor's image (ISOLATED_HOST_ENV), where
+   * veraPDF shares the scanner's container and network. Callers decide on this,
+   * never on the warning text.
+   */
+  isolatedHost?: boolean;
   run(pdf: Uint8Array, options: VerapdfRunOptions): Promise<ProcessResult>;
 }
 
@@ -469,6 +475,7 @@ export function localRunner(
     kind: 'local',
     description: basename(path),
     warnings: [options.isolatedHost ? IN_CONTAINER_WARNING : NOT_ISOLATED_WARNING],
+    isolatedHost: options.isolatedHost === true,
     run(pdf, run) {
       return runProcess(localCommand(path), verapdfArgs(run.maxFailuresDisplayed), run, {
         spawn,

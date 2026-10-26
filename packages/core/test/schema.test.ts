@@ -88,6 +88,19 @@ describe('FindingSchema valid records', () => {
     expect(FindingSchema.safeParse(manualFinding).success).toBe(true);
   });
 
+  it('accepts an asset with a review hash', () => {
+    const v = mutate(webFinding, (d) => (d.asset.reviewHash = hashB));
+    expect(FindingSchema.safeParse(v).success).toBe(true);
+  });
+
+  it('accepts a manual pass with overrides and attachments', () => {
+    const v = mutate(manualFinding, (d) => {
+      d.review.overrides = ['wd_0123456789abcdef'];
+      d.review.attachments = ['attachments/keyboard.png'];
+    });
+    expect(FindingSchema.safeParse(v).success).toBe(true);
+  });
+
   it('accepts a finding with only wcag, or only section508', () => {
     const w = mutate(webFinding, (d) => (d.criteria = { wcag: ['1.1.1'] }));
     const s = mutate(webFinding, (d) => (d.criteria = { section508: ['302.1'] }));
@@ -140,6 +153,42 @@ describe('FindingSchema invalid records', () => {
     ['missing schemaVersion', mutate(webFinding, (d) => delete d.schemaVersion)],
     ['unknown outcome', mutate(webFinding, (d) => (d.outcome = 'supports'))],
     ['unknown impact', mutate(webFinding, (d) => (d.impact = 'severe'))],
+    ['bad reviewHash', mutate(webFinding, (d) => (d.asset.reviewHash = 'sha256:abc'))],
+    [
+      'manual fail with overrides',
+      mutate(manualFinding, (d) => {
+        d.outcome = 'fail';
+        d.review.overrides = ['wd_0123456789abcdef'];
+      }),
+    ],
+    [
+      'manual not-applicable with overrides',
+      mutate(manualFinding, (d) => {
+        d.outcome = 'not-applicable';
+        d.review.overrides = ['wd_0123456789abcdef'];
+      }),
+    ],
+    [
+      'PDF manual fail with overrides',
+      mutate(pdfFinding, (d) => {
+        d.source = { engine: 'manual', engineVersion: '0.1.0', ruleId: 'r' };
+        d.review = { ...manualFinding['review'], overrides: ['wd_0123456789abcdef'] };
+      }),
+    ],
+    ['bad override id', mutate(manualFinding, (d) => (d.review.overrides = ['label']))],
+    ['empty attachment', mutate(manualFinding, (d) => (d.review.attachments = ['']))],
+    [
+      'absolute attachment path',
+      mutate(manualFinding, (d) => (d.review.attachments = ['/etc/passwd'])),
+    ],
+    [
+      'drive letter attachment path',
+      mutate(manualFinding, (d) => (d.review.attachments = ['C:/x.png'])),
+    ],
+    [
+      'attachment path leaving the folder',
+      mutate(manualFinding, (d) => (d.review.attachments = ['attachments/../../x.png'])),
+    ],
   ];
 
   it.each(cases)('rejects %s', (_name, value) => {
@@ -199,5 +248,21 @@ describe('JSON Schema export', () => {
     const s = buildFindingJsonSchema();
     expect(s['$id']).toBe('urn:widedoor:schema:finding:v1');
     expect(s['title']).toBe('Widedoor Finding v1');
+  });
+
+  it('states that only a manual pass may carry overrides', () => {
+    const descriptions: string[] = [];
+    const walk = (node: unknown, key?: string): void => {
+      if (Array.isArray(node)) node.forEach((n) => walk(n));
+      else if (node && typeof node === 'object') {
+        const o = node as Record<string, unknown>;
+        if (key === 'overrides' && typeof o['description'] === 'string')
+          descriptions.push(o['description']);
+        for (const [k, v] of Object.entries(o)) walk(v, k);
+      }
+    };
+    walk(buildFindingJsonSchema());
+    expect(descriptions.length).toBeGreaterThan(0);
+    for (const d of descriptions) expect(d).toMatch(/only on a manual pass/);
   });
 });

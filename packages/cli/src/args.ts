@@ -1,75 +1,135 @@
 import { parseArgs } from 'node:util';
-import { PROFILE_IDS, type ProfileId } from '@widedoor/core';
+import {
+  CHECKLIST_STATUSES,
+  MANUAL_OUTCOMES,
+  PROFILE_IDS,
+  type ChecklistItemStatus,
+  type ManualOutcome,
+} from '@widedoor/core';
+import {
+  FAIL_ON,
+  FORMATS,
+  MAX_CONCURRENCY,
+  MAX_MEMORY_MB,
+  MIN_MEMORY_MB,
+  UsageError,
+  type Format,
+  type PlanArgs,
+} from '@widedoor/server';
 
-export const FORMATS = ['html', 'json', 'sarif'] as const;
-export type Format = (typeof FORMATS)[number];
+// The scan settings live with the scan engine in @widedoor/server; the CLI parses flags into them.
+export {
+  ACR_FORMATS,
+  CONFIG_FILE,
+  DEFAULT_CONCURRENCY,
+  DEFAULT_FAIL_ON,
+  DEFAULT_FORMATS,
+  DEFAULT_MEMORY_MB,
+  DEFAULT_OUT,
+  DEFAULT_PROFILE,
+  FAIL_ON,
+  FORMATS,
+  MAX_CONCURRENCY,
+  MAX_MEMORY_MB,
+  MIN_MEMORY_MB,
+  UsageError,
+  type FailOn,
+  type Format,
+} from '@widedoor/server';
 
-/** `--fail-on` levels, most severe first; `none` turns the threshold off. */
-export const FAIL_ON = ['critical', 'serious', 'moderate', 'minor', 'none'] as const;
-export type FailOn = (typeof FAIL_ON)[number];
-
-export const DEFAULT_PROFILE: ProfileId = '508+wcag21aa';
-export const DEFAULT_FAIL_ON: FailOn = 'serious';
-export const DEFAULT_OUT = 'widedoor-report';
-export const CONFIG_FILE = 'widedoor.config.yaml';
-/** One page and one PDF at a time keeps a default run small (ledger F1). */
-export const DEFAULT_CONCURRENCY = 1;
-/** Memory cap per PDF, in MiB, for the veraPDF container and the PDF reader. */
-export const DEFAULT_MEMORY_MB = 768;
-export const MIN_MEMORY_MB = 256;
-export const MAX_MEMORY_MB = 65_536;
-export const MAX_CONCURRENCY = 32;
-
-/** Bad command-line input: printed with the usage hint, exit code 2. */
-export class UsageError extends Error {
-  constructor(
-    message: string,
-    /** Print the full usage text, not just the hint. */
-    readonly showUsage = false,
-  ) {
-    super(message);
-    this.name = 'UsageError';
-  }
-}
-
-export interface ScanArgs {
+export interface ScanArgs extends PlanArgs {
   command: 'scan';
-  /** Positional URLs and PDF files, as given. */
-  targets: string[];
   config?: string;
-  profile?: ProfileId;
-  formats?: Format[];
-  out?: string;
-  /** Playwright storage state file, from the command line (beats the environment and the config). */
-  storageState?: string;
-  failOn?: FailOn;
-  unsafeNoSandbox: boolean;
-  concurrency?: number;
-  memoryMb?: number;
 }
 
 export interface UiArgs {
   command: 'ui';
   /** JSON report to serve, as given. */
   report?: string;
+  /** Folder, as given, that holds widedoor.config.yaml and widedoor-review/ (default: the working folder). */
+  root?: string;
+  /** Config file, as given: its folder is the root. */
+  config?: string;
   /** Open the system browser at the printed URL. */
   open: boolean;
 }
 
-export type Command = { command: 'help' } | { command: 'version' } | ScanArgs | UiArgs;
+/** `widedoor review list --status`: one checklist status, or every item. */
+export const REVIEW_STATUSES = [...CHECKLIST_STATUSES, 'all'] as const;
+export type ReviewStatus = ChecklistItemStatus | 'all';
+export const REVIEW_FORMATS = ['text', 'json'] as const;
+export type ReviewFormat = (typeof REVIEW_FORMATS)[number];
+
+export interface ReviewListArgs {
+  command: 'review';
+  action: 'list';
+  /** JSON report, as given. */
+  report: string;
+  /** Config file, as given: widedoor-review/ is in its folder (else the working folder). */
+  config?: string;
+  status: ReviewStatus;
+  format: ReviewFormat;
+}
+
+export interface ReviewRecordArgs {
+  command: 'review';
+  action: 'record';
+  /** JSON report, as given. */
+  report: string;
+  /** Config file, as given: widedoor-review/ is in its folder (else the working folder). */
+  config?: string;
+  item: string;
+  outcome: ManualOutcome;
+  reviewer: string;
+  notes?: string;
+  /** Image files, as given (relative to the working folder). */
+  attach: string[];
+  overrides: string[];
+}
+
+export type ReviewArgs = ReviewListArgs | ReviewRecordArgs;
+
+export const DIFF_FORMATS = ['text', 'json'] as const;
+export type DiffFormat = (typeof DIFF_FORMATS)[number];
+
+export interface DiffArgs {
+  command: 'diff';
+  /** The two JSON reports, as given. */
+  before: string;
+  after: string;
+  format: DiffFormat;
+  /** Exit 1 when the after report has a new fail. */
+  failOnNew: boolean;
+}
+
+export type Command =
+  { command: 'help' } | { command: 'version' } | ScanArgs | UiArgs | ReviewArgs | DiffArgs;
 
 export const USAGE = `Usage: widedoor scan [urls and PDF files...] [options]
-       widedoor ui [--report <file>] [--no-open]
+       widedoor ui [--report <file>] [--root <dir> | --config <file>] [--no-open]
+       widedoor review list --report <file> [--config <file>] [--status <status>]
+                            [--format text|json]
+       widedoor review record --report <file> [--config <file>] --item <id> --outcome <outcome>
+                              --reviewer <name> [--notes <text>] [--attach <file>...]
+                              [--override <finding id>...]
+       widedoor diff <before.json> <after.json> [--format text|json] [--fail-on-new]
 
-Scans web pages (http and https URLs) and local PDF files against Section 508
-and WCAG 2.1 AA and writes reports. Without targets, the scope comes from
-widedoor.config.yaml in the current folder, or from the file named by --config.
-Targets given on the command line replace the config's web.urls and pdf.include.
+Scans web pages (http and https URLs), PDFs by URL (a URL ending in .pdf) and
+local PDF files against Section 508 and WCAG 2.1 AA and writes reports. Without
+targets, the scope comes from widedoor.config.yaml in the current folder, or
+from the file named by --config. Targets given on the command line replace the
+config's web.urls, web.sitemap, pdf.include and pdf.urls.
 
 Options:
   --config <file>       config file (default: ./widedoor.config.yaml when present)
   --profile <id>        508, wcag21aa or 508+wcag21aa (default: 508+wcag21aa)
-  --format <list>       comma-separated list of html, json, sarif (default: all three)
+  --format <list>       comma-separated list of html, json, sarif, junit, openacr,
+                        vpat-html, vpat-docx (default: html,json,sarif). junit
+                        writes report.junit.xml. The ACR formats need a 508
+                        profile and acr.product.name in the config:
+                        openacr writes the ACR as report.openacr.yaml, and
+                        vpat-html and vpat-docx as report.vpat.html and
+                        report.vpat.docx (VPAT® 2.5Rev Section 508 layout)
   --out <dir>           report folder (default: ./widedoor-report)
   --fail-on <level>     critical, serious, moderate, minor or none (default: serious)
   --concurrency <n>     pages and PDFs scanned at once (default: 1)
@@ -84,18 +144,61 @@ Options:
 widedoor ui serves a local report viewer on 127.0.0.1 (a random port) and
 opens it in the browser. It prints the link, which carries a one-time access
 code (the page trades it for a per-run token, so the link works once; reload
-that tab to keep using it), and runs until Ctrl+C. It never scans.
+that tab to keep using it), and runs until Ctrl+C. The page can scan, record
+manual results and download reports, in the root folder: it holds
+widedoor.config.yaml (optional) and widedoor-review/. A scan in the page keeps
+its report in memory; only review records are written, to widedoor-review/.
 
 ui options:
   --report <file>       JSON report to show (a report.json that widedoor scan wrote);
-                        without it, open a report file in the page
+                        without it, open a report file in the page or start a scan
+  --root <dir>          the root folder (default: the current folder)
+  --config <file>       config file to use; its folder is the root (not with --root)
   --no-open             print the link but do not open a browser
+
+widedoor review works with the manual review results in widedoor-review/, in the
+folder a scan reads it from: the folder of --config, else the current folder (commit
+it with your code).
+review list prints the checklist for a JSON report with those results applied,
+and lists any record it could not apply (for a page or file the report did not
+scan, for example). review record writes one result for a checklist item,
+replacing an earlier result for the same item, and prints the file it wrote, the
+record id, the page or file and any overrides.
+
+review options:
+  --report <file>       the report.json a scan wrote (required)
+  --config <file>       config file whose folder holds widedoor-review/ (default: the
+                        current folder)
+  --status <status>     list: open, done, expired, failed-automated or all (default: open)
+  --format <format>     list: text or json (default: text)
+  --item <id>           record: the checklist item (ck_...) that review list shows
+  --outcome <outcome>   record: pass, fail or not-applicable
+  --reviewer <name>     record: who did the review
+  --notes <text>        record: what was checked; required for not-applicable and --override
+  --attach <file>       record: a PNG or JPEG screenshot, up to 5 MiB (repeat, up to 10)
+  --override <id>       record, with --outcome pass: an automated fail (wd_...) on the same
+                        page or file and criterion that is a false positive (repeat for more)
+
+widedoor diff compares two JSON reports: fail and needs-review results that are
+new, fixed or unchanged, and criteria whose level changed. Only pages and files
+scanned in both reports are compared; results on the others, a manual result
+current in one report and expired in the other, and every criterion when the
+profiles differ, are listed as not compared. It exits 0, 1 with --fail-on-new
+when there is a new failed check, and 2 on bad input.
+
+diff options:
+  --format <format>     text or json (default: text)
+  --fail-on-new         exit 1 when the after report has a new failed check
 
 Exit codes:
   0  no failed check at or above --fail-on
   1  a failed check at or above --fail-on (needs-review results never count)
   2  a tool error: bad arguments or config, a page or file that could not be
      scanned (the reports are still written), or an interrupted run
+widedoor review exits 0 when it listed or recorded, and 2 on bad input (an unknown
+item, an override the report does not support, a file it cannot use).
+widedoor diff exits 0, or 1 with --fail-on-new when there is a new failed check (new
+needs-review results and results not compared never count), and 2 on bad input.
 `;
 
 function oneOf<T extends string>(flag: string, value: string, allowed: readonly T[]): T {
@@ -117,18 +220,117 @@ export function parseFormats(flag: string, value: string): Format[] {
   return [...new Set(parts.map((p) => oneOf(flag, p, FORMATS)))];
 }
 
-const UI_ONLY = ['report', 'no-open'] as const;
+const UI_ONLY = ['report', 'root', 'no-open'] as const;
+const DIFF_ONLY = ['fail-on-new'] as const;
+const DIFF_OPTIONS: readonly string[] = ['format', ...DIFF_ONLY];
+const REVIEW_LIST_ONLY = ['status'] as const;
+const REVIEW_RECORD_ONLY = ['item', 'outcome', 'reviewer', 'notes', 'attach', 'override'] as const;
+/** Options of widedoor review, by action; --report and --format are shared. */
+const REVIEW_OPTIONS = {
+  list: ['report', 'config', 'format', ...REVIEW_LIST_ONLY],
+  record: ['report', 'config', ...REVIEW_RECORD_ONLY],
+} as const;
 
-function uiArgs(values: Record<string, string | boolean | undefined>, targets: string[]): UiArgs {
+type Values = Record<string, string | boolean | string[] | undefined>;
+
+function required(values: Values, flag: string): string {
+  const value = values[flag];
+  if (typeof value !== 'string' || value === '')
+    throw new UsageError(`widedoor review needs --${flag}`);
+  return value;
+}
+
+function reviewArgs(values: Values, rest: string[]): ReviewArgs {
+  const [action, ...extra] = rest;
+  if (action !== 'list' && action !== 'record')
+    throw new UsageError(
+      `widedoor review needs list or record${action === undefined ? '' : `; got "${action}"`}`,
+    );
+  if (extra.length > 0)
+    throw new UsageError(`widedoor review ${action} takes no other arguments; got "${extra[0]}"`);
+  const allowed: readonly string[] = REVIEW_OPTIONS[action];
+  for (const [flag, value] of Object.entries(values)) {
+    if (value === undefined || allowed.includes(flag)) continue;
+    const other = action === 'list' ? 'record' : 'list';
+    if ((REVIEW_OPTIONS[other] as readonly string[]).includes(flag))
+      throw new UsageError(`--${flag} is an option of widedoor review ${other}`);
+    throw new UsageError(`--${flag} is not an option of widedoor review`);
+  }
+  const report = required(values, 'report');
+  if (values.config === '') throw new UsageError('--config needs a file');
+  const config = typeof values.config === 'string' ? { config: values.config } : {};
+  if (action === 'list') {
+    return {
+      command: 'review',
+      action,
+      report,
+      ...config,
+      status:
+        typeof values.status === 'string'
+          ? oneOf('--status', values.status, REVIEW_STATUSES)
+          : 'open',
+      format:
+        typeof values.format === 'string'
+          ? oneOf('--format', values.format, REVIEW_FORMATS)
+          : 'text',
+    };
+  }
+  const args: ReviewRecordArgs = {
+    command: 'review',
+    action,
+    report,
+    ...config,
+    item: required(values, 'item'),
+    outcome: oneOf('--outcome', required(values, 'outcome'), MANUAL_OUTCOMES),
+    reviewer: required(values, 'reviewer'),
+    attach: [...((values.attach as string[] | undefined) ?? [])],
+    overrides: [...((values.override as string[] | undefined) ?? [])],
+  };
+  if (typeof values.notes === 'string') args.notes = values.notes;
+  return args;
+}
+
+function diffArgs(values: Values, files: string[]): DiffArgs {
+  for (const [flag, value] of Object.entries(values))
+    if (value !== undefined && !DIFF_OPTIONS.includes(flag))
+      throw new UsageError(`--${flag} is not an option of widedoor diff`);
+  const [before, after] = files;
+  if (files.length !== 2 || !before || !after)
+    throw new UsageError(
+      `widedoor diff needs two JSON reports, before and after; got ${files.length}`,
+    );
+  return {
+    command: 'diff',
+    before,
+    after,
+    format:
+      typeof values.format === 'string' ? oneOf('--format', values.format, DIFF_FORMATS) : 'text',
+    failOnNew: values['fail-on-new'] === true,
+  };
+}
+
+function uiArgs(values: Values, targets: string[]): UiArgs {
   if (targets.length > 0)
     throw new UsageError(`widedoor ui takes no targets; got "${targets[0]}". Use --report <file>`);
   for (const [flag, value] of Object.entries(values))
-    if (value !== undefined && !(UI_ONLY as readonly string[]).includes(flag))
+    if (value !== undefined && ![...UI_ONLY, 'config'].includes(flag))
       throw new UsageError(`--${flag} is not an option of widedoor ui`);
   const args: UiArgs = { command: 'ui', open: values['no-open'] !== true };
   if (typeof values.report === 'string') {
     if (values.report === '') throw new UsageError('--report needs a file');
     args.report = values.report;
+  }
+  if (typeof values.root === 'string') {
+    if (values.root === '') throw new UsageError('--root needs a folder');
+    args.root = values.root;
+  }
+  if (typeof values.config === 'string') {
+    if (values.config === '') throw new UsageError('--config needs a file');
+    if (args.root !== undefined)
+      throw new UsageError(
+        'widedoor ui takes --root or --config, not both: the folder of the config file is the root',
+      );
+    args.config = values.config;
   }
   return args;
 }
@@ -152,7 +354,16 @@ export function parseCommand(argv: readonly string[]): Command {
         'storage-state': { type: 'string' },
         'unsafe-no-sandbox': { type: 'boolean' },
         report: { type: 'string' },
+        root: { type: 'string' },
         'no-open': { type: 'boolean' },
+        'fail-on-new': { type: 'boolean' },
+        status: { type: 'string' },
+        item: { type: 'string' },
+        outcome: { type: 'string' },
+        reviewer: { type: 'string' },
+        notes: { type: 'string' },
+        attach: { type: 'string', multiple: true },
+        override: { type: 'string', multiple: true },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -166,9 +377,17 @@ export function parseCommand(argv: readonly string[]): Command {
   const [command, ...targets] = positionals;
   if (command === undefined) throw new UsageError('no command given', true);
   if (command === 'ui') return uiArgs(values, targets);
-  if (command !== 'scan') throw new UsageError(`unknown command "${command}"; expected scan or ui`);
+  if (command === 'review') return reviewArgs(values, targets);
+  if (command === 'diff') return diffArgs(values, targets);
+  if (command !== 'scan')
+    throw new UsageError(`unknown command "${command}"; expected scan, ui, review or diff`);
   for (const flag of UI_ONLY)
     if (values[flag] !== undefined) throw new UsageError(`--${flag} is an option of widedoor ui`);
+  for (const flag of DIFF_ONLY)
+    if (values[flag] !== undefined) throw new UsageError(`--${flag} is an option of widedoor diff`);
+  for (const flag of [...REVIEW_LIST_ONLY, ...REVIEW_RECORD_ONLY])
+    if (values[flag] !== undefined)
+      throw new UsageError(`--${flag} is an option of widedoor review`);
 
   const args: ScanArgs = {
     command: 'scan',

@@ -1,37 +1,20 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { FindingSchema, findingId, getProfile, type Asset } from '@widedoor/core';
-import { buildScanReport, serializeJson, type ScanReport } from '@widedoor/report';
 import { UsageError, parseCommand } from '../src/args.ts';
 import { main, type Io } from '../src/main.ts';
 import { findOnPath } from '@widedoor/pdf';
-import {
-  ReportFileError,
-  URL_HANDLER,
-  browserCommand,
-  reportBody,
-  rundll32Path,
-  uiDistDir,
-} from '../src/ui.ts';
-import { SECURITY_HEADERS, loadStaticFiles, startUiServer } from '../src/ui-server.ts';
+import { URL_HANDLER, browserCommand, rundll32Path, uiRoot } from '../src/ui.ts';
 
 /*
- * widedoor ui up to the point where it serves: arguments, the report body
- * (validated report plus screenshots through the containment loader), the
- * browser command and the refusals. The browser suite runs the whole command.
+ * widedoor ui up to the point where it serves: arguments, the root folder,
+ * the browser command and the refusals. The report body and the server are
+ * @widedoor/server's (its tests); the browser suite runs the whole command.
  */
 
 const root = mkdtempSync(join(tmpdir(), 'widedoor-uicmd-'));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
-
-const PNG = Buffer.from(
-  '89504e470d0a1a0a0000000d4948445200000001000000010806000000' +
-    '1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082',
-  'hex',
-);
 
 function io(cwd = root) {
   const out: string[] = [];
@@ -40,64 +23,30 @@ function io(cwd = root) {
   return { io: value, out, err };
 }
 
-const PAGE: Asset = {
-  kind: 'web',
-  uri: 'https://example.com/',
-  contentHash: `sha256:${'a'.repeat(64)}`,
-};
-
-/** A one-page report with one failed check per screenshot path. */
-function sampleReport(screenshots: string[] = []): ScanReport {
-  const findings = screenshots.map((screenshot, i) => {
-    const location = { selector: `img#e${i}` };
-    return FindingSchema.parse({
-      schemaVersion: 1,
-      id: findingId(PAGE.uri, location, 'axe-core', 'image-alt'),
-      asset: PAGE,
-      location,
-      source: { engine: 'axe-core', engineVersion: '4.14.0', ruleId: 'image-alt' },
-      criteria: { wcag: ['1.1.1'] },
-      outcome: 'fail',
-      impact: 'critical',
-      evidence: { screenshot },
-    });
-  });
-  return buildScanReport({
-    profile: getProfile('wcag21aa'),
-    startedAt: '2026-10-22T12:00:00.000Z',
-    finishedAt: '2026-10-22T12:01:00.000Z',
-    toolVersion: '0.0.0',
-    scope: { web: { urls: [PAGE.uri], truncated: false } },
-    web: {
-      engine: { name: 'axe-core', version: '4.14.0' },
-      assets: [PAGE],
-      findings,
-      errors: [],
-      skipped: [],
-      warnings: [],
-      truncated: false,
-      pages: [{ asset: PAGE, title: 'Home' }],
-    },
-  });
-}
-
-let n = 0;
-/** A report folder as widedoor scan writes it: report.json and evidence/. */
-function reportFolder(report: ScanReport = sampleReport()): string {
-  const dir = join(root, `r${n++}`);
-  mkdirSync(join(dir, 'evidence'), { recursive: true });
-  writeFileSync(join(dir, 'report.json'), serializeJson(report));
-  return dir;
-}
-
 describe('widedoor ui arguments', () => {
-  it('parses the command and its two options', () => {
+  it('parses the command and its four options', () => {
     expect(parseCommand(['ui'])).toEqual({ command: 'ui', open: true });
-    expect(parseCommand(['ui', '--report', 'out/report.json', '--no-open'])).toEqual({
+    expect(
+      parseCommand(['ui', '--report', 'out/report.json', '--config', 'w.yaml', '--no-open']),
+    ).toEqual({
       command: 'ui',
       report: 'out/report.json',
+      config: 'w.yaml',
       open: false,
     });
+    expect(parseCommand(['ui', '--root', 'site'])).toEqual({
+      command: 'ui',
+      root: 'site',
+      open: true,
+    });
+    // --config alone names the config, and its folder is the root.
+    expect(parseCommand(['ui', '--config', 'w.yaml'])).toEqual({
+      command: 'ui',
+      config: 'w.yaml',
+      open: true,
+    });
+    expect(() => parseCommand(['ui', '--config', ''])).toThrow(/--config needs a file/);
+    expect(() => parseCommand(['ui', '--root', ''])).toThrow(/--root needs a folder/);
   });
 
   it.each([
@@ -105,6 +54,9 @@ describe('widedoor ui arguments', () => {
     [['ui', '--profile', '508'], /--profile is not an option of widedoor ui/],
     [['ui', '--out', 'x'], /--out is not an option of widedoor ui/],
     [['ui', '--report', ''], /--report needs a file/],
+    [['ui', '--root', 'a', '--config', 'w.yaml'], /takes --root or --config, not both/],
+    [['ui', '--config', 'w.yaml', '--root', 'a'], /takes --root or --config, not both/],
+    [['scan', '--root', 'a'], /--root is an option of widedoor ui/],
     [['scan', '--report', 'r.json'], /--report is an option of widedoor ui/],
     [['scan', '--no-open'], /--no-open is an option of widedoor ui/],
   ])('refuses %j', (argv, message) => {
@@ -166,47 +118,16 @@ describe('browserCommand', () => {
   });
 });
 
-describe('uiDistDir', () => {
-  it('takes an absolute WIDEDOOR_UI_DIST, refuses a relative one, else resolves @widedoor/ui', () => {
-    const abs = join(root, 'other-dist');
-    expect(uiDistDir({ WIDEDOOR_UI_DIST: abs })).toBe(abs);
-    expect(() => uiDistDir({ WIDEDOOR_UI_DIST: 'dist' })).toThrow(/absolute/);
-    expect(uiDistDir({})).toMatch(/[\\/]ui[\\/]dist$/);
-  });
-});
-
-describe('reportBody', () => {
-  it('returns the validated report and its screenshots, loaded only from evidence/', () => {
-    const report = sampleReport(['wd_label.png', '../outside.png', 'fake.png', 'wd_label.png']);
-    const dir = reportFolder(report);
-    writeFileSync(join(dir, 'evidence', 'wd_label.png'), PNG);
-    writeFileSync(join(dir, 'evidence', 'fake.png'), 'not a png');
-    writeFileSync(join(dir, 'outside.png'), PNG);
-    const body = JSON.parse(reportBody(join(dir, 'report.json')));
-    expect(body.report).toEqual(JSON.parse(serializeJson(report)));
-    expect(body.screenshots).toEqual({
-      'wd_label.png': { ok: true, dataUri: `data:image/png;base64,${PNG.toString('base64')}` },
-      '../outside.png': {
-        ok: false,
-        reason: 'the path is not a plain path inside the evidence folder',
-      },
-      'fake.png': { ok: false, reason: 'the file is not a PNG image' },
-    });
-  });
-
-  it.each([
-    ['not JSON', '{"schemaVersion":', /not valid JSON/],
-    ['another JSON file', '{"name":"x"}', /not a Widedoor JSON report at schemaVersion/],
-  ])('refuses %s', (_, text, message) => {
-    const dir = reportFolder();
-    writeFileSync(join(dir, 'report.json'), text);
-    expect(() => reportBody(join(dir, 'report.json'))).toThrow(ReportFileError);
-    expect(() => reportBody(join(dir, 'report.json'))).toThrow(message);
-  });
-
-  it('refuses a folder and a missing file', () => {
-    expect(() => reportBody(root)).toThrow(/not a file/);
-    expect(() => reportBody(join(root, 'nope.json'))).toThrow(/cannot be read/);
+describe('uiRoot', () => {
+  it('is --root, else the folder of --config, else the working folder', () => {
+    const site = join(root, 'site');
+    mkdirSync(site, { recursive: true });
+    expect(uiRoot({}, site)).toEqual({ dir: site });
+    expect(uiRoot({ root: 'site' }, root)).toEqual({ dir: site });
+    const config = join(site, 'other.yaml');
+    writeFileSync(config, 'web:\n  urls: [https://example.com/]\n');
+    expect(uiRoot({ config: 'site/other.yaml' }, root)).toEqual({ dir: site, configFile: config });
+    expect(uiRoot({ root: 'nowhere' }, root)).toBeUndefined();
   });
 });
 
@@ -217,6 +138,36 @@ describe('widedoor ui refusals', () => {
     expect(h.err.join('\n')).toMatch(/no\\x1b\[31mpe\.json is not usable: it cannot be read/);
     expect(h.err.join('\n')).not.toContain('\u001b');
     expect(h.out).toEqual([]);
+  });
+
+  it('exits 2 for --root with --config, with the reason', async () => {
+    const h = io();
+    expect(await main(['ui', '--root', '.', '--config', 'w.yaml', '--no-open'], h.io)).toBe(2);
+    expect(h.err[0]).toBe(
+      'widedoor: widedoor ui takes --root or --config, not both: the folder of the config file is the root',
+    );
+  });
+
+  it('exits 2 for a --root that is not a folder, and for a config that is not usable', async () => {
+    writeFileSync(join(root, 'file.txt'), 'x');
+    for (const name of ['file.txt', 'missing\u001b[31m']) {
+      const h = io();
+      expect(await main(['ui', '--root', name, '--no-open'], h.io)).toBe(2);
+      expect(h.err[0]).toMatch(/ is not a folder$/);
+      expect(h.err.join('\n')).not.toContain('\u001b');
+    }
+    const bad = join(root, 'bad-config');
+    mkdirSync(bad, { recursive: true });
+    writeFileSync(join(bad, 'widedoor.config.yaml'), 'nope: 1\n');
+    for (const argv of [
+      ['ui', '--root', bad, '--no-open'],
+      ['ui', '--config', join(bad, 'widedoor.config.yaml'), '--no-open'],
+      ['ui', '--config', join(root, 'missing.yaml'), '--no-open'],
+    ]) {
+      const h = io();
+      expect(await main(argv, h.io), argv.join(' ')).toBe(2);
+      expect(h.err[0]).toMatch(/ is not usable:$/);
+    }
   });
 
   it('names WIDEDOOR_UI_DIST, on stderr, when it is set, and blames it when it is not a build', async () => {
@@ -234,30 +185,6 @@ describe('widedoor ui refusals', () => {
     } finally {
       if (before === undefined) delete process.env.WIDEDOOR_UI_DIST;
       else process.env.WIDEDOOR_UI_DIST = before;
-    }
-  });
-});
-
-describe('malformed requests', () => {
-  it('answer 400 with the security headers', async () => {
-    const dir = join(root, 'dist');
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, 'index.html'), '<!doctype html>');
-    const server = await startUiServer({ files: loadStaticFiles(dir) });
-    try {
-      const reply = await new Promise<string>((done, fail) => {
-        const socket = connect(server.port, '127.0.0.1', () => socket.write('NOT HTTP\r\n\r\n'));
-        let text = '';
-        socket.setEncoding('utf8');
-        socket.on('data', (c: string) => (text += c));
-        socket.on('end', () => done(text));
-        socket.once('error', fail);
-      });
-      expect(reply).toMatch(/^HTTP\/1\.1 400 /);
-      for (const [name, value] of Object.entries(SECURITY_HEADERS))
-        expect(reply).toContain(`${name}: ${value}\r\n`);
-    } finally {
-      await server.close();
     }
   });
 });

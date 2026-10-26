@@ -1,0 +1,1115 @@
+# Manual review steps: what a reviewer does for each criterion that Widedoor cannot fully
+# decide on its own. Written by the Widedoor project (Apache-2.0); not copied from the
+# ICT Testing Baseline. Each entry cites every Baseline Test ID of its criterion for that
+# asset kind (web baseline for web pages, document baseline for PDFs); entries with none
+# have no Baseline test (WCAG 2.1 criteria and most 508 items). Keep each step at
+# Flesch-Kincaid grade 8 or lower (data.test.ts checks it). 4.1.1 has no entry: the errata
+# basis in errata.yaml always satisfies it.
+
+meta:
+  sources:
+    - https://github.com/atbcb/ICTTestingBaseline/tree/082e144ef2219bb66ce530018e1e4fb2534352b2/_baselines
+  retrieved: 2026-10-23
+wcag:
+  # Non-text Content
+  - id: '1.1.1'
+    web:
+      baselineTests:
+        - 6.A-MeaningfulImage
+        - 6.B-DecorativeImage
+        - 6.C-Captcha
+        - 7.C-AudibleCues
+      steps:
+        - 'Find each image, icon, chart and image button on the page.'
+        - 'Use a screen reader or an inspector to read the text alternative of each one.'
+        - 'Check that the text says what the image shows or does. A button image should name its action.'
+        - 'Check that images that only decorate have empty alt text, so a screen reader skips them.'
+        - 'If there is a CAPTCHA, check that a second form of it works for people who cannot see it.'
+        - 'If a sound or tone tells users something, check that text tells them the same thing.'
+    pdf:
+      baselineTests:
+        - 6.A-MeaningfulImage
+        - 6.B-DecorativeImage
+        - 7.C-AudibleCues
+      steps:
+        - 'Find each image, chart and figure in the PDF.'
+        - 'Open the tags or a screen reader and read the alternate text of each one.'
+        - 'Check that the text says what the image shows. A chart needs its key facts.'
+        - 'Check that images that only decorate are marked as artifacts, so they are skipped.'
+        - 'If a sound or tone tells users something, check that text tells them the same thing.'
+  # Audio-only and Video-only (Prerecorded)
+  - id: '1.2.1'
+    web:
+      baselineTests:
+        - 16.A-AudioOnlyTranscript
+        - 16.B-VideoOnlyAlt
+        - 16.C-AudioMediaAlternative
+        - 16.D-VideoMediaAlternative
+      steps:
+        - 'Find each audio-only and video-only clip on the page. If there are none, mark this not applicable.'
+        - 'Check that each audio clip has a transcript nearby that covers all the speech and key sounds.'
+        - 'Check that each silent video has a text or audio version that tells what happens on screen.'
+    pdf:
+      baselineTests:
+        - 16.A-AudioOnlyTranscript
+        - 16.B-VideoOnlyAlt
+        - 16.C-AudioMediaAlternative
+        - 16.D-VideoMediaAlternative
+      steps:
+        - 'Find each embedded or linked audio-only and video-only clip. If there are none, mark this not applicable.'
+        - 'Check that each audio clip has a transcript that covers all the speech and key sounds.'
+        - 'Check that each silent video has a text or audio version that tells what happens on screen.'
+  # Captions (Prerecorded)
+  - id: '1.2.2'
+    web:
+      baselineTests:
+        - 17.D-CaptionsPrerecorded
+        - 17.G-SyncMediaAlternative
+      steps:
+        - 'Find each recorded video with sound on the page. If there are none, mark this not applicable.'
+        - 'Turn on captions and watch at least a few minutes of each video.'
+        - 'Check that the captions match the words, name who is speaking, and note key sounds.'
+        - 'Check that the captions stay in sync with the sound.'
+    pdf:
+      baselineTests:
+        - 17.D-CaptionsPrerecorded
+        - 17.G-SyncMediaAlternative
+      steps:
+        - 'Find each recorded video with sound that the PDF embeds or links to. If there are none, mark this not applicable.'
+        - 'Turn on captions and watch at least a few minutes of each video.'
+        - 'Check that the captions match the words, name who is speaking, and note key sounds.'
+        - 'Check that the captions stay in sync with the sound.'
+  # Audio Description or Media Alternative (Prerecorded)
+  - id: '1.2.3'
+    web:
+      baselineTests:
+        - 17.G-SyncMediaAlternative
+      steps:
+        - 'Find each recorded video on the page. If there are none, mark this not applicable.'
+        - 'Watch it with the sound on but without looking. Note any facts you only get by sight.'
+        - 'Check that an audio description or a full text version gives those facts.'
+    pdf:
+      baselineTests:
+        - 17.G-SyncMediaAlternative
+      steps:
+        - 'Find each recorded video that the PDF embeds or links to. If there are none, mark this not applicable.'
+        - 'Watch it with the sound on but without looking. Note any facts you only get by sight.'
+        - 'Check that an audio description or a full text version gives those facts.'
+  # Captions (Live)
+  - id: '1.2.4'
+    web:
+      baselineTests:
+        - 17.F-CaptionsLive
+      steps:
+        - 'Find each live video or live stream with sound. If there are none, mark this not applicable.'
+        - 'Check that live captions are offered and keep up with the speech.'
+    pdf:
+      baselineTests:
+        - 17.F-CaptionsLive
+      steps:
+        - 'Find each live stream the PDF links to. If there are none, mark this not applicable.'
+        - 'Check that live captions are offered and keep up with the speech.'
+  # Audio Description (Prerecorded)
+  - id: '1.2.5'
+    web:
+      baselineTests:
+        - 17.E-ADPrerecorded
+      steps:
+        - 'Find each recorded video on the page. If there are none, mark this not applicable.'
+        - 'Watch it with the sound on but without looking. Note any facts you only get by sight.'
+        - 'Check that an audio description track speaks those facts in the pauses.'
+    pdf:
+      baselineTests:
+        - 17.E-ADPrerecorded
+      steps:
+        - 'Find each recorded video that the PDF embeds or links to. If there are none, mark this not applicable.'
+        - 'Watch it with the sound on but without looking. Note any facts you only get by sight.'
+        - 'Check that an audio description track speaks those facts in the pauses.'
+  # Info and Relationships
+  - id: '1.3.1'
+    web:
+      baselineTests:
+        - 10.A-FormName
+        - 12.B-DataTableHeaderAssociation
+        - 13.B-VisHeadingProg
+        - 13.C-ProgHeadingVisual
+        - 13.D-List
+      steps:
+        - 'Look at the page and list what the layout shows: headings, lists, tables, form groups and labels.'
+        - 'Use a screen reader or an inspector to check that the code marks up each of these the same way.'
+        - 'Check that each data table has header cells tied to its data cells.'
+        - 'Check that each form field has a label in the code, not just text placed near it.'
+    pdf:
+      baselineTests:
+        - 10.A-FormName
+        - 12.B-DataTableHeaderAssociation
+        - 13.B-VisHeadingProg
+        - 13.C-ProgHeadingVisual
+        - 13.D-List
+        - 18.A-MeaningfulContent
+      steps:
+        - 'Look at the PDF and list what the layout shows: headings, lists, tables, form fields and labels.'
+        - 'Open the tags panel and check that each of these has the right tag, such as H1, L or Table.'
+        - 'Check that each data table has header cells (TH) tied to its data cells.'
+        - 'Check that each form field has a name a screen reader reads out.'
+        - 'Check that all text a reader needs is in the tags, and nothing that matters is an artifact.'
+  # Meaningful Sequence
+  - id: '1.3.2'
+    web:
+      baselineTests:
+        - 18.B-CSSPositionedContent
+      steps:
+        - 'Read the page in the order a screen reader does, or turn off CSS.'
+        - 'Check that the content still reads in an order that makes sense.'
+        - 'Check that items moved by CSS, such as side boxes or pop-ups, do not break the flow.'
+    pdf:
+      baselineTests:
+        - 18.B-MeaningfulSequence
+      steps:
+        - 'Open the tags panel or the reading order tool, or read the PDF with a screen reader.'
+        - 'Check that the reading order follows the order a sighted reader would use.'
+        - 'Check that columns, side boxes, headers and footers do not cut into the main text.'
+  # Sensory Characteristics
+  - id: '1.3.3'
+    web:
+      baselineTests:
+        - 7.B-SensoryCharacteristics
+      steps:
+        - 'Read the page text and find any directions that point to shape, size, place or sound.'
+        - 'Check that each such direction also names the item in words, like the button label.'
+    pdf:
+      baselineTests:
+        - 7.B-SensoryCharacteristics
+      steps:
+        - 'Read the PDF text and find any directions that point to shape, size, place or sound.'
+        - 'Check that each such direction also names the item in words, like a heading or label.'
+  # Orientation
+  - id: '1.3.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'Open the page on a phone or tablet, or use the browser tools to change the screen shape.'
+        - 'Turn the screen from tall to wide and back.'
+        - 'Check that the page works both ways, unless one way is truly needed, like a bank check scan.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Open the PDF on a phone or tablet.'
+        - 'Turn the screen from tall to wide and back.'
+        - 'Check that the PDF can be read both ways and does not lock to one.'
+  # Identify Input Purpose
+  - id: '1.3.5'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find each form field that asks about the user, such as name, email, phone or address.'
+        - 'Check in the code that each one has the right autocomplete value, such as "email".'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Find each form field in the PDF that asks about the user, such as name, email or phone.'
+        - 'If there are none, mark this not applicable.'
+        - 'Check that the field names and tool tips say what each field is for, so tools can fill them.'
+  # Use of Color
+  - id: '1.4.1'
+    web:
+      baselineTests:
+        - 7.A-Color
+      steps:
+        - 'Look for places where color alone carries meaning, such as red error text or colored chart lines.'
+        - 'Check that each one also uses text, a pattern, an icon or an underline.'
+        - 'Check that links in a block of text stand out by more than color, or have strong contrast.'
+    pdf:
+      baselineTests:
+        - 7.A-Color
+      steps:
+        - 'Look for places where color alone carries meaning, such as colored chart lines or table cells.'
+        - 'Check that each one also uses text, a pattern, a label or a symbol.'
+        - 'Print or view the PDF in gray scale to make the check easy.'
+  # Audio Control
+  - id: '1.4.2'
+    web:
+      baselineTests:
+        - 21.D-AudioControl
+      steps:
+        - 'Load the page and listen for any sound that starts on its own.'
+        - 'If sound plays for more than 3 seconds, check that a control near the top can pause or mute it.'
+    pdf:
+      baselineTests:
+        - 21.D-AudioControl
+      steps:
+        - 'Open the PDF and listen for any sound that starts on its own.'
+        - 'If sound plays for more than 3 seconds, check that you can pause or mute it.'
+  # Contrast (Minimum)
+  - id: '1.4.3'
+    web:
+      baselineTests:
+        - 8.A-ContrastMinimum
+      steps:
+        - 'Use a contrast tool on text the scan could not judge, such as text on images or on color fades.'
+        - 'Check that normal text has a ratio of at least 4.5 to 1.'
+        - 'Check that large text has a ratio of at least 3 to 1.'
+    pdf:
+      baselineTests:
+        - 8.A-ContrastMinimum
+      steps:
+        - 'Use a contrast tool on text in the PDF, including text in charts and on colored boxes.'
+        - 'Check that normal text has a ratio of at least 4.5 to 1.'
+        - 'Check that large text has a ratio of at least 3 to 1.'
+  # Resize Text
+  - id: '1.4.4'
+    web:
+      baselineTests:
+        - 22.A-ResizeText
+      steps:
+        - 'Zoom the browser to 200 percent.'
+        - 'Check that all text grows and that no text is cut off, hidden or on top of other text.'
+        - 'Check that all controls still work.'
+    pdf:
+      baselineTests:
+        - 22.A-ResizeText
+      steps:
+        - 'Zoom the PDF to 200 percent.'
+        - 'Check that all text grows and stays clear, and that form fields still work.'
+  # Images of Text
+  - id: '1.4.5'
+    web:
+      baselineTests:
+        - 6.D-ImageText
+      steps:
+        - 'Find each image that holds text, such as a banner or a chart title.'
+        - 'Check that the same text could be real text instead. Logos are fine.'
+    pdf:
+      baselineTests:
+        - 6.D-ImageText
+      steps:
+        - 'Find each image that holds text, such as a scanned page or a chart title.'
+        - 'Check that the same text could be real text instead. Logos are fine.'
+        - 'Try to select the text. If you cannot, it is likely an image.'
+  # Reflow
+  - id: '1.4.10'
+    web:
+      baselineTests: []
+      steps:
+        - 'Set the browser window to 1280 pixels wide and zoom to 400 percent.'
+        - 'Check that you can read all content by scrolling up and down only.'
+        - 'Check that nothing is lost or cut off. Wide tables and maps may scroll both ways.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Open the PDF on a small screen, or use the reflow view in the PDF reader.'
+        - 'Check that the text wraps to fit and stays in order.'
+        - 'Check that no content is lost.'
+  # Non-text Contrast
+  - id: '1.4.11'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find the parts that let users act or that carry meaning: field borders, buttons, focus rings and chart parts.'
+        - 'Use a contrast tool to check that each part has a ratio of at least 3 to 1 with the colors next to it.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Find form fields, buttons and chart parts in the PDF.'
+        - 'Use a contrast tool to check that each part has a ratio of at least 3 to 1 with the colors next to it.'
+  # Text Spacing
+  - id: '1.4.12'
+    web:
+      baselineTests: []
+      steps:
+        - 'Use a text spacing bookmarklet or style sheet to add more space between lines, words and letters.'
+        - 'Check that no text is cut off, hidden or on top of other text.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'If the PDF has form fields, type long text into each one.'
+        - 'Check that the text stays clear and is not cut off.'
+        - 'If there are no form fields, mark this not applicable.'
+  # Content on Hover or Focus
+  - id: '1.4.13'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find content that shows when you hover or focus, such as tool tips and menus.'
+        - 'Check that you can close it with Escape without moving the mouse or focus.'
+        - 'Check that you can move the mouse onto it without it going away.'
+        - 'Check that it stays until you close it, move away, or it is no longer true.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Find tool tips and other pop-up text in the PDF.'
+        - 'Check that you can close each one with Escape.'
+        - 'Check that each one stays open while you read it.'
+  # Keyboard
+  - id: '2.1.1'
+    web:
+      baselineTests:
+        - 1.A-KeyboardAccess
+      steps:
+        - 'Put the mouse away. Use only the keyboard for the whole check.'
+        - 'Press Tab and Shift+Tab to move through every link, button, field and menu.'
+        - 'Use Enter, Space and the arrow keys to work each control.'
+        - 'Check that you can do every task the page offers with the keyboard alone.'
+    pdf:
+      baselineTests:
+        - 1.A-KeyboardAccess
+      steps:
+        - 'Put the mouse away. Use only the keyboard in the PDF reader.'
+        - 'Press Tab and Shift+Tab to move through every link and form field.'
+        - 'Check that you can fill each field, check each box and follow each link.'
+        - 'Check that you can reach and read all the text with the keyboard.'
+  # No Keyboard Trap
+  - id: '2.1.2'
+    web:
+      baselineTests:
+        - 1.B-NoKeyboardTrap
+      steps:
+        - 'Use Tab and Shift+Tab to move into and out of every part of the page.'
+        - 'Pay close watch to pop-ups, video players, maps and embedded frames.'
+        - 'Check that focus never gets stuck. If you need a special key to leave, check that the page tells you.'
+    pdf:
+      baselineTests:
+        - 1.B-NoKeyboardTrap
+      steps:
+        - 'Use Tab and Shift+Tab to move into and out of every link and form field.'
+        - 'Check that focus never gets stuck in a field or on a page.'
+  # Character Key Shortcuts
+  - id: '2.1.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'Check whether the page uses single key shortcuts, such as a letter or number key alone.'
+        - 'If it does, check that users can turn them off or change them, or that they only work when that part has focus.'
+        - 'If there are none, mark this not applicable.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check whether the PDF adds its own single key shortcuts with scripts.'
+        - 'If there are none, mark this not applicable.'
+        - 'If there are, check that users can turn them off or change them.'
+  # Timing Adjustable
+  - id: '2.2.1'
+    web:
+      baselineTests:
+        - 21.A-TimingAdjustable
+      steps:
+        - 'Look for time limits, such as a session that ends or a form that times out.'
+        - 'Check that users can turn off, change or extend each limit, or are warned and given time to extend it.'
+        - 'If there are no time limits, mark this not applicable.'
+    pdf:
+      baselineTests:
+        - 21.A-TimingAdjustable
+      steps:
+        - 'Look for time limits, such as a form that times out or a page that turns on its own.'
+        - 'Check that users can turn off, change or extend each limit.'
+        - 'If there are no time limits, mark this not applicable.'
+  # Pause, Stop, Hide
+  - id: '2.2.2'
+    web:
+      baselineTests:
+        - 21.B-MovingInfo
+        - 21.C-AutoUpdate
+      steps:
+        - 'Find anything that moves, blinks, scrolls or updates on its own, such as a slide show or news ticker.'
+        - 'If it lasts more than 5 seconds, check that users can pause, stop or hide it.'
+    pdf:
+      baselineTests:
+        - 21.B-MovingInfo
+        - 21.C-AutoUpdate
+      steps:
+        - 'Find anything in the PDF that moves, blinks or updates on its own.'
+        - 'If it lasts more than 5 seconds, check that users can pause, stop or hide it.'
+        - 'If nothing moves, mark this not applicable.'
+  # Three Flashes or Below Threshold
+  - id: '2.3.1'
+    web:
+      baselineTests:
+        - 9.A-Flashes
+      steps:
+        - 'Find any video, animation or effect that flashes.'
+        - 'Check that nothing flashes more than three times in one second.'
+        - 'If you are not sure, use a flash test tool such as PEAT.'
+    pdf:
+      baselineTests:
+        - 9.A-Flashes
+      steps:
+        - 'Find any video, animation or effect in the PDF that flashes.'
+        - 'Check that nothing flashes more than three times in one second.'
+        - 'If nothing flashes, mark this not applicable.'
+  # Bypass Blocks
+  - id: '2.4.1'
+    web:
+      baselineTests:
+        - 4.A-BypassBlocks
+      steps:
+        - 'Find the blocks that repeat on each page, such as the header and the main menu.'
+        - 'Check that a skip link, headings or landmarks let users jump past them to the main content.'
+        - 'Press Tab from the top of the page and check that the skip link works.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check whether the PDF repeats blocks of content, such as the same header text on each page.'
+        - 'Check that the repeated blocks are artifacts, or that bookmarks or headings let users skip them.'
+  # Page Titled
+  - id: '2.4.2'
+    web:
+      baselineTests:
+        - 11.A-PageTitled
+      steps:
+        - 'Read the page title in the browser tab.'
+        - 'Check that it names the topic or purpose of this page, not just the site.'
+    pdf:
+      baselineTests:
+        - 11.A-DocumentTitled
+      steps:
+        - 'Read the title shown in the PDF reader title bar.'
+        - 'Check that it names the topic of the document, not the file name.'
+  # Focus Order
+  - id: '2.4.3'
+    web:
+      baselineTests:
+        - 2.B-FocusOrder
+      steps:
+        - 'Press Tab through the whole page and watch where focus goes.'
+        - 'Check that the order follows the meaning and layout of the page.'
+        - 'Open each dialog and menu. Check that focus moves into it and goes back to a sensible place when it closes.'
+    pdf:
+      baselineTests:
+        - 2.B-FocusOrder
+      steps:
+        - 'Press Tab through the PDF and watch where focus goes.'
+        - 'Check that links and form fields come in an order that makes sense.'
+        - 'Check that the tab order follows the structure of the document.'
+  # Link Purpose (In Context)
+  - id: '2.4.4'
+    web:
+      baselineTests:
+        - 14.A-LinkPurpose
+      steps:
+        - 'Read the text of each link, along with its sentence, list item or table cell.'
+        - 'Check that you can tell where each link goes.'
+        - 'Check that links with the same text go to the same place.'
+    pdf:
+      baselineTests:
+        - 14.A-LinkPurpose
+      steps:
+        - 'Read the text of each link, along with its sentence or table cell.'
+        - 'Check that you can tell where each link goes.'
+        - 'Check that each link is tagged as a link with text a screen reader reads.'
+  # Multiple Ways
+  - id: '2.4.5'
+    web:
+      baselineTests:
+        - 23.A-MultipleWays
+      steps:
+        - 'Check that users can find this page in more than one way, such as a menu, a search box or a site map.'
+        - 'A page that is a step in a process, like a checkout, is exempt.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check that a reader can find this PDF and its parts in more than one way.'
+        - 'Look for bookmarks, a table of contents, links, or a search tool.'
+  # Headings and Labels
+  - id: '2.4.6'
+    web:
+      baselineTests:
+        - 10.B-FormDescriptiveLabel
+        - 13.A-HeadingDescriptive
+      steps:
+        - 'Read each heading and each form label on the page.'
+        - 'Check that each heading says what its section is about.'
+        - 'Check that each label says what to type or choose.'
+    pdf:
+      baselineTests:
+        - 10.B-FormDescriptiveLabel
+        - 13.A-HeadingDescriptive
+      steps:
+        - 'Read each heading and each form label in the PDF.'
+        - 'Check that each heading says what its section is about.'
+        - 'Check that each label says what to type or choose.'
+  # Focus Visible
+  - id: '2.4.7'
+    web:
+      baselineTests:
+        - 2.A-FocusVisible
+      steps:
+        - 'Press Tab through the whole page.'
+        - 'Check that you can always see which item has focus.'
+        - 'Check the focus mark on every link, button, field and menu item.'
+    pdf:
+      baselineTests:
+        - 2.A-FocusVisible
+      steps:
+        - 'Press Tab through the PDF in the reader.'
+        - 'Check that you can always see which link or field has focus.'
+  # Pointer Gestures
+  - id: '2.5.1'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find any action that needs a path or more than one finger, such as a swipe, a pinch or a drag.'
+        - 'Check that each can also be done with a single tap or click, such as with buttons.'
+        - 'If there are none, mark this not applicable.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check whether the PDF has any action that needs a swipe, a pinch or a drag.'
+        - 'If there are none, mark this not applicable.'
+        - 'If there are, check that a single tap or click also works.'
+  # Pointer Cancellation
+  - id: '2.5.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'Press down on each button and link, then move away before you let go.'
+        - 'Check that nothing happens on the press. The action should happen when you let go.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Press down on each button and link in the PDF, then move away before you let go.'
+        - 'Check that nothing happens on the press. The action should happen when you let go.'
+  # Label in Name
+  - id: '2.5.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find each button, link and field with a text label you can see.'
+        - 'Check with an inspector or screen reader that its name in the code holds that same text.'
+        - 'Ideally the name should start with the text you can see.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Find each button, link and form field with a text label you can see.'
+        - 'Check that the name a screen reader reads holds that same text.'
+  # Motion Actuation
+  - id: '2.5.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find any action that happens when you shake or tilt the device.'
+        - 'Check that a button or other control can do the same thing.'
+        - 'Check that users can turn the motion response off.'
+        - 'If there are none, mark this not applicable.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check whether the PDF does anything when you shake or tilt the device.'
+        - 'If not, mark this not applicable.'
+  # Language of Page
+  - id: '3.1.1'
+    web:
+      baselineTests:
+        - 15.A-LanguagePage
+      steps:
+        - 'Check in the code that the html element has a lang value.'
+        - 'Check that the value matches the main language of the page, such as "en" for English.'
+    pdf:
+      baselineTests:
+        - 15.A-LanguageDocument
+      steps:
+        - 'Open the file properties and find the language.'
+        - 'Check that it matches the main language of the PDF.'
+  # Language of Parts
+  - id: '3.1.2'
+    web:
+      baselineTests:
+        - 15.B-LanguagePart
+      steps:
+        - 'Find any phrases or passages in a different language from the rest of the page.'
+        - 'Check that each one has its own lang value in the code.'
+        - 'Names, tech terms and words now used in the main language do not need it.'
+    pdf:
+      baselineTests:
+        - 15.B-LanguageParts
+      steps:
+        - 'Find any phrases or passages in a different language from the rest of the PDF.'
+        - 'Check in the tags that each one has its own language set.'
+  # On Focus
+  - id: '3.2.1'
+    web:
+      baselineTests:
+        - 2.C-OnFocus
+      steps:
+        - 'Press Tab to move focus to each control.'
+        - 'Check that moving focus alone does not open a new window, submit a form or jump to a new page.'
+    pdf:
+      baselineTests:
+        - 2.C-OnFocus
+      steps:
+        - 'Press Tab to move focus to each link and form field in the PDF.'
+        - 'Check that moving focus alone does not open anything, submit a form or jump to a new page.'
+  # On Input
+  - id: '3.2.2'
+    web:
+      baselineTests:
+        - 10.C-OnInput
+      steps:
+        - 'Change the value of each field, box, button group and menu.'
+        - 'Check that a change alone does not submit a form or jump to a new page.'
+        - 'If it does, check that the page warns users first.'
+    pdf:
+      baselineTests:
+        - 10.C-OnInput
+      steps:
+        - 'Change the value of each form field, check box and list in the PDF.'
+        - 'Check that a change alone does not submit the form or jump to a new page.'
+        - 'If it does, check that the PDF warns users first.'
+  # Consistent Navigation
+  - id: '3.2.3'
+    web:
+      baselineTests:
+        - 4.B-ConsistentNavigation
+      steps:
+        - 'Open two or more pages of the same site.'
+        - 'Check that menus and other repeated links come in the same order on each page.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'If the PDF has menus or link bars that repeat on many pages, check they stay in the same order.'
+        - 'If it has none, mark this not applicable.'
+  # Consistent Identification
+  - id: '3.2.4'
+    web:
+      baselineTests:
+        - 4.C-ConsistentIdentification
+      steps:
+        - 'Find parts that do the same thing on more than one page, such as search boxes and icons.'
+        - 'Check that they have the same label and name each time.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Find parts that do the same thing on more than one page of the PDF, such as links or icons.'
+        - 'Check that they have the same label each time.'
+  # Error Identification
+  - id: '3.3.1'
+    web:
+      baselineTests:
+        - 10.D-ErrorIdentification
+      steps:
+        - 'Submit each form with a missing field and with a wrong value.'
+        - 'Check that each error is shown in text and names the field that has the problem.'
+        - 'Check that a screen reader reads the error.'
+    pdf:
+      baselineTests:
+        - 10.D-ErrorIdentification
+      steps:
+        - 'Find the PDF form fields that check what users type.'
+        - 'Type a wrong value in each one.'
+        - 'Check that the error is shown in text and names the field.'
+        - 'If there are no checked fields, mark this not applicable.'
+  # Labels or Instructions
+  - id: '3.3.2'
+    web:
+      baselineTests:
+        - 10.E-FormHasLabel
+      steps:
+        - 'Find each form field.'
+        - 'Check that each one has a label or directions you can see.'
+        - 'Check that the labels say which fields are required and what format to use.'
+    pdf:
+      baselineTests:
+        - 10.E-FormHasLabel
+      steps:
+        - 'Find each form field in the PDF.'
+        - 'Check that each one has a label or directions you can see.'
+        - 'Check that the labels say which fields are required and what format to use.'
+  # Error Suggestion
+  - id: '3.3.3'
+    web:
+      baselineTests:
+        - 10.F-ErrorSuggestion
+      steps:
+        - 'Submit each form with values that are wrong in a way the page can spot.'
+        - 'Check that the error message suggests how to fix it, unless that would harm security.'
+    pdf:
+      baselineTests:
+        - 10.F-ErrorSuggestion
+      steps:
+        - 'Type wrong values in each PDF form field that checks its input.'
+        - 'Check that the error message suggests how to fix it.'
+        - 'If no field checks its input, mark this not applicable.'
+  # Error Prevention (Legal, Financial, Data)
+  - id: '3.3.4'
+    web:
+      baselineTests:
+        - 10.G-ErrorPrevention
+      steps:
+        - 'Find forms that make legal or money promises, change saved data, or submit test answers.'
+        - 'Check that users can undo the action, or can check and fix their answers, or must confirm before it is sent.'
+        - 'If there are no such forms, mark this not applicable.'
+    pdf:
+      baselineTests:
+        - 10.G-ErrorPrevention
+      steps:
+        - 'Find PDF forms that make legal or money promises or change saved data.'
+        - 'Check that users can check and fix their answers before they submit.'
+        - 'If there are no such forms, mark this not applicable.'
+  # Name, Role, Value
+  - id: '4.1.2'
+    web:
+      baselineTests:
+        - 5.A-ControlName
+        - 5.B-ControlRole
+        - 5.C-ControlState
+        - 5.D-ControlValue
+        - 6.A-MeaningfulImage
+        - 10.A-FormName
+        - 12.A-DataTableRole
+        - 12.C-LayoutTable
+        - 14.A-LinkPurpose
+        - 19.A-FrameTitle
+        - 19.B-iFrameName
+      steps:
+        - 'Find custom controls, such as menus, tabs, sliders and toggles, and frames.'
+        - 'Use a screen reader or an inspector to check that each has a name, a role and its state.'
+        - 'Change each control and check that the screen reader hears the new state or value.'
+        - 'Check that each frame has a title that says what it holds.'
+    pdf:
+      baselineTests:
+        - 5.A-ControlName
+        - 5.B-ControlRole
+        - 5.C-ControlState
+        - 5.D-ControlValue
+        - 10.A-FormName
+        - 12.A-DataTableRole
+        - 12.C-LayoutTable
+        - 14.A-LinkPurpose
+      steps:
+        - 'Find each form field, button and link in the PDF.'
+        - 'Use a screen reader or the tags panel to check that each has a name and the right role.'
+        - 'Change each field and check that the screen reader hears the new value or state.'
+        - 'Check that data tables and layout tables are tagged the right way.'
+  # Status Messages
+  - id: '4.1.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'Find status messages that show up without moving focus. Examples are "Saved", a count of search results, or a progress note.'
+        - 'Use a screen reader and check that it reads each message without you moving to it.'
+    pdf:
+      baselineTests: []
+      steps:
+        - 'Check whether the PDF shows status messages that do not move focus. A total that updates is one.'
+        - 'If there are none, mark this not applicable.'
+        - 'If there are, check that a screen reader reads each one.'
+section508:
+  # Without Vision
+  - id: '302.1'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product with a screen reader and the screen turned off or covered.'
+        - 'Check that you can find, read and use every feature without sight.'
+  # With Limited Vision
+  - id: '302.2'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product with the screen magnified to 200 percent or more, and in high contrast mode.'
+        - 'Check that every feature can still be found, read and used.'
+  # Without Perception of Color
+  - id: '302.3'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product in gray scale, or with a color blindness filter.'
+        - 'Check that every feature still works and that no meaning is lost.'
+  # Without Hearing
+  - id: '302.4'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product with the sound off.'
+        - 'Check that every sound has a visual or text form, such as captions or an alert on screen.'
+  # With Limited Hearing
+  - id: '302.5'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product with the sound turned low.'
+        - 'Check that users can raise the volume or turn on captions, and that key sounds are clear.'
+  # Without Speech
+  - id: '302.6'
+    product:
+      baselineTests: []
+      steps:
+        - 'Check whether any feature needs the user to speak, such as voice control or a phone line.'
+        - 'If so, check that the same feature also works with typing or another input.'
+  # With Limited Manipulation
+  - id: '302.7'
+    product:
+      baselineTests: []
+      steps:
+        - 'Use the product with the keyboard alone, and then with a single switch or voice control if you can.'
+        - 'Check that no feature needs fine hand control, tight grasping or two keys at once.'
+  # With Limited Reach and Strength
+  - id: '302.8'
+    product:
+      baselineTests: []
+      steps:
+        - 'Check whether any part of the product needs the user to reach far or press hard.'
+        - 'Web pages and files seldom do. Note any part that relies on hardware, such as a kiosk or a card reader.'
+  # With Limited Language, Cognitive, and Learning Abilities
+  - id: '302.9'
+    product:
+      baselineTests: []
+      steps:
+        - 'Read the main tasks of the product as a new user would.'
+        - 'Check that the words are plain, steps are clear, and help is easy to find.'
+        - 'Note any feature that would be hard for someone who has trouble with reading, learning or memory.'
+  # User Control of Accessibility Features
+  - id: '502.2.1'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. Most web pages are not platform software, so this is not applicable.'
+        - 'If it does apply, check that users can control the access features of the platform from it.'
+  # No Disruption of Accessibility Features
+  - id: '502.2.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, check that the app does not turn off or break the access features of the platform. High contrast and screen readers are two.'
+  # Accessibility Services
+  - id: '502.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. Most web pages are not platform software, so this is not applicable.'
+        - 'If it does apply, check that it gives other tools the access data they need through the platform services.'
+  # Object Information
+  - id: '502.3.1'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check with an inspector that each object reports its name, role, state, size, place and short help text.'
+  # Modification of Object Information
+  - id: '502.3.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each object state, name and description that users can change can also be set by other tools.'
+  # Row, Column, and Headers
+  - id: '502.3.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each data table reports its rows, columns and header cells to other tools.'
+  # Values
+  - id: '502.3.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each control reports its current value to other tools.'
+  # Modification of Values
+  - id: '502.3.5'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each value users can change can also be set by other tools.'
+  # Label Relationships
+  - id: '502.3.6'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each label and the field it names are linked so other tools can tell.'
+  # Hierarchical Relationships
+  - id: '502.3.7'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that parent, child and sibling links between objects are shared with other tools.'
+  # Text
+  - id: '502.3.8'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that text, its style and where the cursor sits are shared with other tools.'
+  # Modification of Text
+  - id: '502.3.9'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that text users can change can also be changed by other tools.'
+  # List of Actions
+  - id: '502.3.10'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that each object lists the actions it can take for other tools.'
+  # Actions on Objects
+  - id: '502.3.11'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that other tools can carry out the actions each object lists.'
+  # Focus Cursor
+  - id: '502.3.12'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that the place of focus, text cursor and selection are shared with other tools.'
+  # Modification of Focus Cursor
+  - id: '502.3.13'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that other tools can move focus, the text cursor and selection.'
+  # Event Notification
+  - id: '502.3.14'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, test with a screen reader and an inspector tool.'
+        - 'Check that changes in objects, such as new values or states, raise events other tools can hear.'
+  # Platform Accessibility Features
+  - id: '502.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. Most web pages are not platform software, so this is not applicable.'
+        - 'If it does apply, check that the platform offers the access features 502.4 names, such as sticky keys.'
+  # User Preferences
+  - id: '503.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, check that the app follows the user settings of the platform. These include color, contrast, font size and focus.'
+  # Alternative User Interfaces
+  - id: '503.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply and the app offers its own access mode, check that it works with the screen reader and other tools.'
+  # User Controls for Captions and Audio Description
+  - id: '503.4'
+    web:
+      baselineTests:
+        - 17.A-MediaPlayerCCADControls
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, find each video player.'
+        - 'Check that the caption and description controls sit at the same level as the volume and play controls.'
+  # Caption Controls
+  - id: '503.4.1'
+    web:
+      baselineTests:
+        - 17.B-MediaPlayerCCLevel
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, find each video player.'
+        - 'Check that the caption control sits at the same menu level as the volume or play control.'
+  # Audio Description Controls
+  - id: '503.4.2'
+    web:
+      baselineTests:
+        - 17.C-MediaPlayerADLevel
+      steps:
+        - 'First read the condition. If the web app does not use or include parts that talk to the platform access services, mark it not applicable under 501.1.'
+        - 'If it does apply, find each video player.'
+        - 'Check that the audio description control sits at the same level as the volume or play control.'
+  # Content Creation or Editing
+  - id: '504.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app is not an authoring tool, mark it not applicable under 504.1.'
+        - 'If it is, check that users can make content that meets WCAG 2.0 Level A and AA with it.'
+  # Preservation of Information Provided for Accessibility in Format Conversion
+  - id: '504.2.1'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app is not an authoring tool, mark it not applicable under 504.1.'
+        - 'If it is, convert content to each output format it offers.'
+        - 'Check that headings, alt text and other access data survive the change.'
+  # PDF Export
+  - id: '504.2.2'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app is not an authoring tool, mark it not applicable under 504.1.'
+        - 'If it is and it can save as PDF, save a test file.'
+        - 'Check that the PDF meets PDF/UA-1. Widedoor can scan it.'
+  # Prompts
+  - id: '504.3'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app is not an authoring tool, mark it not applicable under 504.1.'
+        - 'If it is, check that it prompts or helps users add access data, such as alt text and headings.'
+  # Templates
+  - id: '504.4'
+    web:
+      baselineTests: []
+      steps:
+        - 'First read the condition. If the web app is not an authoring tool, mark it not applicable under 504.1.'
+        - 'If it is and it offers templates, check that some templates make content that meets WCAG 2.0 Level A and AA.'
+        - 'Check that those templates are easy to tell apart.'
+  # Accessibility and Compatibility Features
+  - id: '602.2'
+    product:
+      baselineTests: []
+      steps:
+        - 'Find the help or support pages for the product.'
+        - 'Check that they list the access features and how to use them, such as keyboard keys.'
+  # Electronic Support Documentation
+  - id: '602.3'
+    product:
+      baselineTests: []
+      steps:
+        - 'Find the help pages and support files for the product.'
+        - 'Check that they meet WCAG 2.0 Level A and AA, the same as the product.'
+        - 'Scan them with Widedoor if you can.'
+  # Alternate Formats for Non-Electronic Support Documentation
+  - id: '602.4'
+    product:
+      baselineTests: []
+      steps:
+        - 'Check whether the product comes with printed help or manuals.'
+        - 'If so, check that users can ask for them in other formats, such as large print or an accessible PDF.'
+        - 'If there is nothing printed, mark this not applicable.'
+  # Information on Accessibility and Compatibility Features
+  - id: '603.2'
+    product:
+      baselineTests: []
+      steps:
+        - 'Contact the help desk, or read its support pages.'
+        - 'Check that it can explain the access features and how they work with screen readers and other tools.'
+  # Accommodation of Communication Needs
+  - id: '603.3'
+    product:
+      baselineTests: []
+      steps:
+        - 'Contact the help desk through more than one channel, such as email, chat and phone relay.'
+        - 'Check that it can talk with people who are deaf, hard of hearing or have speech disabilities.'

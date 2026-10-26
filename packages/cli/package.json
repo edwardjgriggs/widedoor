@@ -10,20 +10,18 @@
     "widedoor": "./dist/bin.js"
   },
   "dependencies": {
-    "@hono/node-server": "2.1.4",
     "@widedoor/core": "0.0.0",
     "@widedoor/pdf": "0.0.0",
     "@widedoor/report": "0.0.0",
-    "@widedoor/ui": "0.0.0",
-    "@widedoor/web": "0.0.0",
-    "hono": "4.13.13",
-    "yaml": "2.9.1",
-    "zod": "4.6.7"
+    "@widedoor/server": "0.0.0"
   },
   "devDependencies": {
+    "@widedoor/web": "0.0.0",
     "ajv": "8.20.0",
     "ajv-draft-04": "1.0.0",
     "ajv-formats": "3.0.1",
-    "parse5": "8.0.1"
+    "parse5": "8.0.1",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   }
 }

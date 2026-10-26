@@ -2,11 +2,13 @@ import { createHash } from 'node:crypto';
 import { parse } from 'parse5';
 import type { DefaultTreeAdapterMap } from 'parse5';
 import { expect } from 'vitest';
+import { loadStandardsData } from '@widedoor/core';
 
 /*
  * Parses an HTML report the way a browser would (parse5 follows the HTML
  * parsing spec) and checks it against an allowlist: only the elements and
- * attributes the reporter emits, and links only to the two help sites. Anything
+ * attributes the reporter emits, and links only to the two help sites and the
+ * errata the data cites. Anything
  * else (a script, an event handler, an svg animate, a srcset, a style
  * attribute, a link to another host) is reported, whether or not the CSP would
  * stop it in a browser.
@@ -60,6 +62,11 @@ const LINK_PREFIXES = [
   'https://dequeuniversity.com/rules/axe/',
 ];
 
+/** The errata citations a criterion that passes on the errata basis links to, exactly. */
+const ERRATA_LINKS = loadStandardsData().errata.criteria.flatMap((c) =>
+  c.citations.map((x) => x.url),
+);
+
 export interface Inspection {
   /** Elements or attributes outside the allowlist, as "tag" or "tag attr". */
   disallowed: string[];
@@ -104,7 +111,11 @@ export function inspect(text: string): Inspection {
       for (const a of node.attrs) {
         if (!allowed?.includes(a.name) || a.namespace) out.disallowed.push(`${tag} ${a.name}`);
         if (/(?:java|vb)script:/.test(scheme(a.value))) out.javascriptUrls.push(`${tag} ${a.name}`);
-        if (a.name === 'href' && !LINK_PREFIXES.some((p) => a.value.startsWith(p)))
+        if (
+          a.name === 'href' &&
+          !LINK_PREFIXES.some((p) => a.value.startsWith(p)) &&
+          !ERRATA_LINKS.includes(a.value)
+        )
           out.badLinks.push(a.value);
       }
       if (tag === 'meta') {
@@ -157,7 +168,8 @@ export function expectInert(page: string) {
   expect(csp).not.toMatch(/script-src|unsafe/);
   expect(r.styles).toHaveLength(1);
   expect(csp).toContain(`'sha256-${sha256Base64(r.styles[0] ?? '')}'`);
-  for (const src of r.images) expect(src).toMatch(/^data:image\/png;base64,[A-Za-z0-9+/=]+$/);
+  for (const src of r.images)
+    expect(src).toMatch(/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/);
   expect(csp.includes('img-src data:')).toBe(r.images.length > 0);
   return r;
 }

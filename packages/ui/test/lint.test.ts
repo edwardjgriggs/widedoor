@@ -151,9 +151,10 @@ describe('lint disables in the viewer', () => {
       });
   }
 
-  it('are exactly the two checked sinks: SafeLink and the validated screenshot', () => {
+  it('are exactly the three checked sinks: SafeLink, the validated screenshot and attachment', () => {
     const found = disables();
     expect(found.map((d) => d.file.replace(/\\/g, '/'))).toEqual([
+      'ReportView.tsx',
       'ReportView.tsx',
       'ReportView.tsx',
     ]);
@@ -161,6 +162,7 @@ describe('lint disables in the viewer', () => {
       expect(d.comment).toMatch(/eslint-disable-next-line no-restricted-syntax -- \S/);
     expect(found[0]?.next).toMatch(/^return isWebUrl\(href\) \? <a href=\{href\}>/);
     expect(found[1]?.next).toMatch(/^<img className="shot" src=\{image\.dataUri\}/);
+    expect(found[2]?.next).toMatch(/^<img key=\{i\} className="shot" src=\{image\.dataUri\}/);
   });
 
   it('are reported when they no longer suppress anything', async () => {

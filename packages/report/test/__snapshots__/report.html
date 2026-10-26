@@ -49,6 +49,25 @@ a { color: var(--link); }
 <p class="lead">Profile wcag21aa. 2 pages and files scanned, finished 2026-10-22T12:05:00.000Z.</p>
 </header>
 <main>
+<section aria-labelledby="manual">
+<h2 id="manual">Manual review</h2>
+<p>Automated checks cannot test every criterion. The manual review checklist has one item for each criterion a person still needs to test on each page or file (widedoor review list shows them; widedoor review record records a result).</p>
+<table>
+<caption>Checklist progress</caption>
+<thead><tr><th scope="col">Status</th><th scope="col">Items</th></tr></thead>
+<tbody>
+<tr><th scope="row">Open (not reviewed yet)</th><td>92</td></tr>
+<tr><th scope="row">Done (a current manual result decides it)</th><td>1</td></tr>
+<tr><th scope="row">Expired (the page or file changed since the review)</th><td>0</td></tr>
+<tr><th scope="row">Failed an automated check (a review is optional; it can set aside a false positive)</th><td>5</td></tr>
+<tr><th scope="row">Total</th><td>98</td></tr>
+</tbody>
+</table>
+<p>3 pages or files were not scanned, so they have no checklist items: scan them again before review.</p>
+<h3 id="overridden">Overridden by a reviewer</h3>
+<p>A reviewer set these automated fails aside as false positives. They do not count as problems, in the exit code or in the results by criterion.</p>
+<p>None. No automated fail was set aside.</p>
+</section>
 <section aria-labelledby="fix">
 <h2 id="fix">What to fix first</h2>
 <ol class="cards">
@@ -336,6 +355,7 @@ a { color: var(--link); }
 <thead><tr><th scope="col">What</th><th scope="col">Number</th></tr></thead>
 <tbody>
 <tr><th scope="row">Problems found (fail)</th><td>6</td></tr>
+<tr><th scope="row">Problems set aside by a reviewer (overridden)</th><td>0</td></tr>
 <tr><th scope="row">Items to check by hand (needs review)</th><td>2</td></tr>
 <tr><th scope="row">Criteria not tested (no deciding result)</th><td>50</td></tr>
 <tr><th scope="row">Pages and files scanned</th><td>2</td></tr>
@@ -354,6 +374,7 @@ a { color: var(--link); }
 <tr><th scope="row">Impact not rated</th><td>0</td><td>0</td></tr>
 </tbody>
 </table>
+<p>WCAG 2.1 Level AA: 0 Supports, 0 Partially Supports, 5 Does Not Support, 0 Not Applicable, 45 Not Evaluated.</p>
 </section>
 <section aria-labelledby="rollup">
 <h2 id="rollup">Results by criterion</h2>
@@ -361,7 +382,7 @@ a { color: var(--link); }
 <caption>WCAG 2.1 Level AA</caption>
 <thead><tr><th scope="col">Criterion</th><th scope="col">Name</th><th scope="col">Result</th><th scope="col">Why</th></tr></thead>
 <tbody>
-<tr><th scope="row">1.1.1</th><td>Non-text Content</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">1.1.1</th><td>Non-text Content</td><td>Does Not Support</td><td>1 of 5 applicable assets fails; none pass</td></tr>
 <tr><th scope="row">1.2.1</th><td>Audio-only and Video-only (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.2.2</th><td>Captions (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.2.3</th><td>Audio Description or Media Alternative (Prerecorded)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
@@ -374,7 +395,7 @@ a { color: var(--link); }
 <tr><th scope="row">1.3.5</th><td>Identify Input Purpose</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.4.1</th><td>Use of Color</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.4.2</th><td>Audio Control</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
-<tr><th scope="row">1.4.3</th><td>Contrast (Minimum)</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">1.4.3</th><td>Contrast (Minimum)</td><td>Does Not Support</td><td>1 of 5 applicable assets fails; none pass</td></tr>
 <tr><th scope="row">1.4.4</th><td>Resize Text</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.4.5</th><td>Images of Text</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">1.4.10</th><td>Reflow</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
@@ -388,9 +409,9 @@ a { color: var(--link); }
 <tr><th scope="row">2.2.2</th><td>Pause, Stop, Hide</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">2.3.1</th><td>Three Flashes or Below Threshold</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">2.4.1</th><td>Bypass Blocks</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
-<tr><th scope="row">2.4.2</th><td>Page Titled</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">2.4.2</th><td>Page Titled</td><td>Does Not Support</td><td>1 of 5 applicable assets fails; none pass</td></tr>
 <tr><th scope="row">2.4.3</th><td>Focus Order</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
-<tr><th scope="row">2.4.4</th><td>Link Purpose (In Context)</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">2.4.4</th><td>Link Purpose (In Context)</td><td>Does Not Support</td><td>1 of 5 applicable assets fails; none pass</td></tr>
 <tr><th scope="row">2.4.5</th><td>Multiple Ways</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">2.4.6</th><td>Headings and Labels</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">2.4.7</th><td>Focus Visible</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
@@ -408,8 +429,9 @@ a { color: var(--link); }
 <tr><th scope="row">3.3.2</th><td>Labels or Instructions</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">3.3.3</th><td>Error Suggestion</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 <tr><th scope="row">3.3.4</th><td>Error Prevention (Legal, Financial, Data)</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
-<tr><th scope="row">4.1.1</th><td>Parsing</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
-<tr><th scope="row">4.1.2</th><td>Name, Role, Value</td><td>Does Not Support</td><td>1 of 5 applicable assets fail; none pass</td></tr>
+<tr><th scope="row">4.1.1</th><td>Parsing</td><td>Not Evaluated</td><td>3 of 5 applicable assets have no deciding result. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): &quot;This criterion should be considered as always satisfied for any content using HTML or XML.&quot;; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): &quot;This Success Criterion should be considered as always satisfied for any content using HTML or XML.&quot;; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): &quot;Always answer &#39;Supports&#39;&quot;<br>
+Errata basis: <a href="https://www.w3.org/WAI/WCAG20/errata/">WCAG 2.0 errata</a>; <a href="https://www.w3.org/WAI/WCAG21/errata/">WCAG 2.1 errata</a>; <a href="https://www.itic.org/policy/accessibility/vpat">ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row</a></td></tr>
+<tr><th scope="row">4.1.2</th><td>Name, Role, Value</td><td>Does Not Support</td><td>1 of 5 applicable assets fails; none pass</td></tr>
 <tr><th scope="row">4.1.3</th><td>Status Messages</td><td>Not Evaluated</td><td>5 of 5 applicable assets have no deciding result</td></tr>
 </tbody>
 </table>
@@ -486,7 +508,7 @@ a { color: var(--link); }
 <li>3.3.2 Labels or Instructions: 5 of 5 pages and files not evaluated</li>
 <li>3.3.3 Error Suggestion: 5 of 5 pages and files not evaluated</li>
 <li>3.3.4 Error Prevention (Legal, Financial, Data): 5 of 5 pages and files not evaluated</li>
-<li>4.1.1 Parsing: 5 of 5 pages and files not evaluated</li>
+<li>4.1.1 Parsing: 3 of 5 pages and files not evaluated</li>
 <li>4.1.2 Name, Role, Value: 4 of 5 pages and files not evaluated</li>
 <li>4.1.3 Status Messages: 5 of 5 pages and files not evaluated</li>
 </ul></dd>

@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   mkdirSync,
@@ -8,6 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import type { ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'parse5';
@@ -15,7 +17,7 @@ import type { DefaultTreeAdapterMap } from 'parse5';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CONTAINER_LABEL, dockerImagePresent } from '@widedoor/pdf';
 import { DISCLAIMER, parseJsonReport } from '@widedoor/report';
-import { containerPrefix } from '../src/lifecycle.ts';
+import { containerPrefix } from '@widedoor/server';
 import {
   CORPUS,
   alive,
@@ -158,6 +160,106 @@ describe('widedoor scan, web and PDF in one run', () => {
       const report = parseJsonReport(readFileSync(join(dir, 'report.json'), 'utf8'));
       expect(report.errors.map((e) => e.code)).toEqual(['malformed-pdf']);
       expect(report.assets.map((a) => a.uri)).toEqual(['pdf/untagged.pdf']);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'fetches the corpus PDFs by URL (pdf.urls) and matches corpus/expected for each',
+    async () => {
+      // One URL does not end in .pdf: listed in pdf.urls, only the bytes decide.
+      const paths = Object.fromEntries(
+        PDFS.map((p) => [p, p === 'clean-pdfua' ? `/reports/${p}` : `/docs/${p}.pdf`]),
+      );
+      const pdfSite = await serveHtml(join(CORPUS, 'web'), {
+        ...Object.fromEntries(
+          PDFS.map((p) => [
+            paths[p] as string,
+            (res: ServerResponse) =>
+              void res
+                .writeHead(200, { 'content-type': 'application/pdf' })
+                .end(readFileSync(join(CORPUS, 'pdf', `${p}.pdf`))),
+          ]),
+        ),
+        // An old address of untagged.pdf: its asset is recorded once, under the final URL.
+        '/old/untagged': (res: ServerResponse) =>
+          void res.writeHead(301, { location: '/docs/untagged.pdf' }).end(),
+      });
+      try {
+        const project = join(tmp, 'by-url');
+        mkdirSync(project, { recursive: true });
+        const urls = PDFS.map((p) => `${pdfSite.origin}${paths[p]}`);
+        // As listed: an upper-case scheme and a fragment, and the redirecting old address,
+        // all of which normalize to the URLs above.
+        const listed = [
+          ...urls.map((u, i) => (i === 0 ? `${u.replace('http:', 'HTTP:')}#page=1` : u)),
+          `${pdfSite.origin}/old/untagged`,
+        ];
+        writeFileSync(
+          join(project, 'widedoor.config.yaml'),
+          [
+            'pdf:',
+            '  urls:',
+            ...listed.map((u) => `    - ${u}`),
+            'report:',
+            '  formats: [json]',
+            '',
+          ].join('\n'),
+        );
+        const dir = join(tmp, 'by-url-out');
+        const r = await runCli(['scan', '--out', dir], { cwd: project });
+        expect(r.code, r.stderr).toBe(1);
+        const report = parseJsonReport(readFileSync(join(dir, 'report.json'), 'utf8'));
+        expect(report.errors).toEqual([]);
+        expect(report.skipped).toEqual([]);
+        expect(report.assets.map((a) => a.uri)).toEqual(urls);
+        for (const [i, name] of PDFS.entries()) {
+          const uri = urls[i] as string;
+          const bytes = readFileSync(join(CORPUS, 'pdf', `${name}.pdf`));
+          expect(report.assets[i]?.contentHash).toBe(
+            `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+          );
+          // corpus/expected, compared as corpus:verify does (compareExact in
+          // corpus/scripts/lib/corpus.ts, which sits outside this package's rootDir, so
+          // the rule is restated here): every non-provisional expected entry is there,
+          // and no fail or needs-review is unexpected.
+          const expected: {
+            engine: string;
+            ruleId: string;
+            outcome: string;
+            provisional?: boolean;
+          }[] = JSON.parse(
+            readFileSync(join(CORPUS, 'expected', 'pdf', `${name}.json`), 'utf8'),
+          ).expected;
+          const key = (e: { engine: string; ruleId: string; outcome: string }) =>
+            `${e.engine} ${e.ruleId} ${e.outcome}`;
+          const actual = [
+            ...report.findings
+              .filter((f) => f.asset.uri === uri)
+              .map((f) => ({
+                engine: f.source.engine,
+                ruleId: f.source.ruleId,
+                outcome: f.outcome,
+              })),
+            ...report.informational.filter((x) => x.uri === uri),
+          ];
+          const got = new Set(actual.map(key));
+          const want = new Set(expected.filter((e) => !e.provisional).map(key));
+          expect(
+            [...want].filter((k) => !got.has(k)),
+            `${name}: missing`,
+          ).toEqual([]);
+          expect(
+            actual
+              .filter((a) => a.outcome === 'fail' || a.outcome === 'needs-review')
+              .map(key)
+              .filter((k) => !want.has(k)),
+            `${name}: unexpected`,
+          ).toEqual([]);
+        }
+      } finally {
+        await pdfSite.close();
+      }
     },
     TIMEOUT,
   );

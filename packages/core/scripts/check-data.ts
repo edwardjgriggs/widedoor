@@ -11,6 +11,8 @@ try {
       `axe: ${d.axe.rules.length} rules`,
       `verapdf: ${d.verapdf.rules.length} rules, ${d.verapdf.unmapped.length} unmapped`,
       `widedoor: ${d.widedoor.rules.length} rules`,
+      `errata: ${d.errata.criteria.map((c) => c.id).join(', ')}`,
+      `manual steps: ${d.manualSteps.wcag.length} SC, ${d.manualSteps.section508.length} 508 items`,
     ].join('\n'),
   );
 } catch (e) {

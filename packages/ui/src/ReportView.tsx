@@ -11,9 +11,12 @@ import {
   assetCounts,
   assetFindings,
   assetKindText,
+  attachmentAgainText,
+  attachmentLeftOut,
   axeRuleUrl,
   cardBadges,
   cardHeading,
+  checklistRows,
   conditionText,
   crawlText,
   datesText,
@@ -27,25 +30,33 @@ import {
   findingPlace,
   informationalText,
   leadText,
+  levelsText,
   manualReviews,
   moreSkippedText,
   notEvaluated,
   notTestedText,
+  overriddenFails,
+  overrideEntries,
+  overrideNotes,
+  overrideText,
   plainFor,
   profileText,
   recordText,
+  restsOnErrata,
   reviewerText,
   smallScreenText,
   summarize,
   summaryRows,
   understandingUrl,
   unscannedAssets,
+  unscannedReviewText,
   visibleText,
   type Criterion,
   type FindingCard,
+  type OverrideTest,
   type ScanReport,
 } from '@widedoor/report/browser';
-import { NO_EVIDENCE, type ScreenshotView, type UiData } from './data.js';
+import { NO_ATTACHMENTS, NO_EVIDENCE, type ScreenshotView, type UiData } from './data.js';
 
 /*
  * The report as the HTML report shows it, with the same sections, wording and
@@ -66,6 +77,8 @@ export interface ReportViewProps {
   report: ScanReport;
   data: UiData;
   screenshots: ReadonlyMap<string, ScreenshotView>;
+  /** Review attachments the server loaded, by the path their record names; none for a file. */
+  attachments?: ReadonlyMap<string, ScreenshotView>;
   /** The findings to list in the cards and per-asset sections; all of them when not filtered. */
   findings?: readonly Finding[];
 }
@@ -187,13 +200,15 @@ function Cards({
   assets,
   data,
   filtered,
+  overridden,
 }: {
   findings: readonly Finding[];
   assets: ScanReport['assets'];
   data: UiData;
   filtered: boolean;
+  overridden: OverrideTest;
 }) {
-  const cards = findingCards(findings, assets);
+  const cards = findingCards(findings, assets, overridden);
   if (cards.length === 0)
     return filtered ? (
       <p>No findings match the filter.</p>
@@ -258,6 +273,7 @@ function FindingItem({
   );
 }
 
+// pdf-url: reports written before PDFs were fetched by URL.
 const skipNote = (s: Skipped) =>
   s.reason === 'pdf-url' ? (
     TEXT.pdfUrlSkip
@@ -285,14 +301,18 @@ function Assets({
   screenshots,
   findings,
   filtered,
-}: Required<ReportViewProps> & { filtered: boolean }) {
+  overridden,
+}: Omit<Required<ReportViewProps>, 'attachments'> & {
+  filtered: boolean;
+  overridden: OverrideTest;
+}) {
   const titles = new Map(report.titles.map((x) => [x.uri, x.title]));
   const { unscanned, skippedOver } = unscannedAssets(report);
   if (report.assets.length === 0 && unscanned.length === 0) return <p>{TEXT.noAssets}</p>;
   const section = (uri: string, kind: string, i: number, note?: ReactNode) => {
     // The counts describe the page, so they come from every finding, not the filtered list.
-    const all = assetFindings(report.findings, uri, report.assets);
-    const found = filtered ? assetFindings(findings, uri, report.assets) : all;
+    const all = assetFindings(report.findings, uri, report.assets, overridden);
+    const found = filtered ? assetFindings(findings, uri, report.assets, overridden) : all;
     const body =
       note !== undefined && all.length === 0 ? null : found.length > 0 ? (
         <ol className="findings">
@@ -391,28 +411,120 @@ function Summary({ report }: { report: ScanReport }) {
           )}
         </tbody>
       </table>
+      {s.criteria.map((c, i) => (
+        <p key={i}>{t(levelsText(c))}</p>
+      ))}
     </>
   );
 }
 
-/** The level's reason, plus the applicability condition and any profile exception (spec section 4). */
-function Why({ c }: { c: Criterion }) {
-  const notes: string[] = [c.reason];
-  if (c.condition) notes.push(conditionText(c.condition));
-  for (const e of exceptionNotes(c)) notes.push(exceptionText(e));
+/** Progress of the manual review checklist and the fails reviewers set aside. */
+function Manual({ report }: { report: ScanReport }) {
+  const { checklist } = report;
+  const m = TEXT.manual;
+  const overrides = overrideEntries(report).map((o) => (
+    <>
+      {t(overrideText(o))}
+      <Uri value={o.uri} />
+      {t(overrideNotes(o))}
+    </>
+  ));
+  return (
+    <>
+      <p>{m.lead}</p>
+      {checklist ? (
+        <>
+          <table>
+            <caption>{m.caption}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{m.status}</th>
+                <th scope="col">{m.items}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {checklistRows(checklist).map(([label, n]) => (
+                <tr key={label}>
+                  <th scope="row">{label}</th>
+                  <td>{n}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {checklist.unscanned > 0 && <p>{unscannedReviewText(checklist.unscanned)}</p>}
+        </>
+      ) : (
+        <p>{m.noChecklist}</p>
+      )}
+      <h3 id="overridden">{TEXT.heading.overridden}</h3>
+      <p>{m.overriddenLead}</p>
+      {overrides.length > 0 ? <List items={overrides} /> : <p>{m.noOverrides}</p>}
+    </>
+  );
+}
+
+/** The images a review record names, as the server loaded them, or why one is left out. */
+function Attachments({
+  items,
+  attachments,
+}: {
+  /** Each path, and whether an earlier record already named it (it is then only pointed to). */
+  items: readonly { path: string; again: boolean }[];
+  attachments: ReadonlyMap<string, ScreenshotView>;
+}) {
+  return (
+    <>
+      {items.map(({ path, again }, i) => {
+        if (again) return <p key={i}>{t(attachmentAgainText(path))}</p>;
+        const image = attachments.get(path) ?? NO_ATTACHMENTS;
+        return image.ok ? (
+          // eslint-disable-next-line no-restricted-syntax -- a data:image/png or jpeg URI checked by AttachmentsSchema
+          <img key={i} className="shot" src={image.dataUri} alt={TEXT.attachmentAlt} />
+        ) : (
+          <p key={i}>{t(attachmentLeftOut(path, image.reason))}</p>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * The level's reason, plus the applicability condition, any profile exception (spec section 4)
+ * and, for a criterion that passes on the errata basis, links to the errata.
+ */
+function Why({ c, data }: { c: Criterion; data: UiData }) {
+  const notes: ReactNode[] = [t(c.reason)];
+  if (c.condition) notes.push(t(conditionText(c.condition)));
+  for (const e of exceptionNotes(c)) notes.push(t(exceptionText(e)));
+  // As in the HTML report: only https citation links.
+  const errata = (restsOnErrata(c) ? (data.errata.get(c.id) ?? []) : []).filter((e) =>
+    /^https:\/\//.test(e.url),
+  );
+  if (errata.length > 0)
+    notes.push(
+      <>
+        {TEXT.errataBasis}{' '}
+        {errata.map((e, i) => (
+          <Fragment key={i}>
+            {i > 0 && '; '}
+            <SafeLink href={e.url}>{t(e.name)}</SafeLink>
+          </Fragment>
+        ))}
+      </>,
+    );
   return (
     <>
       {notes.map((n, i) => (
         <Fragment key={i}>
           {i > 0 && <br />}
-          {t(n)}
+          {n}
         </Fragment>
       ))}
     </>
   );
 }
 
-function RollupTable({ s }: { s: Standard }) {
+function RollupTable({ s, data }: { s: Standard; data: UiData }) {
   return (
     <table>
       <caption>{t(STANDARD_LABEL[s.standard] ?? s.standard)}</caption>
@@ -432,7 +544,7 @@ function RollupTable({ s }: { s: Standard }) {
             <td>{t(c.title)}</td>
             <td>{t(c.level)}</td>
             <td>
-              <Why c={c} />
+              <Why c={c} data={data} />
             </td>
           </tr>
         ))}
@@ -441,7 +553,13 @@ function RollupTable({ s }: { s: Standard }) {
   );
 }
 
-function Methodology({ report }: { report: ScanReport }) {
+function Methodology({
+  report,
+  attachments,
+}: {
+  report: ScanReport;
+  attachments: ReadonlyMap<string, ScreenshotView>;
+}) {
   const { web, pdf } = report.scope;
   const m = TEXT.method;
   const scope: ReactNode[] = [
@@ -469,17 +587,32 @@ function Methodology({ report }: { report: ScanReport }) {
         PDFs matching: <Uri value={u} />
       </>
     )),
+    ...(pdf?.urls ?? []).map((u) => (
+      <>
+        PDF by URL: <Uri value={u} />
+      </>
+    )),
   ];
   const untested = notEvaluated(report).map((u) => t(notTestedText(u)));
   const { reviewers, records: reviews } = manualReviews(report);
-  const records = reviews.map((r) => (
-    <>
-      {t(recordText(r))}
-      <Uri value={r.uri} />
-      {r.expired ? EXPIRED_NOTE : ''}
-      {r.notes ? <>. Notes: {t(r.notes)}</> : ''}
-    </>
-  ));
+  // As in the HTML report, each attachment is embedded once, at the first record that names it.
+  const seen = new Set<string>();
+  const records = reviews.map((r) => {
+    const items = r.attachments.map((path) => {
+      const again = seen.has(path);
+      seen.add(path);
+      return { path, again };
+    });
+    return (
+      <>
+        {t(recordText(r))}
+        <Uri value={r.uri} />
+        {r.expired ? EXPIRED_NOTE : ''}
+        {r.notes ? <>. Notes: {t(r.notes)}</> : ''}
+        <Attachments items={items} attachments={attachments} />
+      </>
+    );
+  });
   const people = reviewers.map((p) => t(reviewerText(p)));
   const engines = report.engines.map((e) => t(engineText(e)));
   const errors = report.errors.map((e) => (
@@ -549,15 +682,32 @@ function Methodology({ report }: { report: ScanReport }) {
 export const reportLead = (report: ScanReport): string => t(leadText(report));
 
 /** Every report section, in the HTML report's order. */
-export function ReportView({ report, data, screenshots, findings }: ReportViewProps) {
+export function ReportView({
+  report,
+  data,
+  screenshots,
+  attachments = new Map(),
+  findings,
+}: ReportViewProps) {
   const shownFindings = findings ?? report.findings;
   const filtered = findings !== undefined;
+  const overridden = overriddenFails(report);
   const h = TEXT.heading;
   return (
     <>
+      <section aria-labelledby="manual">
+        <h2 id="manual">{h.manual}</h2>
+        <Manual report={report} />
+      </section>
       <section aria-labelledby="fix">
         <h2 id="fix">{h.fix}</h2>
-        <Cards findings={shownFindings} assets={report.assets} data={data} filtered={filtered} />
+        <Cards
+          findings={shownFindings}
+          assets={report.assets}
+          data={data}
+          filtered={filtered}
+          overridden={overridden}
+        />
       </section>
       <section aria-labelledby="by-asset">
         <h2 id="by-asset">{h.byAsset}</h2>
@@ -567,6 +717,7 @@ export function ReportView({ report, data, screenshots, findings }: ReportViewPr
           screenshots={screenshots}
           findings={shownFindings}
           filtered={filtered}
+          overridden={overridden}
         />
       </section>
       <section aria-labelledby="summary">
@@ -576,12 +727,12 @@ export function ReportView({ report, data, screenshots, findings }: ReportViewPr
       <section aria-labelledby="rollup">
         <h2 id="rollup">{h.rollup}</h2>
         {report.rollup.standards.map((s, i) => (
-          <RollupTable key={i} s={s} />
+          <RollupTable key={i} s={s} data={data} />
         ))}
       </section>
       <section aria-labelledby="method">
         <h2 id="method">{h.method}</h2>
-        <Methodology report={report} />
+        <Methodology report={report} attachments={attachments} />
       </section>
       <section aria-labelledby="disclaimer">
         <h2 id="disclaimer">{h.disclaimer}</h2>

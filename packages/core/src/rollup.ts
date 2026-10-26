@@ -1,4 +1,4 @@
-import type { ManualCondition, StandardsData } from './data.js';
+import type { ErrataBasis, ManualCondition, StandardsData } from './data.js';
 import type { Profile, ProfileId, StandardId, StandardView } from './profiles.js';
 import type { Asset, AssetKind, Finding } from './schema.js';
 
@@ -7,8 +7,11 @@ import type { Asset, AssetKind, Finding } from './schema.js';
  * read through a profile, become one conformance level per criterion per
  * standard. The rules are conservative so a report never claims more than
  * was tested:
- *   - an asset passes a criterion only with a deciding automated pass or an
- *     unexpired manual pass; any fail on the asset wins over a pass
+ *   - an asset passes a criterion only with a deciding automated pass, an
+ *     unexpired manual pass or the errata basis in the data (4.1.1 only);
+ *     any fail on the asset wins over a pass
+ *   - an unexpired manual pass with notes can override automated fails it
+ *     names on the same asset and criterion; any other fail still wins
  *   - Supports needs every applicable asset to pass
  *   - Not Applicable comes only from the profile or from an unexpired manual
  *     review that gives a reason; automated "not-applicable" never counts
@@ -37,6 +40,8 @@ export type DeterminationReason =
   | 'manual-fail'
   | 'deciding-automated-pass'
   | 'manual-pass'
+  | 'manual-override'
+  | 'errata'
   | 'profile-not-applicable'
   | 'manual-not-applicable'
   | 'no-deciding-result'
@@ -55,6 +60,8 @@ export interface Determination {
    * manual reviews of any outcome and automated non-fail results. A stale automated fail still counts.
    */
   expired: string[];
+  /** Ids of automated fails set aside by a current manual override; they no longer count as fails here. */
+  overridden: string[];
   /** The profile exception, when reason is profile-not-applicable. */
   exception?: { provision: string; reason: string };
 }
@@ -98,6 +105,9 @@ export interface Rollup {
 /** engine:ruleId -> the SC ids a pass of that rule settles on its own. */
 export type DecidingRules = ReadonlyMap<string, ReadonlySet<string>>;
 
+/** SC id -> the published basis that the SC is always satisfied. */
+export type Errata = ReadonlyMap<string, ErrataBasis>;
+
 export interface RollupInput {
   /** Automated findings (engine is not "manual"). */
   findings: readonly Finding[];
@@ -108,6 +118,8 @@ export interface RollupInput {
   assets: readonly Asset[];
   /** Defaults to none: no automated pass decides anything. */
   decidingRules?: DecidingRules;
+  /** Defaults to none: no criterion passes on an errata basis. */
+  errata?: Errata;
   /** Assets in scope that were not scanned (scan errors, skipped pages). Records for them are ignored. */
   unscanned?: readonly UnscannedAsset[];
   /** Why the scope may be incomplete beyond the listed assets, for example an unreadable sitemap. */
@@ -123,6 +135,14 @@ const ruleKey = (engine: string, ruleId: string) => `${engine}:${ruleId}`;
 
 /** Ids in first-seen order without repeats: two records can share a finding id. */
 const unique = (ids: readonly string[]) => [...new Set(ids)];
+
+/** The id lists of a unit no record touched; fresh arrays each call, so no two units share one. */
+const noRecords = (): Pick<Determination, 'evidence' | 'undecided' | 'expired' | 'overridden'> => ({
+  evidence: [],
+  undecided: [],
+  expired: [],
+  overridden: [],
+});
 
 /** Builds DecidingRules from the mapping data (rules with decides: true). */
 export function decidingRulesFrom(
@@ -148,6 +168,11 @@ export function decidingRulesFrom(
   return out;
 }
 
+/** Builds Errata from the errata data (validated to name 4.1.1 only). */
+export function errataFrom(data: Pick<StandardsData, 'errata'>): Errata {
+  return new Map(data.errata.criteria.map((c) => [c.id, c]));
+}
+
 interface Row {
   id: string;
   title: string;
@@ -159,26 +184,39 @@ interface Row {
 /** Both hashes present, non-empty and equal. A missing hash on either side never matches. */
 const sameHash = (a: unknown, b: unknown) => typeof a === 'string' && a !== '' && a === b;
 
-/** Each asset's current content hash, by uri: the second argument of isCurrentRecord. */
+/** An asset's current hashes: content judges automated records, review (reviewHash ?? contentHash) manual ones. */
+export interface AssetHashes {
+  content: string | undefined;
+  review: string | undefined;
+}
+
+/** Each asset's current hashes, by uri: the second argument of isCurrentRecord. */
 export const currentHashes = (
-  assets: readonly { uri: string; contentHash?: string | undefined }[],
-): ReadonlyMap<string, string | undefined> => new Map(assets.map((a) => [a.uri, a.contentHash]));
+  assets: readonly {
+    uri: string;
+    contentHash?: string | undefined;
+    reviewHash?: string | undefined;
+  }[],
+): ReadonlyMap<string, AssetHashes> =>
+  new Map(
+    assets.map((a) => [a.uri, { content: a.contentHash, review: a.reviewHash ?? a.contentHash }]),
+  );
 
 /**
  * Whether a record still describes its asset. Automated records always do here
  * (the roll-up judges their hashes itself). A manual record is current only
  * with a review block whose expiresOnChangeOf equals the asset's current
- * content hash: an expired review drops out of the roll-up, fail counts,
- * finding cards, SARIF results and the exit gate, and is listed only in the
- * methodology with the expired note.
+ * review hash (reviewHash, or contentHash when there is none): an expired
+ * review drops out of the roll-up, fail counts, finding cards, SARIF results
+ * and the exit gate, and is listed only in the methodology with the expired
+ * note.
  */
-export function isCurrentRecord(
-  f: Finding,
-  hashes: ReadonlyMap<string, string | undefined>,
-): boolean {
+export function isCurrentRecord(f: Finding, hashes: ReadonlyMap<string, AssetHashes>): boolean {
   if (f.source.engine !== 'manual') return true;
   const review = 'review' in f ? f.review : undefined;
-  return review !== undefined && sameHash(review.expiresOnChangeOf, hashes.get(f.asset.uri));
+  return (
+    review !== undefined && sameHash(review.expiresOnChangeOf, hashes.get(f.asset.uri)?.review)
+  );
 }
 
 const cites = (f: Finding, row: Row) =>
@@ -189,16 +227,19 @@ const cites = (f: Finding, row: Row) =>
 function determine(
   records: readonly Finding[],
   row: Row,
-  hashes: ReadonlyMap<string, string | undefined>,
+  hashes: ReadonlyMap<string, AssetHashes>,
   decidingRules: DecidingRules,
+  errata: Errata,
 ): Determination {
-  const autoFail: string[] = [];
+  const autoFail: { id: string; uri: string }[] = [];
   const manualFail: string[] = [];
   const autoPass: { id: string; rule: string }[] = [];
   // Rules that reported needs-review or not-tested on current content; their passes cannot decide.
   const unsettledRules = new Set<string>();
   const manualPass: string[] = [];
   const manualNa: string[] = [];
+  // Automated fail ids that current manual passes set aside, by asset uri.
+  const overrides = new Map<string, Set<string>>();
   const undecided: string[] = [];
   const expired: string[] = [];
 
@@ -211,18 +252,25 @@ function determine(
         expired.push(f.id);
         continue;
       }
+      const named = f.outcome === 'pass' ? (review.overrides ?? []) : [];
       if (f.outcome === 'fail') manualFail.push(f.id);
-      else if (f.outcome === 'pass') manualPass.push(f.id);
-      else if (f.outcome === 'not-applicable' && review.notes?.trim()) manualNa.push(f.id);
+      // Setting aside a fail needs the reviewer's reason; without one the whole record is ignored.
+      else if (named.length > 0 && !review.notes?.trim()) undecided.push(f.id);
+      else if (f.outcome === 'pass') {
+        manualPass.push(f.id);
+        const set = overrides.get(f.asset.uri) ?? new Set<string>();
+        for (const id of named) set.add(id);
+        overrides.set(f.asset.uri, set);
+      } else if (f.outcome === 'not-applicable' && review.notes?.trim()) manualNa.push(f.id);
       else undecided.push(f.id);
       continue;
     }
     // A finding from older content can still fail the asset, but never pass it.
     if (f.outcome === 'fail') {
-      autoFail.push(f.id);
+      autoFail.push({ id: f.id, uri: f.asset.uri });
       continue;
     }
-    if (!sameHash(f.asset.contentHash, current)) {
+    if (!sameHash(f.asset.contentHash, current?.content)) {
       expired.push(f.id);
       continue;
     }
@@ -239,22 +287,41 @@ function determine(
     undecided.push(p.id);
   }
 
-  const base = { undecided: unique(undecided), expired: unique(expired) };
-  if (autoFail.length > 0 || manualFail.length > 0) {
+  // An override sets aside only the automated fails it names on its own asset; ids naming anything else do nothing.
+  const overridden = autoFail.filter((f) => overrides.get(f.uri)?.has(f.id)).map((f) => f.id);
+  const fails = autoFail.filter((f) => !overrides.get(f.uri)?.has(f.id)).map((f) => f.id);
+
+  const base = {
+    undecided: unique(undecided),
+    expired: unique(expired),
+    overridden: unique(overridden),
+  };
+  // When a fail or a pass decides, a manual N/A loses but stays listed.
+  const outvoted = { ...base, undecided: unique([...undecided, ...manualNa]) };
+  if (fails.length > 0 || manualFail.length > 0) {
     // Automated fails win over manual passes; both kinds of fail are evidence.
     return {
       state: 'fail',
-      reason: autoFail.length > 0 ? 'automated-fail' : 'manual-fail',
-      evidence: unique([...autoFail, ...manualFail]),
-      ...base,
+      reason: fails.length > 0 ? 'automated-fail' : 'manual-fail',
+      evidence: unique([...fails, ...manualFail]),
+      ...outvoted,
     };
   }
-  if (autoPass.length > 0 || manualPass.length > 0) {
+  const byErrata = row.type === 'wcag' && errata.has(row.id);
+  if (autoPass.length > 0 || manualPass.length > 0 || byErrata) {
+    const reason: DeterminationReason =
+      overridden.length > 0
+        ? 'manual-override'
+        : autoPass.length > 0
+          ? 'deciding-automated-pass'
+          : manualPass.length > 0
+            ? 'manual-pass'
+            : 'errata';
     return {
       state: 'pass',
-      reason: autoPass.length > 0 ? 'deciding-automated-pass' : 'manual-pass',
+      reason,
       evidence: unique([...autoPass.map((p) => p.id), ...manualPass]),
-      ...base,
+      ...outvoted,
     };
   }
   if (manualNa.length > 0) {
@@ -274,35 +341,66 @@ function determine(
   };
 }
 
-function levelOf(units: readonly Determination[]): { level: ConformanceLevel; reason: string } {
+/** What a level is decided from: each unit's state and why. */
+type Unit = Pick<Determination, 'state' | 'reason'>;
+
+function levelOf(units: readonly Unit[]): { level: ConformanceLevel; reason: string } {
   const inScope = units.filter((u) => u.state !== 'not-applicable');
   if (units.length === 0) return { level: 'Not Evaluated', reason: 'no assets in scope' };
   if (inScope.length === 0)
     return { level: 'Not Applicable', reason: 'not applicable to any asset' };
   const fails = inScope.filter((u) => u.state === 'fail').length;
   const passes = inScope.filter((u) => u.state === 'pass').length;
+  const n = inScope.length;
+  // "the 1 applicable asset fails", "1 of 3 applicable assets fails", "2 of 3 applicable assets fail".
+  const of = (k: number, one: string, many: string) =>
+    n === 1
+      ? `the 1 applicable asset ${one}`
+      : `${k} of ${n} applicable assets ${k === 1 ? one : many}`;
   if (fails > 0 && passes > 0)
     return {
       level: 'Partially Supports',
-      reason: `${fails} of ${inScope.length} applicable assets fail; ${passes} pass`,
+      reason: `${of(fails, 'fails', 'fail')}; ${passes} ${passes === 1 ? 'passes' : 'pass'}`,
     };
   if (fails > 0)
     return {
       level: 'Does Not Support',
-      reason: `${fails} of ${inScope.length} applicable assets fail; none pass`,
+      reason: n === 1 ? of(fails, 'fails', 'fail') : `${of(fails, 'fails', 'fail')}; none pass`,
     };
-  if (passes === inScope.length)
-    return { level: 'Supports', reason: `all ${inScope.length} applicable assets pass` };
+  if (passes === n)
+    return {
+      level: 'Supports',
+      reason: n === 1 ? 'the 1 applicable asset passes' : `all ${n} applicable assets pass`,
+    };
   return {
     level: 'Not Evaluated',
-    reason: `${inScope.length - passes} of ${inScope.length} applicable assets have no deciding result`,
+    reason: of(n - passes, 'has no deciding result', 'have no deciding result'),
+  };
+}
+
+/**
+ * Cites the errata basis in the level's reason when an asset passes on it, so every report
+ * shows it. It is a sentence of its own after the level's reason (and any scope cap), so the
+ * quoted citations never run into the rest.
+ */
+function withErrata(
+  result: { level: ConformanceLevel; reason: string },
+  units: readonly Unit[],
+  basis: ErrataBasis | undefined,
+): { level: ConformanceLevel; reason: string } {
+  const n = units.filter((u) => u.reason === 'errata').length;
+  if (n === 0 || !basis) return result;
+  const cited = basis.citations.map((c) => `${c.name} (${c.url}): "${c.text}"`).join('; ');
+  return {
+    ...result,
+    reason: `${result.reason}. ${n === 1 ? '1 asset passes' : `${n} assets pass`} on the errata basis, not on a test: ${cited}`,
   };
 }
 
 /** With a scope gap, a level that claims something (Supports, or N/A from a review) becomes Not Evaluated. */
 function capped(
   result: { level: ConformanceLevel; reason: string },
-  units: readonly Determination[],
+  units: readonly Unit[],
   gaps: readonly string[],
 ): { level: ConformanceLevel; reason: string } {
   if (gaps.length === 0) return result;
@@ -314,6 +412,19 @@ function capped(
     level: 'Not Evaluated',
     reason: `${result.reason}, but the scope is incomplete: ${gaps.join('; ')}`,
   };
+}
+
+/**
+ * The level and reason of an asset-scope criterion from its per-asset details: the roll-up's
+ * own rule, with the scope gaps and the errata basis. An ACR uses it for one asset kind's
+ * details (its Web and Electronic Documents columns), so no reporter decides a level itself.
+ */
+export function assetsLevel(
+  details: readonly Unit[],
+  scopeGaps: readonly string[],
+  basis: ErrataBasis | undefined,
+): { level: ConformanceLevel; reason: string } {
+  return withErrata(capped(levelOf(details), details, scopeGaps), details, basis);
 }
 
 const scOrder = (a: string, b: string) => {
@@ -383,6 +494,7 @@ export function rollup(input: RollupInput): Rollup {
         ]
       : gaps;
   const decidingRules = input.decidingRules ?? new Map();
+  const errata = input.errata ?? new Map();
   const hashes = currentHashes(assets);
   // Records for assets outside the scan are ignored.
   const records = [...input.findings, ...input.reviews].filter((f) => hashes.has(f.asset.uri));
@@ -418,7 +530,7 @@ export function rollup(input: RollupInput): Rollup {
       const cited = records.filter((f) => cites(f, row));
 
       if (row.scope === 'product') {
-        const product = determine(cited, row, hashes, decidingRules);
+        const product = determine(cited, row, hashes, decidingRules, errata);
         const { level, reason } = capped(levelOf([product]), [product], productGaps);
         return { ...head, level, reason, evidence: product.evidence, assets: [], product };
       }
@@ -437,9 +549,7 @@ export function rollup(input: RollupInput): Rollup {
               kind: asset.kind,
               state: 'not-applicable',
               reason: 'profile-not-applicable',
-              evidence: [],
-              undecided: [],
-              expired: [],
+              ...noRecords(),
               exception: { provision: exception.provision, reason: exception.reason },
             },
           ];
@@ -450,24 +560,28 @@ export function rollup(input: RollupInput): Rollup {
             : view.manual.some((m) => m.id === row.id);
         if (!inView) return [];
         if (!asset.scanned) {
-          const none = { evidence: [], undecided: [], expired: [] };
           return [
             {
               uri: asset.uri,
               kind: asset.kind,
               state: 'not-evaluated',
               reason: 'not-scanned',
-              ...none,
+              ...noRecords(),
             },
           ];
         }
         const own = cited.filter((f) => f.asset.uri === asset.uri);
         return [
-          { uri: asset.uri, kind: asset.kind, ...determine(own, row, hashes, decidingRules) },
+          {
+            uri: asset.uri,
+            kind: asset.kind,
+            ...determine(own, row, hashes, decidingRules, errata),
+          },
         ];
       });
 
-      const { level, reason } = capped(levelOf(details), details, gaps);
+      const basis = row.type === 'wcag' ? errata.get(row.id) : undefined;
+      const { level, reason } = assetsLevel(details, gaps, basis);
       const deciding = (d: AssetDetail) =>
         level === 'Not Applicable' ? d.state === 'not-applicable' : d.state !== 'not-applicable';
       const evidence = unique(details.filter(deciding).flatMap((d) => d.evidence));

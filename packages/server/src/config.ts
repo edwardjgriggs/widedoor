@@ -1,18 +1,22 @@
-import {
-  closeSync,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readSync,
-  realpathSync,
-  statSync,
-} from 'node:fs';
+import { realpathSync, statSync } from 'node:fs';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
-import { parseDocument } from 'yaml';
 import { z } from 'zod';
-import { PROFILE_IDS, type PdfDocumentType, type ProfileId } from '@widedoor/core';
 import {
+  ConfigError,
+  PROFILE_IDS,
+  formatIssues,
+  getProfile,
+  parseRepoYaml,
+  readRepoFile,
+  type PdfDocumentType,
+  type ProfileId,
+} from '@widedoor/core';
+import { isAcrDate, type AcrMeta } from '@widedoor/report';
+import { DEFAULT_MAX_PDF_BYTES, isPdfUrl } from '@widedoor/web';
+import {
+  ACR_FORMATS,
   DEFAULT_CONCURRENCY,
+  DEFAULT_FORMATS,
   DEFAULT_FAIL_ON,
   DEFAULT_MEMORY_MB,
   DEFAULT_OUT,
@@ -22,90 +26,20 @@ import {
   UsageError,
   type FailOn,
   type Format,
-  type ScanArgs,
-} from './args.js';
-import { formatIssues } from './issues.js';
-import { safeText } from './text.js';
+} from './settings.js';
 
-/** A config file (or review file) that cannot be used; exit code 2. */
-export class ConfigError extends Error {
-  constructor(
-    readonly file: string,
-    readonly problems: readonly string[],
-  ) {
-    super(`${file}: ${problems.join('; ')}`);
-    this.name = 'ConfigError';
-  }
-}
+export { ConfigError, parseRepoYaml, readRepoFile };
 
 const MAX_CONFIG_BYTES = 1024 * 1024;
 
 /** Pages scanned per run when neither web.maxPages nor web.crawl.maxPages is set. */
 export const DEFAULT_MAX_PAGES = 50;
 
+/** Largest pdf.maxBytes: the PDF scanner reads at most 100 MiB of a file. */
+export const MAX_PDF_BYTES = 100 * 1024 * 1024;
+
 /** Environment variable that names a storage state file (a CI workflow, not the repo, picks the credentials). */
 export const STORAGE_STATE_ENV = 'WIDEDOOR_STORAGE_STATE';
-
-/**
- * Reads a small regular file that the repo controls: never through a link,
- * never a device or FIFO, at most max bytes (checked on the open file).
- * Returns undefined when the file does not exist. Throws ConfigError.
- */
-export function readRepoFile(file: string, max: number): string | undefined {
-  let link;
-  try {
-    link = lstatSync(file);
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
-    throw new ConfigError(file, ['the file could not be read']);
-  }
-  if (link.isSymbolicLink())
-    throw new ConfigError(file, ['a symbolic link; Widedoor reads only regular files here']);
-  if (!link.isFile()) throw new ConfigError(file, ['not a regular file']);
-  let fd: number;
-  try {
-    fd = openSync(file, 'r');
-  } catch {
-    throw new ConfigError(file, ['the file could not be read']);
-  }
-  try {
-    const stat = fstatSync(fd);
-    if (!stat.isFile() || stat.ino !== link.ino || stat.dev !== link.dev)
-      throw new ConfigError(file, ['the file changed while it was being read']);
-    const buffer = Buffer.alloc(Math.min(stat.size, max) + 1);
-    let length = 0;
-    for (;;) {
-      const n = readSync(fd, buffer, length, buffer.length - length, length);
-      if (n === 0) break;
-      length += n;
-      if (length > max) throw new ConfigError(file, [`the file is over ${max / 1024 / 1024} MiB`]);
-      if (length === buffer.length) break;
-    }
-    return buffer.subarray(0, length).toString('utf8');
-  } finally {
-    closeSync(fd);
-  }
-}
-
-/**
- * Parses YAML strictly: duplicate keys, syntax errors and warnings (an
- * unknown tag such as !!js/function) are all problems, and nothing is
- * printed by the parser itself. Throws ConfigError.
- */
-export function parseRepoYaml(file: string, text: string): unknown {
-  const doc = parseDocument(text, { uniqueKeys: true, logLevel: 'silent', prettyErrors: false });
-  const problems = [...doc.errors, ...doc.warnings].map(
-    (e) => `not valid YAML: ${safeText(String(e.message).split('\n')[0], 300)}`,
-  );
-  if (problems.length > 0) throw new ConfigError(file, problems);
-  try {
-    return doc.toJS({ maxAliasCount: 100 });
-  } catch (e) {
-    throw new ConfigError(file, [
-      `not valid YAML: ${safeText(String((e as Error).message).split('\n')[0], 300)}`,
-    ]);
-  }
-}
 
 export const isHttpUrl = (value: string): boolean => {
   try {
@@ -131,6 +65,12 @@ const includePattern = z
       !p.split(/[\\/]/).includes('..'),
     'must be a relative pattern inside the config folder (no leading slash, drive, braces, brackets or "..")',
   );
+
+/** Text in the acr block; a bare number (version: 2.10) is refused rather than read as 2.1. */
+const acrText = z
+  .string({ error: 'must be text; quote a value YAML would read as a number, such as "2.10"' })
+  .trim()
+  .min(1);
 
 /** widedoor.config.yaml (spec section 6). Unknown keys are errors, so a typo never silently widens or narrows a scan. */
 export const ConfigSchema = z.strictObject({
@@ -159,6 +99,16 @@ export const ConfigSchema = z.strictObject({
   pdf: z
     .strictObject({
       include: z.array(includePattern).optional(),
+      /** PDFs to fetch and scan by URL; the body must be a PDF whatever the URL ends in. */
+      urls: z.array(httpUrl).optional(),
+      /** Largest PDF fetched by URL (listed or found by a crawl), in bytes. Default 50 MiB. */
+      maxBytes: z.int().min(1).max(MAX_PDF_BYTES).optional(),
+      /**
+       * Fetch PDFs by URL (pdf.urls, .pdf URLs, crawled links). Default: on,
+       * except inside Widedoor's image, where veraPDF would parse them in the
+       * networked container; off, each is a scope gap.
+       */
+      fetch: z.boolean().optional(),
       /**
        * Spec D20: whether PDFs count as non-web documents (the default; the
        * E205.4 exceptions apply under Section 508) or as web content (they do not).
@@ -174,6 +124,24 @@ export const ConfigSchema = z.strictObject({
         .transform((f) => [...new Set(f)])
         .optional(),
       failOn: z.enum(FAIL_ON).optional(),
+    })
+    .optional(),
+  /** ACR metadata (Task 2.7). Only product.name is required, and only for an ACR format; the rest leave the ACR a draft. */
+  acr: z
+    .strictObject({
+      vendor: z.strictObject({ name: acrText.optional(), contact: acrText.optional() }).optional(),
+      product: z
+        .strictObject({
+          name: acrText.optional(),
+          version: acrText.optional(),
+          description: acrText.optional(),
+        })
+        .optional(),
+      notes: acrText.optional(),
+      reportDate: z
+        .string()
+        .refine(isAcrDate, 'must be a date written YYYY-MM-DD, for example "2026-10-23"')
+        .optional(),
     })
     .optional(),
   ai: z
@@ -224,6 +192,8 @@ export interface PdfPlan {
   baseDir: string;
   files: string[];
   include: string[];
+  /** PDFs fetched by URL (pdf.urls, or command-line URLs ending in .pdf). */
+  urls: string[];
 }
 
 /** Everything a scan needs, resolved from the command line and the config. */
@@ -231,7 +201,13 @@ export interface ScanPlan {
   profile: ProfileId;
   /** pdf.documentType (spec D20); default non-web. */
   pdfDocumentType: PdfDocumentType;
+  /** pdf.maxBytes: the cap for every PDF fetched by URL, listed or found by a crawl. */
+  pdfMaxBytes: number;
+  /** pdf.fetch when set; unset, the run decides from the veraPDF runner (pdfFetchDecision). */
+  pdfFetch?: boolean;
   formats: Format[];
+  /** The config's acr block, set when an ACR format is requested (acr.product.name is then present). */
+  acr?: AcrMeta;
   failOn: FailOn;
   /** Absolute report folder. */
   out: string;
@@ -245,6 +221,23 @@ export interface ScanPlan {
   concurrency: number;
   memoryMb: number;
   configFile?: string;
+}
+
+/** What a scan asks for beyond the config: the CLI's targets and flags, or a scan request's fields. */
+export interface PlanArgs {
+  /** URLs and PDF files, as given. */
+  targets: string[];
+  profile?: ProfileId;
+  formats?: Format[];
+  out?: string;
+  /** Playwright storage state file, from the command line (beats the environment and the config). */
+  storageState?: string;
+  failOn?: FailOn;
+  unsafeNoSandbox: boolean;
+  concurrency?: number;
+  memoryMb?: number;
+  /** A lower page cap for this run (a scan request's maxPages); never above the config's. */
+  maxPages?: number;
 }
 
 const isFileAt = (path: string) => {
@@ -263,7 +256,7 @@ const isFileAt = (path: string) => {
  * Missing files are reported without echoing a resolved path.
  */
 function resolveStorageState(
-  args: ScanArgs,
+  args: PlanArgs,
   loaded: LoadedConfig | undefined,
   cwd: string,
   env: NodeJS.ProcessEnv,
@@ -297,13 +290,19 @@ function resolveStorageState(
   return abs;
 }
 
-export type Target = { kind: 'url'; url: string } | { kind: 'file'; path: string };
+export type Target =
+  { kind: 'url'; url: string } | { kind: 'pdf-url'; url: string } | { kind: 'file'; path: string };
 
-/** A command-line target: an http(s) URL or a local PDF file. Throws UsageError. */
+/**
+ * A command-line target: an http(s) URL (a PDF when its path ends in .pdf;
+ * a page the server answers with a PDF is handed on by the web scan) or a
+ * local PDF file. Throws UsageError.
+ */
 export function classifyTarget(target: string): Target {
   // A Windows drive path (C:\x.pdf, C:/x.pdf) is a file, not a URL with scheme "c".
   if (/^[a-z][a-z0-9+.-]*:/i.test(target) && !/^[a-z]:[\\/]/i.test(target)) {
-    if (isHttpUrl(target)) return { kind: 'url', url: target };
+    if (isHttpUrl(target))
+      return isPdfUrl(target) ? { kind: 'pdf-url', url: target } : { kind: 'url', url: target };
     throw new UsageError(
       `cannot scan "${target}": the CLI scans http and https URLs and local PDF files`,
     );
@@ -315,14 +314,66 @@ export function classifyTarget(target: string): Target {
   return { kind: 'file', path: target };
 }
 
+/** How acrMeta's refusals name what needs the metadata, and the config file. */
+export interface AcrNaming {
+  /** Starts the refusal, verb included, for example "the ACR formats (...) need". */
+  needs: string;
+  /** The config file as the reader knows it (widedoor ui: relative to its root). */
+  file?: string;
+  /** How to choose a profile with the Section 508 view. */
+  profileHint: string;
+}
+
+/**
+ * The ACR metadata for a run that writes an ACR format. Throws UsageError when
+ * the profile has no Section 508 view (naming the profiles that have it) or
+ * acr.product.name is not set. naming changes the wording (widedoor ui);
+ * the CLI's names the format and the config's path.
+ */
+export function acrMeta(
+  formats: readonly Format[],
+  profile: ProfileId,
+  loaded: LoadedConfig | undefined,
+  naming?: AcrNaming,
+): AcrMeta | undefined {
+  const format = formats.find((f) => ACR_FORMATS.includes(f));
+  if (format === undefined) return undefined;
+  const has508 = (id: ProfileId) =>
+    getProfile(id).assets.web.standards.some((s) => s.standard === '508');
+  const needs = naming?.needs ?? `the ${format} format needs`;
+  if (!has508(profile))
+    throw new UsageError(
+      `${needs} the Section 508 view, which profile ${profile} does not have; ${naming?.profileHint ?? 'use --profile'} ${PROFILE_IDS.filter(has508).join(' or ')}`,
+    );
+  const acr = loaded?.config.acr;
+  const name = acr?.product?.name;
+  if (name === undefined)
+    throw new UsageError(
+      `${needs} acr.product.name in ${loaded ? (naming?.file ?? loaded.file) : 'a config file (none was given or found)'}`,
+    );
+  // Keys that are set, so AcrMeta never holds an explicit undefined.
+  const set = <T extends object>(o: T | undefined) =>
+    Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => v !== undefined)) as {
+      [K in keyof T]?: Exclude<T[K], undefined>;
+    };
+  const vendor = set(acr?.vendor);
+  const { notes, reportDate } = set(acr);
+  return {
+    ...(Object.keys(vendor).length > 0 ? { vendor } : {}),
+    product: { ...set(acr?.product), name },
+    ...(notes !== undefined ? { notes } : {}),
+    ...(reportDate !== undefined ? { reportDate } : {}),
+  };
+}
+
 /**
  * Combines the command line with the config. Targets on the command line
- * replace the config's scope (web.urls, web.sitemap and pdf.include); crawl
+ * replace the config's scope (web.urls, web.sitemap, pdf.include and pdf.urls); crawl
  * rules, auth, profile and report settings still come from the config, and
  * flags override the config. Throws UsageError or ConfigError.
  */
 export function buildPlan(
-  args: ScanArgs,
+  args: PlanArgs,
   loaded: LoadedConfig | undefined,
   cwd: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -345,6 +396,13 @@ export function buildPlan(
         : config.web?.maxPages !== undefined
           ? { maxPages: config.web.maxPages, maxPagesSetting: 'web.maxPages' as const }
           : { maxPages: DEFAULT_MAX_PAGES, maxPagesSetting: 'default' as const };
+    if (args.maxPages !== undefined) {
+      if (args.maxPages > cap.maxPages)
+        throw new UsageError(
+          `maxPages must be at most ${cap.maxPages}${cap.maxPagesSetting === 'default' ? ' (the default page cap)' : ` (${cap.maxPagesSetting} in the config)`}`,
+        );
+      cap.maxPages = args.maxPages;
+    }
     web = { urls, ...cap };
     if (sitemap !== undefined) web.sitemap = sitemap;
     if (crawl !== undefined)
@@ -356,22 +414,33 @@ export function buildPlan(
   let pdf: PdfPlan | undefined;
   if (fromArgs) {
     const files = targets.flatMap((t) => (t.kind === 'file' ? [t.path] : []));
-    if (files.length > 0) pdf = { baseDir: cwd, files, include: [] };
-  } else if ((config.pdf?.include ?? []).length > 0 && loaded) {
-    pdf = { baseDir: loaded.dir, files: [], include: [...(config.pdf?.include ?? [])] };
+    const pdfUrls = targets.flatMap((t) => (t.kind === 'pdf-url' ? [t.url] : []));
+    if (files.length > 0 || pdfUrls.length > 0)
+      pdf = { baseDir: cwd, files, include: [], urls: pdfUrls };
+  } else if (loaded) {
+    const include = [...(config.pdf?.include ?? [])];
+    const pdfUrls = [...(config.pdf?.urls ?? [])];
+    if (include.length > 0 || pdfUrls.length > 0)
+      pdf = { baseDir: loaded.dir, files: [], include, urls: pdfUrls };
   }
 
   if (!web && !pdf)
     throw new UsageError(
       loaded
-        ? `${loaded.file} names nothing to scan: add web.urls, web.sitemap or pdf.include`
+        ? `${loaded.file} names nothing to scan: add web.urls, web.sitemap, pdf.include or pdf.urls`
         : 'nothing to scan',
     );
 
+  const profile = args.profile ?? config.profile ?? DEFAULT_PROFILE;
+  const formats = args.formats ?? config.report?.formats ?? [...DEFAULT_FORMATS];
+  const acr = acrMeta(formats, profile, loaded);
   return {
-    profile: args.profile ?? config.profile ?? DEFAULT_PROFILE,
+    profile,
     pdfDocumentType: config.pdf?.documentType ?? 'non-web',
-    formats: args.formats ?? config.report?.formats ?? [...FORMATS],
+    pdfMaxBytes: config.pdf?.maxBytes ?? DEFAULT_MAX_PDF_BYTES,
+    ...(config.pdf?.fetch !== undefined ? { pdfFetch: config.pdf.fetch } : {}),
+    formats,
+    ...(acr ? { acr } : {}),
     failOn: args.failOn ?? config.report?.failOn ?? DEFAULT_FAIL_ON,
     out: resolve(cwd, args.out ?? DEFAULT_OUT),
     ...(web ? { web } : {}),

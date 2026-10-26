@@ -14,10 +14,11 @@ import {
   escapeHtml,
   html,
   renderHtml,
+  reportCsp,
   type ScanReport,
 } from '../src/index.ts';
 import { FINDINGS, PAGE, PAYLOAD, fixtureReport } from './fixture.ts';
-import { expectInert, inspect } from './inert.ts';
+import { expectInert, inspect, sha256Base64 } from './inert.ts';
 
 type Node = DefaultTreeAdapterMap['node'];
 type Element = DefaultTreeAdapterMap['element'];
@@ -110,6 +111,22 @@ describe('escapeHtml', () => {
   });
 });
 
+describe('reportCsp', () => {
+  it('allows the one style by hash, data: images only when asked, and refuses a style that needs escaping', () => {
+    const style = 'body { color: black; }';
+    const hash = `'sha256-${sha256Base64(style)}'`;
+    expect(reportCsp(style)).toBe(
+      `default-src 'none'; style-src ${hash}; base-uri 'none'; form-action 'none'`,
+    );
+    expect(reportCsp(style, true)).toBe(
+      `default-src 'none'; style-src ${hash}; img-src data:; base-uri 'none'; form-action 'none'`,
+    );
+    expect(() => reportCsp('a[title="x"] { color: red; }')).toThrow(
+      'a report style must not need escaping',
+    );
+  });
+});
+
 describe('HTML report', () => {
   const report = fixtureReport();
   const page = renderHtml(report);
@@ -127,8 +144,9 @@ describe('HTML report', () => {
     expect(serialize(doc)).not.toContain('<script>');
   });
 
-  it('puts the sections in order and ends with the disclaimer', () => {
+  it('puts the sections in order, manual review above the findings, and ends with the disclaimer', () => {
     expect(headings(doc, 'h2')).toEqual([
+      'Manual review',
       'What to fix first',
       'Results by page and file',
       'Summary',
@@ -321,7 +339,7 @@ describe('skipped pages', () => {
       },
     });
 
-  it('words a PDF link and an off-origin redirect each by its reason', () => {
+  it('words a PDF link from an older report and an off-origin redirect each by its reason', () => {
     const page = renderHtml(
       skippedReport([
         {
@@ -338,10 +356,13 @@ describe('skipped pages', () => {
     );
     expectInert(page);
     const text = textOf(parse(page));
+    // Widedoor fetches PDFs by URL now; a pdf-url skip comes only from an older report.
     expect(text).toContain(
-      'Not scanned: PDFs linked by URL are not fetched yet. Download the file and scan it as a local PDF (pdf-url).',
+      'Not scanned: the Widedoor version that wrote this report did not fetch PDFs by URL (pdf-url).',
     );
-    expect(text).toContain('https://example.com/a.pdf: a PDF link, not fetched (pdf-url)');
+    expect(text).toContain(
+      'https://example.com/a.pdf: a PDF link, not fetched by that version (pdf-url)',
+    );
     expect(text).not.toContain('it went to https://example.com/a.pdf');
     expect(text).toContain('Not scanned: it went to https://other.example/ (redirect-off-origin)');
     expect(text).toContain(
@@ -474,6 +495,13 @@ describe('screenshots', () => {
   it('refuses directories, non-PNG and oversized files and stops at the report total', () => {
     expect(load('sub')).toEqual({ ok: false, reason: 'the path is not a regular file' });
     expect(load('fake.png')).toEqual({ ok: false, reason: 'the file is not a PNG image' });
+    // A hostile report.json can name any file: a PNG header followed by markup is refused too.
+    writeFileSync(
+      join(evidence, 'header.png'),
+      Buffer.concat([PNG.subarray(0, 16), Buffer.from('<script>alert(1)</script>')]),
+    );
+    expect(load('header.png')).toEqual({ ok: false, reason: 'the file is not a PNG image' });
+    expect(load('big.png')).toEqual({ ok: false, reason: 'the file is not a PNG image' });
     expect(load('big.png', { maxBytes: 1024 })).toEqual({
       ok: false,
       reason: 'the file is over the size limit',

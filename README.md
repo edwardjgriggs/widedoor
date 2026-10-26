@@ -1,11 +1,13 @@
 # Widedoor
 
-Widedoor is an open source accessibility checker that lets a developer or a small business without an accessibility specialist test websites and PDFs against Section 508 and WCAG 2.1 AA. It produces a plain-language report of what is wrong, who it affects, and how to fix it, and a per-criterion summary that never claims conformance it did not test. Each criterion gets one level. It reads "Not Applicable" when the profile, or a manual review that gives a reason, rules it out for every asset in scope. Otherwise, it reads "Partially Supports" when some applicable assets fail it and others pass, and "Does Not Support" when some fail and none pass. It reads "Supports" only when every applicable asset passes through a deciding automated rule or a recorded manual result. Everything else reads "Not Evaluated," including a scan with no assets in scope. An incomplete scope (a truncated crawl, an unreadable sitemap, or a page or file that could not be scanned) turns Supports, and a Not Applicable that rests on a manual review, into "Not Evaluated." A guided manual review and an Accessibility Conformance Report (ACR) in OpenACR and VPAT 2.5 format are planned for v0.2 and are not built yet.
+Widedoor is an open source accessibility checker that lets a developer or a small business without an accessibility specialist test websites and PDFs against Section 508 and WCAG 2.1 AA. It produces a plain-language report of what is wrong, who it affects, and how to fix it, and a per-criterion summary that never claims conformance it did not test. Each criterion gets one level. It reads "Not Applicable" when the profile, or a manual review that gives a reason, rules it out for every asset in scope. Otherwise, it reads "Partially Supports" when some applicable assets fail it and others pass, and "Does Not Support" when some fail and none pass. It reads "Supports" only when every applicable asset passes through a deciding automated rule, a recorded manual result that is still current, or, for WCAG 4.1.1 Parsing alone, the errata basis: the WCAG 2.0 and 2.1 errata (recorded with their sources in `packages/core/data/errata.yaml`) say 4.1.1 is always satisfied, so a scan with no failure on it reports 4.1.1 Supports on that basis, and every report says so in its reason. Everything else reads "Not Evaluated," including a scan with no assets in scope. An incomplete scope (a truncated crawl, an unreadable sitemap, or a page or file that could not be scanned) turns Supports, and a Not Applicable that rests on a manual review, into "Not Evaluated." Manual results are recorded with `widedoor review` or on the Checklist screen of `widedoor ui` (see Usage), the ACR formats write an Accessibility Conformance Report (ACR) in OpenACR YAML and as HTML and DOCX in the VPAT® 2.5Rev Section 508 layout, and `widedoor diff` compares two reports.
 
 ## Status
 
-Pre-alpha, preparing v0.1. Nothing is published to npm or a container registry yet, and the
-interfaces will change. See [CHANGELOG.md](CHANGELOG.md).
+Pre-alpha and unreleased. What is built (web and PDF scans, the reports, manual reviews, the
+ACR formats, `widedoor diff`, the local viewer with its scan, checklist and export screens, the
+GitHub Action and the Docker image) is listed under Unreleased in [CHANGELOG.md](CHANGELOG.md).
+Nothing is published to npm or a container registry yet, and the interfaces will change.
 
 ## Install
 
@@ -51,9 +53,10 @@ Not automated:
   suggestions and others) need a person. Widedoor lists them as Not Evaluated until a manual
   result is recorded in `widedoor-review/*.yaml`.
 - An automated pass alone never makes a criterion "Supports". It could only when the rule that
-  passed decides the criterion on its own, and in v0.1 no rule is marked as deciding, so a
-  criterion reaches Supports only through a recorded manual result. A failed check still makes
-  it Does Not Support or Partially Supports.
+  passed decides the criterion on its own, and no rule is marked as deciding yet, so a criterion
+  reaches Supports only through a recorded manual result that is still current, or, for 4.1.1
+  Parsing alone, the errata basis described above. A failed check still makes it Does Not
+  Support or Partially Supports, 4.1.1 included.
 - A scan covers the pages and files it was given. Criteria that depend on a whole site (for
   example consistent navigation) need a manual review or a scan of every page and file.
 
@@ -68,14 +71,38 @@ runs with the commands in [Docker](#docker).
 widedoor scan https://example.com/ docs/annual-report.pdf
 widedoor scan --config widedoor.config.yaml --fail-on critical
 widedoor ui --report widedoor-report/report.json
+widedoor ui --root path/to/site-project
+widedoor review list --report widedoor-report/report.json
+widedoor review record --report widedoor-report/report.json --item ck_0123456789abcdef \
+  --outcome pass --reviewer "Ann Lee" --notes "Tabbed through every control" --attach focus.png
 widedoor --help
 ```
 
-- Web pages are scanned by http or https URL, PDFs as local files. PDFs need Docker with
-  `docker pull verapdf/cli:v1.30.3` (or veraPDF 1.30.3 on PATH, which runs without the sandbox).
+- Web pages are scanned by http or https URL, PDFs as local files or by URL. PDFs need Docker
+  with `docker pull verapdf/cli:v1.30.3` (or veraPDF 1.30.3 on PATH, which runs without the
+  sandbox).
 - Without targets, the scope comes from `widedoor.config.yaml` in the current folder (spec
   section 6). Relative paths in it resolve against its folder. Targets on the command line
-  replace its `web.urls`, `web.sitemap` and `pdf.include`.
+  replace its `web.urls`, `web.sitemap`, `pdf.include` and `pdf.urls`.
+- PDFs by URL: list them in `pdf.urls`, or give a URL whose path ends in `.pdf` on the command
+  line. A crawl also fetches the same-origin PDF links it finds (at most 100 from one page and
+  200 per run; the rest are a scope gap), and a page that the server answers with
+  `application/pdf` is fetched as a PDF. Every redirect must stay on the origin of the URL, the
+  body must start with `%PDF-` (an HTML page named `x.pdf` is a scan error) and may be at most
+  `pdf.maxBytes` (default 50 MiB, at most 100 MiB), and each fetch has 60 seconds. A PDF that
+  cannot be fetched (too many redirects included) is a scan error (exit 2); a crawled link
+  whose redirect leaves its origin is refused and recorded as a scope gap instead. Each PDF
+  streams into a private temp folder that is removed after the scan; it is fetched when a scan
+  worker is ready for it, so temp disk use is about `--concurrency` x `pdf.maxBytes` (the
+  image's `/tmp` tmpfs is 512 MiB). The report records the PDF under its final URL after
+  redirects, normalized as page URLs are, so review records for it name that URL. PDFs are
+  fetched without the signed-in session of `--storage-state`, and in a signed-in scan a failed
+  fetch says so.
+- `pdf.fetch` turns fetching PDFs by URL on or off. It is on by default, except inside the
+  Widedoor image, where veraPDF would parse the PDFs in the container that has the network
+  (on a host, the Docker runner gives veraPDF its own container with `--network none`). With it
+  off, each PDF URL is a scope gap, never an error and never a pass. Setting `pdf.fetch: true`
+  in the image works and adds a warning that names the trade-off.
 - Page cap: a run scans at most 50 pages. Raise it with `web.maxPages`; with a crawl,
   `web.crawl.maxPages` takes precedence when both are set. Pages you listed in `web.urls` (and the
   sitemap's pages when there is no crawl) are in scope by name: if the cap leaves any unscanned,
@@ -91,11 +118,32 @@ widedoor --help
   silent empty PDF scope.
 - Reports go to `./widedoor-report/report.html`, `report.json` and `report.sarif`, with
   screenshots in `./widedoor-report/evidence/`. Change the folder with `--out` and the formats
-  with `--format html,json,sarif`. Widedoor marks its report folder with a
+  with `--format html,json,sarif`. JUnit is not a default: `--format` replaces the list, so
+  add it with `--format html,json,sarif,junit`. It writes `report.junit.xml` for CI test
+  views: one test suite per page or file, one test case per criterion of the profile's first
+  standard (Section 508 under `508+wcag21aa`), failed when the criterion fails there, skipped
+  with the reason when it is Not Evaluated. Widedoor marks its report folder with a
   `.widedoor-report` file and clears the reports, `evidence/` and leftover temp files there on
   each run. A folder that is not empty and has no marker (for example `--out .`) is refused, and
-  nothing in it is touched. The folder, `evidence/` and the report files must not be symbolic links or junctions:
-  Widedoor refuses to write through them (exit 2).
+  nothing in it is touched. The folder, `evidence/` and the report files must not be symbolic
+  links or junctions: Widedoor refuses to write through them (exit 2).
+- ACR: `--format openacr` (opt-in, like JUnit) writes `report.openacr.yaml`, an Accessibility
+  Conformance Report in OpenACR YAML, and `--format vpat-html,vpat-docx` writes the same ACR as
+  `report.vpat.html` and `report.vpat.docx` in the VPAT® 2.5Rev Section 508 layout (see
+  [Reports](#reports)). Each ACR format needs a profile with the
+  Section 508 view (`508` or `508+wcag21aa`; with `wcag21aa` the run exits 2) and the `acr:`
+  block in the config, of which only `product.name` is required (exit 2 without it):
+
+  ```yaml
+  acr:
+    vendor: { name: Example Agency, contact: accessibility@example.gov }
+    product: { name: Permit portal, version: '2.10', description: Online permit applications. }
+    notes: Tested on the staging site.
+    reportDate: 2026-10-23 # YYYY-MM-DD; default: the date the scan finished
+  ```
+
+  Unknown keys are refused, and a version YAML reads as a number (`2.10`) must be quoted.
+
 - Signed-in pages: pass a Playwright storage state with `--storage-state <file>` or
   `WIDEDOOR_STORAGE_STATE`. A config's `web.auth.storageState` must sit inside the config folder.
   Reports of signed-in pages are written private (0600) on POSIX; on Windows they inherit the
@@ -104,19 +152,170 @@ widedoor --help
   protected branch: a pull request can change both. Pass `--fail-on` explicitly and protect those
   paths (for example with CODEOWNERS).
 - Manual review records in `widedoor-review/*.yaml` next to the config (or the current folder)
-  are added to the report.
-- `widedoor ui [--report <file>] [--no-open]` shows a JSON report in a local viewer. It serves
-  on `127.0.0.1` only, on a random port, and prints a link with a one-time access code, then
-  opens it in the default browser (unless `--no-open`). The page trades the code for a
-  per-run token, so the link works once; reload that tab to keep using it. Screenshots come
-  from the `evidence/`
-  folder next to the report. Without `--report`, open a `report.json` in the page; the file
-  stays in the browser. The viewer never scans. Stop it with Ctrl+C.
+  are added to the report. Records for pages or files outside the run, of the wrong kind, with an
+  override the run does not support, replaced by a newer record or for a criterion that is not a
+  checklist item there (nothing for a reviewer to decide) are left out, each with a warning line
+  on the console and in the report's warnings. The one exception is a manual fail on a criterion
+  the profile has but with no checklist item: a reported failure is never hidden, so the scan
+  keeps it, with a warning (`review list` warns about it the same way). A record for a
+  criterion the profile does not have (Level AAA, or a 508 provision under `wcag21aa`) decides
+  nothing in the report and is left out whatever its outcome, with its own warning.
+- Every report starts with a Manual review section: the checklist progress (items open, done,
+  expired and failed by an automated check) and the "Overridden by a reviewer" list, which names
+  each automated fail a reviewer set aside as a false positive with the reviewer, date and
+  notes. An overridden fail is not a problem in the counts, the cards, the results by criterion
+  or the exit code; in SARIF it stays a result with an external suppression whose justification
+  is the reviewer's notes. A criterion that passes on the 4.1.1 errata basis says so in its
+  reason and links the errata, and the summary names it next to the Supports count. Images
+  attached to manual results are embedded in the HTML report (and shown by `widedoor ui`) only
+  when the whole file is a PNG or JPEG, read from `widedoor-review/attachments/` through the
+  same checks as screenshots; anything else is left out with a note.
+- `widedoor review list --report <file>` prints the manual review checklist for a JSON report:
+  one item (`ck_...`) per page or file and criterion that no automated check settles, plus one
+  per product-wide Section 508 item, each with its status (`open`, `done`, `expired` or
+  `failed-automated`). It applies the records in `widedoor-review/` where a scan reads them
+  (the folder of `--config <file>`, else the current folder), and lists any it cannot apply,
+  with why: a record for a page or file outside the report's scope (orphaned; a page or file in
+  scope that could not be scanned keeps its records, as a scan does), for a criterion that
+  needs no review there, with an override that names anything but an automated fail on the same
+  page or file and criterion, or replaced by a newer record for the same item. It shows the
+  `open` items unless `--status` names another status or `all`; `--format json` prints the same
+  as JSON.
+- `widedoor review record --report <file> --item <ck id> --outcome pass|fail|not-applicable
+--reviewer <name>` writes one result to `widedoor-review/<kind>-<hash of the uri>.yaml` (one
+  file per page or PDF, sorted by criterion) or `widedoor-review/product.yaml`, and prints the
+  file, the record id, the page or file and any overrides. It takes `--config` the same way.
+  Recording an item again replaces its result. `--notes` is free text, required for
+  `not-applicable` and for `--override <wd id>`, which marks an automated fail on the same page
+  or file and criterion as a false positive (with `--outcome pass` only). `--attach <file>` copies
+  a PNG or JPEG (checked by its first bytes, up to 5 MiB, 10 per result) to
+  `widedoor-review/attachments/<ck id>-<n>-<random>.png` (or `.jpg`), a new name each time, and
+  removes the replaced result's images once the new file is written. A result expires when the
+  page or file changes, and the next scan shows the item as `expired`. For a PDF, any change to
+  its bytes counts. For a web page, the result is tied to a review hash of the served HTML with
+  what changes on every request left out: the contents of `script`, `style`, `noscript` and
+  `template` elements, comments, `nonce` and `integrity` attributes, `data-` attributes whose
+  name looks like a token (`csrf`, `xsrf`, `token` or `nonce` in it), the value of a hidden input
+  and the value or content of an element whose `name` or `id` looks like a token, and the length
+  of whitespace runs. So a page that serves a fresh CSRF value or script nonce each time keeps
+  its results, and a change to its visible content (text, `alt` text, labels, headings, link
+  targets) expires them. A page too deeply nested to normalize falls back to its byte hash,
+  which only ever expires a result sooner. A product-wide result is anchored to the first page or file of
+  the report and expires when that one changes. Bad input exits 2 and writes nothing.
+- Review files may come from a pull request, so Widedoor refuses links and junctions anywhere
+  under `widedoor-review/`, attachment paths outside `widedoor-review/attachments/` and
+  attachments that are not PNG or JPEG files. A record is refused (the scan or command exits 2,
+  naming the file and the record) when its `source.ruleId` is not `wcag-<sc>` or
+  `508-<provision>` for the one criterion it cites, its `id` is not the finding id of its asset,
+  location and rule, it is not in the file named for its asset (or `product.yaml`), its review
+  date is after tomorrow, another record in the folder covers the same item, or it cites 4.1.1,
+  which the errata satisfy (no review needed). Writers take a lock file (`<file>.lock`, taken
+  over after 30 seconds or when dated in the future), so two writers to one file both land.
+- An interrupted write can leave `*.lock`, `*.stale` and `*.tmp` files under `widedoor-review/`.
+  Keep them out of git in your repo's `.gitignore`:
+
+  ```gitignore
+  **/widedoor-review/**/*.lock
+  **/widedoor-review/**/*.lock.*.stale
+  **/widedoor-review/**/.*.tmp
+  ```
+
+- `widedoor ui [--report <file>] [--root <dir> | --config <file>] [--no-open]` shows a JSON
+  report in a local viewer. It serves on `127.0.0.1` only, on a random port, and prints a link
+  with a one-time access code, then opens it in the default browser (unless `--no-open`). The
+  page trades the code for a per-run token, so the link works once; reload that tab to keep
+  using it. The root folder (`--root`, else the folder of `--config`, else the current folder)
+  holds `widedoor.config.yaml` (optional) and `widedoor-review/`.
+  Screenshots come from the `evidence/` folder next to the report, and images attached to
+  manual results from `widedoor-review/attachments/` in the root. Without `--report`, open a
+  `report.json` in the page (the file stays in the browser), or start a scan. Stop it with
+  Ctrl+C; a running scan is cancelled. The page has four screens:
+  - **Report**: the report, with an outcome and impact filter.
+  - **Scan**: URLs (one per line) and PDF files to upload, and a profile (by default the
+    config's); leave the URLs and files empty to scan the config's scope. An uploaded PDF is
+    recorded under its file name (`annual-report.pdf`), while `widedoor scan` records the path
+    it was given (`docs/annual-report.pdf`), so reviews recorded for one do not carry over to the
+    other. To share reviews with `widedoor scan` and CI, leave the fields empty and scan the
+    config's `pdf.include`. Progress and errors
+    are announced; Cancel stops the uploads or the scan. When a scan ends, the other screens
+    show its report and the end is announced on whatever screen is open.
+  - **Checklist**: the manual review items, grouped by page or file and then criterion, with a
+    status filter. Each shows its ICT Testing Baseline tests, steps, condition, related
+    automated findings and its record as the review files hold it now (marked when it has
+    expired), even when the report shown is older. Record a result under the item: outcome, notes,
+    your name (remembered in this browser), automated fails to set aside, and images.
+    Refresh reads the checklist again (after `widedoor review record`, for example).
+  - **Export**: whether the ACR would be a draft or complete, and why (Check again reads it
+    once more), then a download for each format.
+
+  A scan's report is kept only in memory while `widedoor ui` runs, and the Report, Checklist and
+  Export screens say so: export it to keep a copy. A report opened with `--report` is shown as
+  scanned; run a new scan to include reviews recorded since. A report file you open in the
+  page stays shown until you choose the served one again; Checklist and Export always work on
+  the report `widedoor ui` holds.
+
+- The `widedoor ui` server has a local API for its page, under the same `127.0.0.1` binding,
+  Host check and per-run token, with the server's own `Origin` required on every POST and
+  DELETE and JSON request bodies only (uploads send the file itself). It is not a public API
+  and is never reachable from another machine:
+  - `POST /api/scans` (`urls`, `pdfs` as upload ids, `profile`, `maxPages`) starts a scan job,
+    one at a time, as `widedoor scan` would run it in the root: the request's targets replace
+    the config's scope, and everything else (auth, `pdf.fetch`, `acr`, caps) comes from the
+    config; `report.formats` does not apply, since exports name their format. Chromium keeps
+    its sandbox. `GET /api/scans/:id` gives the status and progress (and the report once
+    done); `DELETE /api/scans/:id` cancels it. A finished job's
+    report is held in memory as the current report (`GET /api/report`); a cancelled or failed
+    job leaves the current report alone. A scan job writes nothing to disk: reports reach disk
+    only when you download them from `GET /api/export/<format>`.
+  - `POST /api/uploads?kind=pdf` (a PDF up to 25 MiB, `&name=` to name it) and `kind=image` (a
+    PNG or JPEG under the attachment rules) hold files in a private temp folder, removed when
+    the server stops, until a scan or a review uses them. An upload nothing uses within 15
+    minutes is deleted; a cancelled scan's uploads can be scanned again within that time.
+  - `GET /api/checklist` and `POST /api/reviews` list and record manual results for the current
+    report, with the validation and file lock of `widedoor review list` and `record`. A
+    scan job's report is rebuilt with each review recorded, here or with
+    `widedoor review record`, so the report and every export show it at once. A report
+    opened with `--report` shows the reviews as scanned, and a rescan includes newer ones;
+    `GET /api/report` says which (`reviews`: `live` or `as-scanned`).
+    `GET /api/attachments/<name>` serves an attached image.
+  - `GET /api/export/<format>` downloads the current report as `json`, `html`, `sarif`,
+    `junit`, `openacr`, `vpat-html` or `vpat-docx`. The ACR formats need the Section 508 view
+    and `acr.product.name`, as with `widedoor scan`. `GET /api/acr` says whether that ACR
+    would be complete (`complete`, the `incomplete` reasons and the `undecided` row count).
+    Refusals name a config file relative to the root, never by its absolute path.
+  - The server writes only review records and their attachments in `<root>/widedoor-review/`
+    and its own temp folder for uploads and screenshots, removed when it stops.
 - Exit codes: 0 when no failed check is at or above `--fail-on` (default `serious`; `none` turns
   it off), 1 when one is, 2 for a tool error: bad arguments or config, a page or file that could
   not be scanned, listed pages left out by the page cap (the reports are still written), or an
   interrupt. Needs-review results never
   fail a run.
+
+### Compare two reports
+
+```sh
+widedoor diff last-week/report.json widedoor-report/report.json
+widedoor diff before.json after.json --format json --fail-on-new
+```
+
+`widedoor diff <before.json> <after.json>` compares two JSON reports that `widedoor scan`
+wrote. It lists the fail and needs-review results that are new, fixed or unchanged (matched by
+finding id and page or file), and the criteria whose level changed. Expired manual results do
+not count, and an automated fail a reviewer set aside in the after report is listed as fixed,
+marked `(override)`.
+
+- Not compared: a result is compared only when its page or file was scanned in both reports.
+  A page that is missing from one report, or that could not be scanned or was skipped there,
+  gives no new and no fixed results; its results are listed as not compared, with the reason.
+  A manual result that is current in one report and expired in the other is not compared
+  either. When the profiles differ (`profile.id` or `pdfDocumentType`), every criterion is
+  listed as not compared.
+- `--format text|json`: `text` (the default) prints counts, the new and fixed results, the
+  changed criteria and a not-compared summary; `json` prints the full comparison.
+- `--fail-on-new`: exit 1 when the after report has a new failed check. New needs-review
+  results and results not compared never count.
+- Exit codes: 0, or 1 with `--fail-on-new` as above; 2 on bad input (a missing or unreadable
+  file, a file that is not a valid Widedoor JSON report, wrong arguments).
 
 ## Docker
 
@@ -197,6 +396,11 @@ What each part does:
   `-v "$PWD/widedoor.config.yaml:/work/widedoor.config.yaml:ro"` (and `widedoor-review/` the same
   way), and keep `--out out`. A config for a web run must not list PDFs in `pdf.include`:
   the run has the network on and the seccomp profile applied, so PDFs belong in a PDF run.
+  PDFs by URL would break that rule, so the image does not fetch them by default
+  (`pdf.fetch`): `pdf.urls`, a `.pdf` URL and the PDF links a crawl finds become scope gaps.
+  Download the files and scan them in a PDF run instead. `pdf.fetch: true` fetches and parses
+  them in the networked web run, with a warning. A split run (fetch in the web run, parse in a
+  `--network none` run) is planned follow-up work.
   Do not mount your whole project read-write: the container renders
   untrusted pages and parses untrusted PDFs.
 - **Chromium's sandbox stays on.** Docker's default seccomp profile blocks the namespace calls
@@ -245,8 +449,8 @@ for the GPL components must go with it.
 
 `packages/action` is a composite action. It builds the CLI from the action's own checkout
 (`npm ci --ignore-scripts --include=dev`, a clean `npm run build`, Playwright's Chromium), pulls the pinned veraPDF
-image by digest when PDFs may be in scope, runs the scan and uploads `report.sarif` to code
-scanning. Nothing is published yet, so pin it by the commit SHA of a Widedoor checkout you
+image by digest (a URL-only scan can reach PDFs by URL too), runs the scan and uploads
+`report.sarif` to code scanning. Nothing is published yet, so pin it by the commit SHA of a Widedoor checkout you
 trust. It runs on Linux runners (`ubuntu-latest`); PDFs need Docker, which GitHub-hosted Ubuntu
 runners have.
 
@@ -313,7 +517,8 @@ the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
   write access: it would run the scan with secrets on code from the fork.
 - **Web SARIF results do not attach to files**: a web finding points at the page URL with the
   CSS selector as a logical location, so code scanning lists it as an alert but cannot show
-  it on a line of a pull request diff. PDF findings point at the PDF file.
+  it on a line of a pull request diff. PDF findings point at the PDF file, or at its URL for
+  a PDF fetched by URL.
 - **Inputs are data, not script**: each input reaches the scan through an environment variable
   and the entry script builds the CLI arguments itself, with no shell. URLs must be http or
   https, targets follow `--` so none can become a flag, and enum inputs are checked. The CLI
@@ -339,8 +544,8 @@ the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
 
 - **HTML**: one self-contained file for people, with no scripts and a strict Content Security Policy.
 - **Viewer** (`widedoor ui`): the HTML report's content and wording in a local page, with an
-  outcome and impact filter. Scanned strings render as text only, under a strict Content
-  Security Policy.
+  outcome and impact filter, plus screens to scan, review and export. Scanned strings render as
+  text only, under a strict Content Security Policy.
 - **JSON**: the canonical record of a scan, validated by `packages/report/schema/report.v1.json`.
   `scopeGaps` lists what made the scope incomplete beyond scan errors and skipped pages.
 - **SARIF 2.1.0**: for developer tools. Results for PDFs point at the file. Results for web pages
@@ -351,6 +556,35 @@ the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
   `executionSuccessful` is false only for scan errors; skipped pages (up to 20, then a count)
   and scope gaps are note-level tool notifications, and `runs[0].properties.scopeComplete` is
   false when anything was left out.
+- **OpenACR** (`--format openacr`): an ACR in [OpenACR](https://github.com/GSA/openacr) YAML,
+  catalog `2.5-edition-wcag-2.0-508-en` (the VPAT® 2.5 Revised Section 508 edition; OpenACR has
+  no catalog named for 2.5Rev). Tables 1 and 2 (WCAG 2.0 Level A and AA) have a Web and an
+  Electronic Documents column, each levelled from that kind's pages or files; Chapters 3, 5 and
+  6 have one cell per row. Level AAA, Chapter 4 (Hardware) and the Software and Authoring Tool
+  columns are left out with a note. Levels come from the roll-up's Section 508 view and are
+  never raised: an untested row reads Not Evaluated, and 4.1.1 reads Supports with the errata
+  cited. The notes say where Widedoor's terms differ from the template's (Does Not Support
+  means every page or file with a result fails, not "the majority"). The title starts with
+  DRAFT unless every row is decided, every page and file in scope was scanned, the scope has
+  no gap, and `acr.vendor.name`, `acr.vendor.contact`, `acr.product.name` and
+  `acr.product.description` are set. Each file is checked against the vendored OpenACR schema
+  and catalog before it is written; one that fails is a Widedoor bug, reported with exit 2.
+- **ACR as HTML and DOCX** (`--format vpat-html`, `--format vpat-docx`): the same ACR as
+  `report.vpat.html` (one self-contained file under the HTML report's Content Security Policy,
+  checked with axe) and `report.vpat.docx` (Word), in the section order of ITI's VPAT® 2.5Rev
+  Revised Section 508 template: product, report date, description, contact, notes, evaluation
+  methods, applicable standards, terms, the WCAG 2.0 tables, Chapters 3 to 6 and the legal
+  disclaimer. A cell with Web and Electronic Documents parts lists each on its own line
+  ("Web: Supports"). A complete ACR is titled "<vendor> Accessibility Conformance Report,
+  Revised Section 508 Edition" with the line "(Based on VPAT® Version 2.5Rev)". Any other ACR is
+  titled "DRAFT <vendor> Accessibility Conformance Report", opens with a Draft banner that counts
+  the rows not decided and lists every reason it is not complete, and does not use the VPAT name
+  at all: ITI allows the name only on a report that meets the template's Essential Requirements.
+  The DOCX is in US English with title and author properties, Heading 1 to 3 styles, bulleted
+  lists and data tables with a repeating header row, and no images; its created and modified
+  dates, and the dates inside the file, are the time the scan finished, so the same scan gives
+  the same bytes. VPAT is a registered service mark of the Information Technology Industry
+  Council (ITI).
 
 ## Disclaimer
 

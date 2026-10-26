@@ -70,15 +70,15 @@ describe('SARIF scope completeness', () => {
 
   it('lists skipped pages as notes, capped, without failing the run', () => {
     const skipped = Array.from({ length: MAX_SKIPPED_NOTIFICATIONS + 5 }, (_, i) => ({
-      url: `https://site.example/file${i}.pdf`,
-      finalUrl: `https://site.example/file${i}.pdf`,
-      reason: 'pdf-url',
+      url: `https://site.example/old${i}`,
+      finalUrl: `https://other.example/${i}`,
+      reason: 'redirect-off-origin',
     }));
     const s = sarifFor({ skipped });
     expect(invocation(s).executionSuccessful).toBe(true);
     const n = notes(s);
     expect(n.every((x) => x.level === 'note')).toBe(true);
-    expect(n.filter((x) => x.properties.code === 'pdf-url')).toHaveLength(
+    expect(n.filter((x) => x.properties.code === 'redirect-off-origin')).toHaveLength(
       MAX_SKIPPED_NOTIFICATIONS,
     );
     const more = n.find((x) => x.properties.code === 'skipped-more');

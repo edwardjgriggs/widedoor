@@ -80,15 +80,22 @@ runs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         fi
 
-    # Skipped for a URL-only scan: command-line targets replace the config's PDFs.
+    # Pulled for URL-only scans too: a .pdf URL, a crawl's PDF links and a page served as
+    # application/pdf are all fetched and scanned as PDFs.
     # Pull by digest; bump together with VERAPDF_IMAGE_REF in packages/pdf/src/verapdf.ts
     # and the digest in .github/workflows/ci.yml (action.test.ts checks).
     - name: Pull veraPDF image
-      if: runner.os == 'Linux' && (inputs.files != '' || inputs.urls == '')
+      if: runner.os == 'Linux'
       shell: bash
       env:
         VERAPDF_DIGEST: sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c
+      # Without Docker (a self-hosted runner), skip the pull: a PDF scan then reports
+      # veraPDF as unavailable, with the fix, as it does on any host.
       run: |
+        if ! command -v docker > /dev/null 2>&1; then
+          echo "Docker is not on PATH; skipping the veraPDF image pull."
+          exit 0
+        fi
         docker pull "verapdf/cli@${VERAPDF_DIGEST}"
         docker tag "verapdf/cli@${VERAPDF_DIGEST}" verapdf/cli:v1.30.3
 

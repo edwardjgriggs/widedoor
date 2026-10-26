@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { UsageError, parseCommand } from '../src/args.ts';
+import {
+  ACR_FORMATS,
+  DEFAULT_FORMATS,
+  FORMATS,
+  USAGE,
+  UsageError,
+  parseCommand,
+} from '../src/args.ts';
 
 describe('parseCommand', () => {
   it('parses a scan with every flag', () => {
@@ -38,6 +45,32 @@ describe('parseCommand', () => {
     });
   });
 
+  it('takes junit as an opt-in format', () => {
+    expect(parseCommand(['scan', '--format', 'junit,json'])).toMatchObject({
+      formats: ['junit', 'json'],
+    });
+    expect(DEFAULT_FORMATS).toEqual(['html', 'json', 'sarif']);
+    expect(FORMATS).toContain('junit');
+  });
+
+  it('takes openacr as an opt-in format', () => {
+    expect(parseCommand(['scan', '--format', 'openacr,json'])).toMatchObject({
+      formats: ['openacr', 'json'],
+    });
+    expect(DEFAULT_FORMATS).not.toContain('openacr');
+    expect(USAGE).toContain('openacr writes the ACR as report.openacr.yaml');
+  });
+
+  it('takes vpat-html and vpat-docx as opt-in ACR formats', () => {
+    expect(parseCommand(['scan', '--format', 'vpat-html,vpat-docx'])).toMatchObject({
+      formats: ['vpat-html', 'vpat-docx'],
+    });
+    expect(DEFAULT_FORMATS).not.toContain('vpat-html');
+    expect(DEFAULT_FORMATS).not.toContain('vpat-docx');
+    expect(ACR_FORMATS).toEqual(['openacr', 'vpat-html', 'vpat-docx']);
+    expect(USAGE).toContain('vpat-html and vpat-docx as report.vpat.html and');
+  });
+
   it('leaves unset flags out, so the config and defaults apply', () => {
     expect(parseCommand(['scan'])).toEqual({
       command: 'scan',
@@ -54,10 +87,10 @@ describe('parseCommand', () => {
 
   it.each([
     [[], /no command given/],
-    [['review'], /unknown command "review"/],
+    [['audit'], /unknown command "audit"; expected scan, ui, review or diff/],
     [['scan', '--bogus'], /Unknown option '--bogus'/],
     [['scan', '--profile', '2.2'], /--profile must be one of 508, wcag21aa, 508\+wcag21aa/],
-    [['scan', '--format', 'pdf'], /--format must be one of html, json, sarif/],
+    [['scan', '--format', 'pdf'], /--format must be one of html, json, sarif, junit/],
     [['scan', '--format', 'html,,json'], /comma-separated list/],
     [
       ['scan', '--fail-on', 'high'],

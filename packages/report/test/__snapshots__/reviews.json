@@ -1,0 +1,4016 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "widedoor",
+    "version": "0.0.0"
+  },
+  "engines": [
+    {
+      "name": "axe-core",
+      "version": "4.14.0"
+    },
+    {
+      "name": "verapdf",
+      "version": "1.30.3",
+      "runner": "docker"
+    },
+    {
+      "name": "widedoor",
+      "version": "0.0.0"
+    }
+  ],
+  "profile": {
+    "id": "508+wcag21aa",
+    "pdfDocumentType": "non-web"
+  },
+  "startedAt": "2026-10-23T12:00:00.000Z",
+  "finishedAt": "2026-10-23T12:05:00.000Z",
+  "scope": {
+    "web": {
+      "urls": [
+        "https://example.gov/apply"
+      ],
+      "truncated": false
+    },
+    "pdf": {
+      "files": [
+        "docs/form.pdf"
+      ],
+      "include": []
+    }
+  },
+  "assets": [
+    {
+      "kind": "web",
+      "uri": "https://example.gov/apply",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "kind": "pdf",
+      "uri": "docs/form.pdf",
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "titles": [
+    {
+      "uri": "https://example.gov/apply",
+      "title": "Apply for a permit"
+    }
+  ],
+  "findings": [
+    {
+      "schemaVersion": 1,
+      "id": "wd_d69cffd69fc2d95c",
+      "criteria": {
+        "wcag": [
+          "1.1.1"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "critical",
+      "evidence": {
+        "snippet": "<img class=\"hero\" src=\"hero.png\">"
+      },
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.gov/apply",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "img.hero"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "image-alt"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_768f65db469e539e",
+      "criteria": {
+        "wcag": [
+          "1.4.3"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.gov/apply",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "p.faint"
+      },
+      "source": {
+        "engine": "axe-core",
+        "engineVersion": "4.14.0",
+        "ruleId": "color-contrast"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_5bbe0b363628261e",
+      "criteria": {
+        "wcag": [
+          "1.1.1"
+        ]
+      },
+      "outcome": "fail",
+      "impact": "serious",
+      "asset": {
+        "kind": "pdf",
+        "uri": "docs/form.pdf",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "location": {
+        "page": 1
+      },
+      "source": {
+        "engine": "verapdf",
+        "engineVersion": "1.30.3",
+        "ruleId": "7.3-1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_c4e082b34f08a6b0",
+      "criteria": {
+        "wcag": [
+          "1.1.1"
+        ]
+      },
+      "outcome": "pass",
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.gov/apply",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "html"
+      },
+      "source": {
+        "engine": "manual",
+        "engineVersion": "0.2.0",
+        "ruleId": "wcag-1.1.1"
+      },
+      "review": {
+        "reviewer": "Ada </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>",
+        "date": "2026-10-22",
+        "notes": "The hero image is decorative; axe misreads its role. </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>",
+        "expiresOnChangeOf": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "overrides": [
+          "wd_d69cffd69fc2d95c"
+        ],
+        "attachments": [
+          "attachments/ck_0123456789abcdef-1-0a1b2c3d.png",
+          "attachments/ck_fedcba9876543210-1-0a1b2c3d.png"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_c9f333122ba5d2c2",
+      "criteria": {
+        "wcag": [
+          "2.1.1"
+        ]
+      },
+      "outcome": "pass",
+      "asset": {
+        "kind": "web",
+        "uri": "https://example.gov/apply",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "location": {
+        "selector": "html"
+      },
+      "source": {
+        "engine": "manual",
+        "engineVersion": "0.2.0",
+        "ruleId": "wcag-2.1.1"
+      },
+      "review": {
+        "reviewer": "Grace Hopper",
+        "date": "2026-10-22",
+        "notes": "Tabbed through every control.",
+        "expiresOnChangeOf": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "attachments": [
+          "attachments/ck_0123456789abcdef-2-0a1b2c3d.jpg",
+          "attachments/ck_fedcba9876543210-2-0a1b2c3d.png",
+          "attachments/ck_0123456789abcdef-1-0a1b2c3d.png"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "wd_274dbd3aeeffc189",
+      "criteria": {
+        "wcag": [
+          "1.3.2"
+        ]
+      },
+      "outcome": "pass",
+      "asset": {
+        "kind": "pdf",
+        "uri": "docs/form.pdf",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "location": {},
+      "source": {
+        "engine": "manual",
+        "engineVersion": "0.2.0",
+        "ruleId": "wcag-1.3.2"
+      },
+      "review": {
+        "reviewer": "Grace Hopper",
+        "date": "2026-10-22",
+        "notes": "Reading order checked in a screen reader.",
+        "expiresOnChangeOf": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      }
+    }
+  ],
+  "informational": [],
+  "errors": [],
+  "skipped": [],
+  "warnings": [
+    "manual review record wd_0 (wcag-9.9.9) was left out: orphaned: </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+  ],
+  "rollup": {
+    "profile": "508+wcag21aa",
+    "standards": [
+      {
+        "standard": "508",
+        "criteria": [
+          {
+            "id": "1.1.1",
+            "title": "Non-text Content",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Partially Supports",
+            "reason": "1 of 2 applicable assets fails; 1 passes",
+            "evidence": [
+              "wd_c4e082b34f08a6b0",
+              "wd_5bbe0b363628261e"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "manual-override",
+                "evidence": [
+                  "wd_c4e082b34f08a6b0"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": [
+                  "wd_d69cffd69fc2d95c"
+                ]
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_5bbe0b363628261e"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.1",
+            "title": "Audio-only and Video-only (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.2",
+            "title": "Captions (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.3",
+            "title": "Audio Description or Media Alternative (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.4",
+            "title": "Captions (Live)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.5",
+            "title": "Audio Description (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.1",
+            "title": "Info and Relationships",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.2",
+            "title": "Meaningful Sequence",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-deciding-result",
+                "evidence": [],
+                "undecided": [],
+                "expired": [
+                  "wd_274dbd3aeeffc189"
+                ],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.3",
+            "title": "Sensory Characteristics",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.1",
+            "title": "Use of Color",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.2",
+            "title": "Audio Control",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.3",
+            "title": "Contrast (Minimum)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 2 applicable assets fails; none pass",
+            "evidence": [
+              "wd_768f65db469e539e"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_768f65db469e539e"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.4",
+            "title": "Resize Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.5",
+            "title": "Images of Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.1",
+            "title": "Keyboard",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "1 of 2 applicable assets has no deciding result",
+            "evidence": [
+              "wd_c9f333122ba5d2c2"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "manual-pass",
+                "evidence": [
+                  "wd_c9f333122ba5d2c2"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.2",
+            "title": "No Keyboard Trap",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.1",
+            "title": "Timing Adjustable",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.2",
+            "title": "Pause, Stop, Hide",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.3.1",
+            "title": "Three Flashes or Below Threshold",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.1",
+            "title": "Bypass Blocks",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-applicable",
+                "reason": "profile-not-applicable",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": [],
+                "exception": {
+                  "provision": "E205.4",
+                  "reason": "Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification."
+                }
+              }
+            ]
+          },
+          {
+            "id": "2.4.2",
+            "title": "Page Titled",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.3",
+            "title": "Focus Order",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.4",
+            "title": "Link Purpose (In Context)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.5",
+            "title": "Multiple Ways",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-applicable",
+                "reason": "profile-not-applicable",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": [],
+                "exception": {
+                  "provision": "E205.4",
+                  "reason": "Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification."
+                }
+              }
+            ]
+          },
+          {
+            "id": "2.4.6",
+            "title": "Headings and Labels",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.7",
+            "title": "Focus Visible",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.1",
+            "title": "Language of Page",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.2",
+            "title": "Language of Parts",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.1",
+            "title": "On Focus",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.2",
+            "title": "On Input",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.3",
+            "title": "Consistent Navigation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-applicable",
+                "reason": "profile-not-applicable",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": [],
+                "exception": {
+                  "provision": "E205.4",
+                  "reason": "Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification."
+                }
+              }
+            ]
+          },
+          {
+            "id": "3.2.4",
+            "title": "Consistent Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-applicable",
+                "reason": "profile-not-applicable",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": [],
+                "exception": {
+                  "provision": "E205.4",
+                  "reason": "Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification."
+                }
+              }
+            ]
+          },
+          {
+            "id": "3.3.1",
+            "title": "Error Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.2",
+            "title": "Labels or Instructions",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.3",
+            "title": "Error Suggestion",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.4",
+            "title": "Error Prevention (Legal, Financial, Data)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.1",
+            "title": "Parsing",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Supports",
+            "reason": "all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): \"This criterion should be considered as always satisfied for any content using HTML or XML.\"; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): \"This Success Criterion should be considered as always satisfied for any content using HTML or XML.\"; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): \"Always answer 'Supports'\"",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "errata",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "pass",
+                "reason": "errata",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.2",
+            "title": "Name, Role, Value",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "302.1",
+            "title": "Without Vision",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.2",
+            "title": "With Limited Vision",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.3",
+            "title": "Without Perception of Color",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.4",
+            "title": "Without Hearing",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.5",
+            "title": "With Limited Hearing",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.6",
+            "title": "Without Speech",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.7",
+            "title": "With Limited Manipulation",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.8",
+            "title": "With Limited Reach and Strength",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "302.9",
+            "title": "With Limited Language, Cognitive, and Learning Abilities",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "502.2.1",
+            "title": "User Control of Accessibility Features",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "502.2.1",
+              "text": "Applies only to platform software, the addressee of 502.2.1. A web application is not platform software."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.2.2",
+            "title": "No Disruption of Accessibility Features",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3",
+            "title": "Accessibility Services",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "502.3",
+              "text": "Applies only to platform software and software tools provided by the platform developer, the addressee of 502.3. A web application is not platform software."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.1",
+            "title": "Object Information",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.2",
+            "title": "Modification of Object Information",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.3",
+            "title": "Row, Column, and Headers",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.4",
+            "title": "Values",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.5",
+            "title": "Modification of Values",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.6",
+            "title": "Label Relationships",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.7",
+            "title": "Hierarchical Relationships",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.8",
+            "title": "Text",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.9",
+            "title": "Modification of Text",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.10",
+            "title": "List of Actions",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.11",
+            "title": "Actions on Objects",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.12",
+            "title": "Focus Cursor",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.13",
+            "title": "Modification of Focus Cursor",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.3.14",
+            "title": "Event Notification",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "502.4",
+            "title": "Platform Accessibility Features",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "502.4",
+              "text": "Applies only to platforms and platform software, the addressee of 502.4. A web application is not platform software."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "503.2",
+            "title": "User Preferences",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "503.3",
+            "title": "Alternative User Interfaces",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "503.4",
+            "title": "User Controls for Captions and Audio Description",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "503.4.1",
+            "title": "Caption Controls",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "503.4.2",
+            "title": "Audio Description Controls",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "501.1",
+              "text": "Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "504.2",
+            "title": "Content Creation or Editing",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "504.1",
+              "text": "Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "504.2.1",
+            "title": "Preservation of Information Provided for Accessibility in Format Conversion",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "504.1",
+              "text": "Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "504.2.2",
+            "title": "PDF Export",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "504.1",
+              "text": "Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "504.3",
+            "title": "Prompts",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "504.1",
+              "text": "Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "504.4",
+            "title": "Templates",
+            "type": "section508",
+            "scope": "asset",
+            "condition": {
+              "provision": "504.1",
+              "text": "Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format."
+            },
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "602.2",
+            "title": "Accessibility and Compatibility Features",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "602.3",
+            "title": "Electronic Support Documentation",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "602.4",
+            "title": "Alternate Formats for Non-Electronic Support Documentation",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "603.2",
+            "title": "Information on Accessibility and Compatibility Features",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          },
+          {
+            "id": "603.3",
+            "title": "Accommodation of Communication Needs",
+            "type": "section508",
+            "scope": "product",
+            "level": "Not Evaluated",
+            "reason": "the 1 applicable asset has no deciding result",
+            "evidence": [],
+            "assets": [],
+            "product": {
+              "state": "not-evaluated",
+              "reason": "no-results",
+              "evidence": [],
+              "undecided": [],
+              "expired": [],
+              "overridden": []
+            }
+          }
+        ]
+      },
+      {
+        "standard": "wcag21aa",
+        "criteria": [
+          {
+            "id": "1.1.1",
+            "title": "Non-text Content",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Partially Supports",
+            "reason": "1 of 2 applicable assets fails; 1 passes",
+            "evidence": [
+              "wd_c4e082b34f08a6b0",
+              "wd_5bbe0b363628261e"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "manual-override",
+                "evidence": [
+                  "wd_c4e082b34f08a6b0"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": [
+                  "wd_d69cffd69fc2d95c"
+                ]
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_5bbe0b363628261e"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.1",
+            "title": "Audio-only and Video-only (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.2",
+            "title": "Captions (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.3",
+            "title": "Audio Description or Media Alternative (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.4",
+            "title": "Captions (Live)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.2.5",
+            "title": "Audio Description (Prerecorded)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.1",
+            "title": "Info and Relationships",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.2",
+            "title": "Meaningful Sequence",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-deciding-result",
+                "evidence": [],
+                "undecided": [],
+                "expired": [
+                  "wd_274dbd3aeeffc189"
+                ],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.3",
+            "title": "Sensory Characteristics",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.4",
+            "title": "Orientation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.3.5",
+            "title": "Identify Input Purpose",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.1",
+            "title": "Use of Color",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.2",
+            "title": "Audio Control",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.3",
+            "title": "Contrast (Minimum)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Does Not Support",
+            "reason": "1 of 2 applicable assets fails; none pass",
+            "evidence": [
+              "wd_768f65db469e539e"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "fail",
+                "reason": "automated-fail",
+                "evidence": [
+                  "wd_768f65db469e539e"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.4",
+            "title": "Resize Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.5",
+            "title": "Images of Text",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.10",
+            "title": "Reflow",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.11",
+            "title": "Non-text Contrast",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.12",
+            "title": "Text Spacing",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "1.4.13",
+            "title": "Content on Hover or Focus",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.1",
+            "title": "Keyboard",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "1 of 2 applicable assets has no deciding result",
+            "evidence": [
+              "wd_c9f333122ba5d2c2"
+            ],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "manual-pass",
+                "evidence": [
+                  "wd_c9f333122ba5d2c2"
+                ],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.2",
+            "title": "No Keyboard Trap",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.1.4",
+            "title": "Character Key Shortcuts",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.1",
+            "title": "Timing Adjustable",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.2.2",
+            "title": "Pause, Stop, Hide",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.3.1",
+            "title": "Three Flashes or Below Threshold",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.1",
+            "title": "Bypass Blocks",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.2",
+            "title": "Page Titled",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.3",
+            "title": "Focus Order",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.4",
+            "title": "Link Purpose (In Context)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.5",
+            "title": "Multiple Ways",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.6",
+            "title": "Headings and Labels",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.4.7",
+            "title": "Focus Visible",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.1",
+            "title": "Pointer Gestures",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.2",
+            "title": "Pointer Cancellation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.3",
+            "title": "Label in Name",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "2.5.4",
+            "title": "Motion Actuation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.1",
+            "title": "Language of Page",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.1.2",
+            "title": "Language of Parts",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.1",
+            "title": "On Focus",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.2",
+            "title": "On Input",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.3",
+            "title": "Consistent Navigation",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.2.4",
+            "title": "Consistent Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.1",
+            "title": "Error Identification",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.2",
+            "title": "Labels or Instructions",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.3",
+            "title": "Error Suggestion",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "3.3.4",
+            "title": "Error Prevention (Legal, Financial, Data)",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.1",
+            "title": "Parsing",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Supports",
+            "reason": "all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): \"This criterion should be considered as always satisfied for any content using HTML or XML.\"; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): \"This Success Criterion should be considered as always satisfied for any content using HTML or XML.\"; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): \"Always answer 'Supports'\"",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "pass",
+                "reason": "errata",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "pass",
+                "reason": "errata",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.2",
+            "title": "Name, Role, Value",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          },
+          {
+            "id": "4.1.3",
+            "title": "Status Messages",
+            "type": "wcag",
+            "scope": "asset",
+            "level": "Not Evaluated",
+            "reason": "2 of 2 applicable assets have no deciding result",
+            "evidence": [],
+            "assets": [
+              {
+                "uri": "https://example.gov/apply",
+                "kind": "web",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              },
+              {
+                "uri": "docs/form.pdf",
+                "kind": "pdf",
+                "state": "not-evaluated",
+                "reason": "no-results",
+                "evidence": [],
+                "undecided": [],
+                "expired": [],
+                "overridden": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "checklist": {
+    "total": 140,
+    "byStatus": {
+      "open": 135,
+      "done": 2,
+      "expired": 1,
+      "failed-automated": 2
+    },
+    "unscanned": 0
+  },
+  "overrides": [
+    {
+      "finding": "wd_d69cffd69fc2d95c",
+      "uri": "https://example.gov/apply",
+      "engine": "axe-core",
+      "ruleId": "image-alt",
+      "record": "wd_c4e082b34f08a6b0",
+      "criterion": {
+        "type": "wcag",
+        "id": "1.1.1"
+      },
+      "reviewer": "Ada </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>",
+      "date": "2026-10-22",
+      "notes": "The hero image is decorative; axe misreads its role. </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+    }
+  ],
+  "disclaimer": "This report documents the testing performed. It is not a certification of conformance."
+}

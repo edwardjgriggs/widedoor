@@ -2,18 +2,22 @@ import {
   currentHashes,
   isCurrentRecord,
   loadStandardsData,
+  safeText,
   type Finding,
   type Impact,
   type StandardsData,
 } from '@widedoor/core';
 import { axeRuleUrl, understandingUrl } from './links.js';
 import { ordinal, type ScanReport } from './model.js';
+import { overrideEntries } from './overrides.js';
 import { loadPlainData, plainFor, type PlainData } from './plain.js';
 
 /*
  * SARIF 2.1.0 for developer tooling such as GitHub code scanning: one run,
  * one result per current fail record (an expired manual review is not a
- * result), one rule per engine and rule id. Scan errors are error-level tool
+ * result), one rule per engine and rule id. A fail a reviewer set aside stays
+ * a result, suppressed (kind external) with the reviewer's notes as the
+ * justification, so code scanning shows it as dismissed. Scan errors are error-level tool
  * notifications; skipped pages and scope gaps are note-level ones, and
  * run.properties.scopeComplete says whether anything was left out. Web results
  * carry the page URL and a logical location (the CSS selector); PDF results
@@ -163,9 +167,19 @@ export function toSarif(report: ScanReport, options: SarifOptions = {}): Record<
     };
   });
 
+  // Notes of the overrides that set each fail aside, by asset and finding id.
+  const justifications = new Map<string, string[]>();
+  for (const o of overrideEntries(report)) {
+    const key = `${o.uri}\u0000${o.finding}`;
+    const notes = justifications.get(key) ?? [];
+    if (!notes.includes(o.notes)) notes.push(o.notes);
+    justifications.set(key, notes);
+  }
+
   const results = fails.map((f) => {
     const id = `${f.source.engine}/${f.source.ruleId}`;
     const p = plainFor(f, plain);
+    const notes = justifications.get(`${f.asset.uri}\u0000${f.id}`);
     return {
       ruleId: id,
       ruleIndex: index.get(id),
@@ -179,6 +193,9 @@ export function toSarif(report: ScanReport, options: SarifOptions = {}): Record<
       locations: [where(f)],
       // Not unique: records can share a finding id. It is the stable identity of the issue across scans.
       partialFingerprints: { 'widedoorFindingId/v1': f.id },
+      ...(notes
+        ? { suppressions: [{ kind: 'external', justification: safeText(notes.join('; '), 2000) }] }
+        : {}),
       properties: {
         widedoorFindingId: f.id,
         engineVersion: f.source.engineVersion,

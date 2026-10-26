@@ -37,6 +37,10 @@ function widedoorData(): Plugin {
         },
         wcag: standards.wcag.criteria.map((c) => [c.id, c.title]),
         provisions: standards.section508.provisions.map((p) => [p.id, p.title]),
+        errata: standards.errata.criteria.map((c) => [
+          c.id,
+          c.citations.map((x) => ({ name: x.name, url: x.url })),
+        ]),
       };
       return `export default ${JSON.stringify(bundled)};`;
     },

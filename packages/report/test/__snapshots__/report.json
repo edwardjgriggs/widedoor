@@ -371,7 +371,7 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Does Not Support",
-            "reason": "1 of 5 applicable assets fail; none pass",
+            "reason": "1 of 5 applicable assets fails; none pass",
             "evidence": [
               "wd_d11e353cd504d30d"
             ],
@@ -385,7 +385,8 @@
                 "undecided": [
                   "wd_2a6c23bd84b57de8"
                 ],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -396,7 +397,8 @@
                   "wd_d11e353cd504d30d"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -405,7 +407,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -414,7 +417,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -423,7 +427,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -443,7 +448,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -452,7 +458,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -461,7 +468,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -470,7 +478,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -479,7 +488,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -499,7 +509,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -508,7 +519,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -517,7 +529,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -526,7 +539,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -535,7 +549,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -555,7 +570,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -564,7 +580,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -573,7 +590,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -582,7 +600,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -591,7 +610,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -611,7 +631,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -620,7 +641,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -629,7 +651,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -638,7 +661,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -647,7 +671,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -667,7 +692,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -676,7 +702,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -685,7 +712,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -694,7 +722,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -703,7 +732,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -723,7 +753,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -732,7 +763,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -741,7 +773,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -750,7 +783,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -759,7 +793,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -779,7 +814,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -790,7 +826,8 @@
                 "undecided": [
                   "wd_9eff8471fa2b37f6"
                 ],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -799,7 +836,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -808,7 +846,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -817,7 +856,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -837,7 +877,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -846,7 +887,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -855,7 +897,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -864,7 +907,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -873,7 +917,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -893,7 +938,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -902,7 +948,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -911,7 +958,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -920,7 +968,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -929,7 +978,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -949,7 +999,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -958,7 +1009,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -967,7 +1019,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -976,7 +1029,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -985,7 +1039,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1005,7 +1060,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1014,7 +1070,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1023,7 +1080,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1032,7 +1090,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1041,7 +1100,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1061,7 +1121,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1070,7 +1131,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1079,7 +1141,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1088,7 +1151,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1097,7 +1161,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1107,7 +1172,7 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Does Not Support",
-            "reason": "1 of 5 applicable assets fail; none pass",
+            "reason": "1 of 5 applicable assets fails; none pass",
             "evidence": [
               "wd_636b5b8952d4c8eb"
             ],
@@ -1121,7 +1186,8 @@
                   "wd_636b5b8952d4c8eb"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1130,7 +1196,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1139,7 +1206,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1148,7 +1216,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1157,7 +1226,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1177,7 +1247,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1186,7 +1257,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1195,7 +1267,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1204,7 +1277,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1213,7 +1287,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1233,7 +1308,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1242,7 +1318,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1251,7 +1328,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1260,7 +1338,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1269,7 +1348,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1289,7 +1369,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1298,7 +1379,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1307,7 +1389,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1316,7 +1399,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1325,7 +1409,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1345,7 +1430,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1354,7 +1440,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1363,7 +1450,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1372,7 +1460,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1381,7 +1470,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1401,7 +1491,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1410,7 +1501,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1419,7 +1511,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1428,7 +1521,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1437,7 +1531,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1457,7 +1552,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1466,7 +1562,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1475,7 +1572,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1484,7 +1582,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1493,7 +1592,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1513,7 +1613,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1522,7 +1623,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1531,7 +1633,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1540,7 +1643,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1549,7 +1653,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1573,7 +1678,8 @@
                   "wd_ee09a4749dff24c4"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1582,7 +1688,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1591,7 +1698,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1600,7 +1708,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1609,7 +1718,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1629,7 +1739,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1638,7 +1749,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1647,7 +1759,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1656,7 +1769,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1665,7 +1779,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1685,7 +1800,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1694,7 +1810,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1703,7 +1820,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1712,7 +1830,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1721,7 +1840,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1741,7 +1861,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1750,7 +1871,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1759,7 +1881,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1768,7 +1891,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1777,7 +1901,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1797,7 +1922,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1806,7 +1932,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1815,7 +1942,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1824,7 +1952,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1833,7 +1962,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1853,7 +1983,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1862,7 +1993,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1871,7 +2003,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1880,7 +2013,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1889,7 +2023,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1899,7 +2034,7 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Does Not Support",
-            "reason": "1 of 5 applicable assets fail; none pass",
+            "reason": "1 of 5 applicable assets fails; none pass",
             "evidence": [
               "wd_6ace2f5d3c1bf90a"
             ],
@@ -1913,7 +2048,8 @@
                 "undecided": [
                   "wd_8e81a1a4ab549cae"
                 ],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1924,7 +2060,8 @@
                   "wd_6ace2f5d3c1bf90a"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1933,7 +2070,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1942,7 +2080,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -1951,7 +2090,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -1971,7 +2111,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -1980,7 +2121,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -1989,7 +2131,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -1998,7 +2141,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2007,7 +2151,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2017,7 +2162,7 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Does Not Support",
-            "reason": "1 of 5 applicable assets fail; none pass",
+            "reason": "1 of 5 applicable assets fails; none pass",
             "evidence": [
               "wd_87dfc58f7b9a558c"
             ],
@@ -2031,7 +2176,8 @@
                   "wd_87dfc58f7b9a558c"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2040,7 +2186,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2049,7 +2196,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2058,7 +2206,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2067,7 +2216,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2087,7 +2237,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2096,7 +2247,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2105,7 +2257,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2114,7 +2267,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2123,7 +2277,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2143,7 +2298,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2152,7 +2308,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2161,7 +2318,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2170,7 +2328,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2179,7 +2338,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2199,7 +2359,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2208,7 +2369,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2217,7 +2379,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2226,7 +2389,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2235,7 +2399,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2255,7 +2420,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2264,7 +2430,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2273,7 +2440,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2282,7 +2450,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2291,7 +2460,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2311,7 +2481,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2320,7 +2491,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2329,7 +2501,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2338,7 +2511,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2347,7 +2521,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2367,7 +2542,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2376,7 +2552,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2385,7 +2562,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2394,7 +2572,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2403,7 +2582,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2423,7 +2603,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2432,7 +2613,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2441,7 +2623,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2450,7 +2633,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2459,7 +2643,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2479,7 +2664,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2488,7 +2674,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2497,7 +2684,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2506,7 +2694,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2515,7 +2704,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2535,7 +2725,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2544,7 +2735,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2553,7 +2745,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2562,7 +2755,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2571,7 +2765,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2591,7 +2786,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2600,7 +2796,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2609,7 +2806,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2618,7 +2816,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2627,7 +2826,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2647,7 +2847,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2656,7 +2857,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2665,7 +2867,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2674,7 +2877,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2683,7 +2887,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2703,7 +2908,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2712,7 +2918,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2721,7 +2928,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2730,7 +2938,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2739,7 +2948,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2759,7 +2969,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2768,7 +2979,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2777,7 +2989,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2786,7 +2999,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2795,7 +3009,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2815,7 +3030,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2824,7 +3040,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2833,7 +3050,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2842,7 +3060,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2851,7 +3070,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2871,7 +3091,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2880,7 +3101,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2889,7 +3111,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2898,7 +3121,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2907,7 +3131,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2927,7 +3152,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2936,7 +3162,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -2945,7 +3172,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -2954,7 +3182,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -2963,7 +3192,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -2983,7 +3213,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -2992,7 +3223,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -3001,7 +3233,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -3010,7 +3243,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -3019,7 +3253,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -3029,26 +3264,28 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Not Evaluated",
-            "reason": "5 of 5 applicable assets have no deciding result",
+            "reason": "3 of 5 applicable assets have no deciding result. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): \"This criterion should be considered as always satisfied for any content using HTML or XML.\"; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): \"This Success Criterion should be considered as always satisfied for any content using HTML or XML.\"; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): \"Always answer 'Supports'\"",
             "evidence": [],
             "assets": [
               {
                 "uri": "https://example.com/contact?q=\"><script>alert(3)</script>",
                 "kind": "web",
-                "state": "not-evaluated",
-                "reason": "no-results",
+                "state": "pass",
+                "reason": "errata",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
                 "kind": "pdf",
-                "state": "not-evaluated",
-                "reason": "no-results",
+                "state": "pass",
+                "reason": "errata",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -3057,7 +3294,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -3066,7 +3304,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -3075,7 +3314,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -3085,7 +3325,7 @@
             "type": "wcag",
             "scope": "asset",
             "level": "Does Not Support",
-            "reason": "1 of 5 applicable assets fail; none pass",
+            "reason": "1 of 5 applicable assets fails; none pass",
             "evidence": [
               "wd_3cec12c46032865a",
               "wd_87dfc58f7b9a558c"
@@ -3101,7 +3341,8 @@
                   "wd_87dfc58f7b9a558c"
                 ],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -3110,7 +3351,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -3119,7 +3361,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -3128,7 +3371,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -3137,7 +3381,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           },
@@ -3157,7 +3402,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/annual report.pdf",
@@ -3166,7 +3412,8 @@
                 "reason": "no-results",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "javascript:alert(5)",
@@ -3175,7 +3422,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "docs/broken.pdf",
@@ -3184,7 +3432,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               },
               {
                 "uri": "https://example.com/out",
@@ -3193,7 +3442,8 @@
                 "reason": "not-scanned",
                 "evidence": [],
                 "undecided": [],
-                "expired": []
+                "expired": [],
+                "overridden": []
               }
             ]
           }
@@ -3201,5 +3451,16 @@
       }
     ]
   },
+  "checklist": {
+    "total": 98,
+    "byStatus": {
+      "open": 92,
+      "done": 1,
+      "expired": 0,
+      "failed-automated": 5
+    },
+    "unscanned": 3
+  },
+  "overrides": [],
   "disclaimer": "This report documents the testing performed. It is not a certification of conformance."
 }

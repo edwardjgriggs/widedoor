@@ -1,5 +1,5 @@
 import { currentHashes, isCurrentRecord, type Impact } from '@widedoor/core';
-import type { ScanReport } from '@widedoor/report';
+import { NO_OVERRIDES, overriddenFails, type ScanReport } from '@widedoor/report';
 import type { FailOn } from './args.js';
 import { plural } from './text.js';
 
@@ -8,8 +8,9 @@ import { plural } from './text.js';
  * any in-scope asset could not be scanned, when the page cap left listed
  * pages (or sitemap pages without a crawl) unscanned, or when nothing was
  * scanned at all; 1 when a current fail record has an impact at or above the
- * threshold; 0 otherwise. Needs-review never counts, and a crawl stopped by
- * the page cap is a scope gap, not an error.
+ * threshold; 0 otherwise. Needs-review never counts, nor does an automated
+ * fail a reviewer set aside as a false positive (overriddenFails), and a
+ * crawl stopped by the page cap is a scope gap, not an error.
  */
 
 export const EXIT_OK = 0;
@@ -29,16 +30,22 @@ export function tripsThreshold(impact: Impact | undefined, failOn: FailOn): bool
   return impact === undefined || RANK[impact] >= RANK[failOn];
 }
 
+/** What the gate reads of a report; without a roll-up nothing is overridden. */
+export type GateReport = Pick<ScanReport, 'findings' | 'assets'> &
+  Partial<Pick<ScanReport, 'rollup'>>;
+
 /**
  * The fail records that count. A manual record counts only while its review
  * still matches the asset's current content hash (an expired review no longer
- * describes the asset; the roll-up lists it as expired).
+ * describes the asset; the roll-up lists it as expired). An automated fail
+ * the roll-up lists as overridden in every criterion it counts in does not.
  */
-export function countingFails(
-  report: Pick<ScanReport, 'findings' | 'assets'>,
-): ScanReport['findings'] {
+export function countingFails(report: GateReport): ScanReport['findings'] {
   const hashes = currentHashes(report.assets);
-  return report.findings.filter((f) => f.outcome === 'fail' && isCurrentRecord(f, hashes));
+  const overridden = report.rollup ? overriddenFails({ rollup: report.rollup }) : NO_OVERRIDES;
+  return report.findings.filter(
+    (f) => f.outcome === 'fail' && isCurrentRecord(f, hashes) && !overridden(f),
+  );
 }
 
 export interface ScopeCap {
@@ -50,7 +57,7 @@ export interface ScopeCap {
 }
 
 export function exitDecision(
-  report: Pick<ScanReport, 'findings' | 'assets' | 'errors' | 'skipped'>,
+  report: GateReport & Pick<ScanReport, 'errors' | 'skipped'>,
   failOn: FailOn,
   cap: ScopeCap = { unscannedListed: 0 },
 ): ExitDecision {

@@ -1,19 +1,36 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { loadStandardsData } from '@widedoor/core';
-import { loadPlainData, renderHtml, type ScanReport } from '@widedoor/report';
+import {
+  AttachmentLoader,
+  loadPlainData,
+  manualReviews,
+  renderHtml,
+  type ScanReport,
+} from '@widedoor/report';
 import { PAYLOAD, fixtureReport } from '../../report/test/fixture.ts';
+import {
+  NOTES,
+  REVIEWER,
+  reviewFixtureReport,
+  writeAttachments,
+} from '../../report/test/review-fixture.ts';
 import { ReportView, reportLead } from '../src/ReportView.tsx';
-import type { UiData } from '../src/data.ts';
+import type { ScreenshotView, UiData } from '../src/data.ts';
 import { fixture508 } from './fixture-508.ts';
 
 /*
- * The viewer must say what the HTML report says. Both render two fixtures:
+ * The viewer must say what the HTML report says. Both render three fixtures:
  * the report package's (every outcome, hostile strings, unscanned assets, a
- * manual review) and fixture-508.ts (the 508 view of a web page and a
- * non-web PDF: E205.4 exceptions, Chapter 5 conditions, pdf-url and capped
- * skips, sitemap and crawl scope, an empty title, ACT and Baseline items).
+ * manual review), its review fixture (an override, the errata basis, an
+ * expired review, attachments) and fixture-508.ts (the 508 view of a web page and a
+ * non-web PDF: E205.4 exceptions, Chapter 5 conditions, an older report's
+ * pdf-url and capped skips, sitemap, crawl and PDF URL scope, an empty title,
+ * ACT and Baseline items).
  * The text of every block element in every section must match, as must every
  * link and image.
  */
@@ -26,6 +43,7 @@ const data: UiData = {
   plain: loadPlainData(),
   wcagTitle: new Map(standards.wcag.criteria.map((c) => [c.id, c.title])),
   provisionTitle: new Map(standards.section508.provisions.map((p) => [p.id, p.title])),
+  errata: new Map(standards.errata.criteria.map((c) => [c.id, c.citations])),
 };
 
 const BLOCKS = new Set([
@@ -96,17 +114,22 @@ function sectionOf(markup: string, id: string) {
   };
 }
 
-const view = (report: ScanReport, findings?: ScanReport['findings']) =>
+const view = (
+  report: ScanReport,
+  findings?: ScanReport['findings'],
+  attachments?: ReadonlyMap<string, ScreenshotView>,
+) =>
   renderToStaticMarkup(
     <ReportView
       report={report}
       data={data}
       screenshots={new Map()}
+      {...(attachments ? { attachments } : {})}
       {...(findings ? { findings } : {})}
     />,
   );
 
-const SECTIONS = ['fix', 'by-asset', 'summary', 'rollup', 'method', 'disclaimer'];
+const SECTIONS = ['manual', 'fix', 'by-asset', 'summary', 'rollup', 'method', 'disclaimer'];
 
 describe('ReportView', () => {
   const report = fixtureReport();
@@ -192,8 +215,9 @@ describe('ReportView on a 508 scan of a web page and a non-web PDF', () => {
     for (const expected of [
       'Not applicable to 1 PDF under E205.4',
       'Condition (501.1)',
-      'PDFs linked by URL are not fetched yet',
-      'a PDF link, not fetched (pdf-url)',
+      'did not fetch PDFs by URL (pdf-url)',
+      'a PDF link, not fetched by that version (pdf-url)',
+      'PDF by URL: https://example.gov/forms/b.pdf',
       'more skipped pages and files are listed in the JSON report',
       'Sitemap: https://example.gov/sitemap.xml',
       'Followed links on the same site, up to 2 pages',
@@ -209,5 +233,52 @@ describe('ReportView on a 508 scan of a web page and a non-web PDF', () => {
     const want = sectionOf(html, id);
     expect(want.blocks.length).toBeGreaterThan(0);
     expect(sectionOf(ui, id)).toEqual(want);
+  });
+});
+
+describe('ReportView on a scan with manual reviews, an override, the errata and attachments', () => {
+  const report = reviewFixtureReport();
+  const root = mkdtempSync(join(tmpdir(), 'widedoor-ui-reviews-'));
+  const dir = writeAttachments(root);
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+  // What widedoor ui serves: every attachment the records name, through the same loader.
+  const loader = new AttachmentLoader(dir);
+  const attachments = new Map<string, ScreenshotView>();
+  for (const r of manualReviews(report).records)
+    for (const path of r.attachments) {
+      const loaded = loader.load(path);
+      attachments.set(
+        path,
+        loaded.ok ? { ok: true, dataUri: loaded.dataUri } : { ok: false, reason: loaded.reason },
+      );
+    }
+  const html = renderHtml(report, { plain: data.plain, attachmentsDir: dir });
+  const ui = view(report, undefined, attachments);
+
+  it.each(SECTIONS)('matches the HTML report in section %s', (id) => {
+    const want = sectionOf(html, id);
+    expect(want.blocks.length).toBeGreaterThan(0);
+    expect(sectionOf(ui, id)).toEqual(want);
+  });
+
+  it('shows the attachments, the overridden list and the errata links', () => {
+    expect(sectionOf(ui, 'method').images).toHaveLength(2);
+    expect(sectionOf(ui, 'manual').blocks).toContain('h3: Overridden by a reviewer');
+    expect(sectionOf(ui, 'rollup').links.filter((l) => l.includes('/errata/'))).toHaveLength(4);
+  });
+
+  it('renders hostile reviewer names and notes as text only', () => {
+    const doc = parse(`<!doctype html><html><head></head><body>${ui}</body></html>`);
+    expect(find(doc, (e) => e.tagName === 'script')).toEqual([]);
+    expect(find(doc, (e) => e.attrs.some((a) => a.name.startsWith('on')))).toEqual([]);
+    for (const src of find(doc, (e) => e.tagName === 'img').map((e) => attr(e, 'src') ?? ''))
+      expect(src).toMatch(/^data:image\/(?:png|jpeg);base64,/);
+    const text = norm(textOf(doc));
+    expect(text).toContain(norm(REVIEWER));
+    expect(text).toContain(norm(NOTES));
+  });
+
+  it('says why an attachment is missing when the report came from a file', () => {
+    expect(view(report)).toContain('left out: no attachments folder was given.');
   });
 });

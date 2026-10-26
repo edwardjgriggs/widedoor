@@ -15,7 +15,13 @@ export interface TestServer {
 
 export type Routes = Record<
   string,
-  { body: string | Buffer; status?: number; type?: string; headers?: Record<string, string> }
+  {
+    /** A function is called per request, for a page that changes each time it is served. */
+    body: string | Buffer | (() => string);
+    status?: number;
+    type?: string;
+    headers?: Record<string, string>;
+  }
 >;
 
 /** An HTTP server on 127.0.0.1 with fixed routes; every request is logged. */
@@ -35,7 +41,7 @@ export async function serve(routes: (origin: string) => Routes): Promise<TestSer
         'content-type': route.type ?? 'text/html; charset=utf-8',
         ...route.headers,
       })
-      .end(route.body);
+      .end(typeof route.body === 'function' ? route.body() : route.body);
   });
   server.on('upgrade', (_req, socket) => {
     state.upgrades++;

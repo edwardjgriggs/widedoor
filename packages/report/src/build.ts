@@ -1,5 +1,7 @@
 import {
+  checklistSummary,
   decidingRulesFrom,
+  errataFrom,
   loadStandardsData,
   rollup,
   type Asset,
@@ -18,6 +20,7 @@ import {
   type ScanReport,
   type SkippedAsset,
 } from './model.js';
+import { overrideEntries } from './overrides.js';
 import { WIDEDOOR_VERSION } from './version.js';
 
 /*
@@ -69,8 +72,16 @@ export interface BuildReportInput {
   pdf?: PdfRunInput;
   /** Manual review records (engine "manual"). */
   reviews?: readonly Finding[];
-  /** Mapping data for deciding rules; defaults to the data shipped in @widedoor/core. */
-  data?: Pick<StandardsData, 'axe' | 'verapdf' | 'widedoor'>;
+  /** Run warnings beyond the adapters' own (manual review records left out, for example). */
+  warnings?: readonly string[];
+  /**
+   * Mapping data for deciding rules and the errata basis, and the Baseline and manual steps the
+   * checklist summary needs; defaults to the data shipped in @widedoor/core.
+   */
+  data?: Pick<
+    StandardsData,
+    'axe' | 'verapdf' | 'widedoor' | 'errata' | 'baseline' | 'manualSteps'
+  >;
   /** Defaults to WIDEDOOR_VERSION; tests pin it. */
   toolVersion?: string;
 }
@@ -135,8 +146,19 @@ export function buildScanReport(input: BuildReportInput): ScanReport {
     profile,
     assets,
     decidingRules: decidingRulesFrom(data),
+    errata: errataFrom(data),
     unscanned,
     scopeGaps,
+  });
+  // Counts only: the items are built on demand (widedoor review list), never stored.
+  const progress = checklistSummary({
+    report: {
+      assets,
+      findings: [...automated, ...reviews],
+      rollup: result,
+      profile: { id: profile.id },
+    },
+    data,
   });
   const titles = (web?.pages ?? []).flatMap((p) =>
     p.asset && p.title !== undefined ? [{ uri: p.asset.uri, title: p.title }] : [],
@@ -156,9 +178,15 @@ export function buildScanReport(input: BuildReportInput): ScanReport {
     informational: [...(pdf?.informational ?? [])],
     errors,
     skipped,
-    warnings: [...(web?.warnings ?? []), ...(pdf?.warnings ?? [])],
+    warnings: [...(web?.warnings ?? []), ...(pdf?.warnings ?? []), ...(input.warnings ?? [])],
     ...(scopeGaps.length > 0 ? { scopeGaps } : {}),
     rollup: result,
+    checklist: {
+      total: progress.total,
+      byStatus: progress.byStatus,
+      unscanned: progress.unscanned.length,
+    },
+    overrides: overrideEntries({ rollup: result, findings: [...automated, ...reviews], assets }),
     disclaimer: DISCLAIMER,
   });
 }

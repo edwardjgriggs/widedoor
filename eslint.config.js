@@ -127,7 +127,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/core/src/{browser,schema,profile-ids,rollup}.ts'],
+    files: ['packages/core/src/{browser,schema,profile-ids,rollup,checklist,sha256}.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': browserImports([
         './data.js',

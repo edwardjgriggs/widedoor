@@ -1,27 +1,40 @@
 /// <reference lib="dom" />
-import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { request } from 'node:http';
 import { connect } from 'node:net';
 import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { AxeBuilder } from '@axe-core/playwright';
 import type { Browser, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { parseJsonReport } from '@widedoor/report';
+import { FindingSchema, findingId } from '@widedoor/core';
+import { parseJsonReport, serializeJson } from '@widedoor/report';
 import { launchChromium } from '@widedoor/web';
 import {
-  BIN,
   CORPUS,
   UI_DIST,
   buildCli,
   buildUi,
-  interrupt,
   runCli,
   serveHtml,
   type StaticServer,
 } from './helpers.ts';
+import {
+  axeViolations,
+  startUi,
+  stopUi,
+  watchedPage,
+  type UiChild,
+  type Watched,
+} from './ui-page.ts';
 
 /*
  * widedoor ui end to end, the way a user runs it: the built bin serves a
@@ -39,7 +52,7 @@ const PAGES = ['xss.html', 'alt-fail.html', 'contrast-fail.html', 'labels-pass.h
 const DISCLAIMER =
   'This report documents the testing performed. It is not a certification of conformance.';
 const XSS_TITLE = "</title><script>alert('title')</script> \"><img src=x onerror=alert('title')>";
-const SECTIONS = ['fix', 'by-asset', 'summary', 'rollup', 'method', 'disclaimer'];
+const SECTIONS = ['manual', 'fix', 'by-asset', 'summary', 'rollup', 'method', 'disclaimer'];
 const TOKEN_KEY = 'widedoor-token';
 
 let site: StaticServer;
@@ -49,94 +62,13 @@ let out: string;
 let reportFile: string;
 let browser: Browser;
 
-interface UiChild {
-  child: ChildProcess;
-  url: string;
-  port: number;
-  stdout: () => string;
-  closed: Promise<number | null>;
-  /** The session token, once a page has traded the link's code for it. */
-  token?: string;
-}
-
-/** Starts the built bin's ui command, serving the test build, and waits for the link it prints. */
-function startUi(args: string[]): Promise<UiChild> {
-  return new Promise((ready, fail) => {
-    const child = spawn(process.execPath, [BIN, 'ui', ...args, '--no-open'], {
-      cwd: tmp,
-      env: { ...process.env, WIDEDOOR_UI_DIST: dist },
-      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      windowsHide: true,
-    });
-    let text = '';
-    let err = '';
-    const closed = new Promise<number | null>((done) => child.once('close', (code) => done(code)));
-    const timer = setTimeout(() => fail(new Error(`no link printed: ${text} ${err}`)), 30_000);
-    child.stderr?.on('data', (c: Buffer) => (err += c.toString('utf8')));
-    child.stdout?.on('data', (c: Buffer) => {
-      text += c.toString('utf8');
-      const m = /(http:\/\/127\.0\.0\.1:(\d+)\/\?code=[A-Za-z0-9_-]+)/.exec(text);
-      if (m?.[1] && m[2]) {
-        clearTimeout(timer);
-        ready({ child, url: m[1], port: Number(m[2]), stdout: () => text, closed });
-      }
-    });
-    child.once('error', fail);
-    void closed.then((code) => fail(new Error(`ui exited early (${code}): ${text} ${err}`)));
-  });
-}
-
-async function stopUi(ui: UiChild): Promise<void> {
-  if (ui.child.exitCode === null) interrupt(ui.child);
-  expect(await ui.closed).toBe(0);
-  expect(ui.stdout()).toContain('Widedoor UI stopped.');
-}
-
-interface Watched {
-  page: Page;
-  dialogs: string[];
-  errors: string[];
-  violations: () => Promise<string[]>;
-}
-
-/** A page that records dialogs, console errors, page errors and CSP violations. */
-async function watchedPage(): Promise<Watched> {
-  // AxeBuilder needs a context it can open a second page in.
-  const page = await (await browser.newContext()).newPage();
-  const dialogs: string[] = [];
-  const errors: string[] = [];
-  page.on('dialog', (d) => {
-    dialogs.push(d.message());
-    void d.dismiss();
-  });
-  page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
-  });
-  page.on('pageerror', (e) => errors.push(e.message));
-  // Added through the DevTools protocol, so the page CSP does not block it.
-  await page.addInitScript(() => {
-    const seen: string[] = [];
-    (window as unknown as { __violations: string[] }).__violations = seen;
-    document.addEventListener('securitypolicyviolation', (e) =>
-      seen.push(`${e.violatedDirective} ${e.blockedURI}`),
-    );
-  });
-  return {
-    page,
-    dialogs,
-    errors,
-    violations: () =>
-      page.evaluate(() => (window as unknown as { __violations: string[] }).__violations),
-  };
-}
-
 /**
  * Opens the viewer. The first page uses the printed link, whose code works
  * once, and keeps the token it traded it for; later pages get that token in
  * session storage, as a reload of the first tab would.
  */
 async function openViewer(ui: UiChild, ready = 'What to fix first'): Promise<Watched> {
-  const w = await watchedPage();
+  const w = await watchedPage(browser);
   if (ui.token === undefined) {
     await w.page.goto(ui.url);
     await w.page.getByText(ready).first().waitFor();
@@ -189,13 +121,6 @@ function tryConnect(host: string, port: number): Promise<string> {
     });
     socket.once('error', (e: NodeJS.ErrnoException) => done(e.code ?? 'error'));
   });
-}
-
-async function axeViolations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).analyze();
-  return results.violations.map(
-    (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`,
-  );
 }
 
 /** Block text (with block boundaries as spaces), links and images of one section of the page. */
@@ -298,7 +223,7 @@ describe('viewer builds', () => {
 describe('widedoor ui --report', () => {
   let ui: UiChild;
   beforeAll(async () => {
-    ui = await startUi(['--report', reportFile]);
+    ui = await startUi(['--report', reportFile], tmp, dist);
   }, TIMEOUT);
   afterAll(async () => {
     if (ui) await stopUi(ui);
@@ -450,7 +375,7 @@ describe('widedoor ui --report', () => {
     'refuses a reused link, a foreign Host and a missing or wrong token',
     async () => {
       // The printed link was used by the first page: a second browser gets nothing.
-      const again = await watchedPage();
+      const again = await watchedPage(browser);
       await again.page.goto(ui.url);
       await again.page.getByText('This link was already used.').waitFor();
       expect(await again.page.locator('section[aria-labelledby="fix"]').count()).toBe(0);
@@ -458,7 +383,12 @@ describe('widedoor ui --report', () => {
 
       const host = `127.0.0.1:${ui.port}`;
       const code = new URL(ui.url).searchParams.get('code') ?? '';
-      const reused = await send(ui.port, '/api/session', { host, 'x-widedoor-code': code }, 'POST');
+      const reused = await send(
+        ui.port,
+        '/api/session',
+        { host, origin: `http://${host}`, 'x-widedoor-code': code },
+        'POST',
+      );
       expect(reused.status).toBe(401);
       expect(reused.body).not.toContain(ui.token ?? '-');
 
@@ -512,7 +442,7 @@ describe('widedoor ui without --report', () => {
   it(
     'asks for a report file and passes axe',
     async () => {
-      const ui = await startUi([]);
+      const ui = await startUi([], tmp, dist);
       try {
         expect(ui.stdout()).toContain('no report given');
         const w = await openViewer(ui, 'widedoor ui was started without --report.');
@@ -524,6 +454,177 @@ describe('widedoor ui without --report', () => {
       }
       // Stopped means closed: nothing listens on the port any more.
       expect(await tryConnect('127.0.0.1', ui.port)).not.toBe('connected');
+    },
+    TIMEOUT,
+  );
+});
+
+describe('widedoor ui --report --config', () => {
+  /** A whole 1x1 PNG. */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    'base64',
+  );
+
+  it(
+    'serves the attachments from widedoor-review/ in the folder of --config',
+    async () => {
+      // A report whose one manual record names an image, and a project folder that holds it.
+      const project = join(tmp, 'project');
+      mkdirSync(join(project, 'widedoor-review', 'attachments'), { recursive: true });
+      writeFileSync(join(project, 'widedoor-review', 'attachments', 'shot.png'), PNG);
+      const config = join(project, 'widedoor.config.yaml');
+      writeFileSync(config, 'web:\n  urls: [https://example.com/]\n');
+      const report = parseJsonReport(readFileSync(reportFile, 'utf8'));
+      const asset = report.assets[0];
+      if (!asset) throw new Error('the scan has no asset');
+      const record = FindingSchema.parse({
+        schemaVersion: 1,
+        id: findingId(asset.uri, { selector: 'html' }, 'manual', 'wcag-2.1.1'),
+        asset,
+        location: { selector: 'html' },
+        source: { engine: 'manual', engineVersion: '0.0.0', ruleId: 'wcag-2.1.1' },
+        criteria: { wcag: ['2.1.1'] },
+        outcome: 'pass',
+        review: {
+          reviewer: 'Ann',
+          date: '2026-10-23',
+          expiresOnChangeOf: asset.reviewHash ?? asset.contentHash,
+          attachments: ['attachments/shot.png'],
+        },
+      });
+      const file = join(tmp, 'with-attachment.json');
+      writeFileSync(file, serializeJson({ ...report, findings: [...report.findings, record] }));
+
+      // Started from tmp, so only --config can point it at the project folder.
+      const ui = await startUi(['--report', file, '--config', config], tmp, dist);
+      try {
+        const host = `127.0.0.1:${ui.port}`;
+        const code = new URL(ui.url).searchParams.get('code') ?? '';
+        const session = await send(
+          ui.port,
+          '/api/session',
+          { host, origin: `http://${host}`, 'x-widedoor-code': code },
+          'POST',
+        );
+        expect(session.status).toBe(200);
+        const token = (JSON.parse(session.body) as { token: string }).token;
+        const served = await send(ui.port, '/api/report', { host, 'x-widedoor-token': token });
+        expect(served.status).toBe(200);
+        expect(JSON.parse(served.body).attachments).toEqual({
+          'attachments/shot.png': {
+            ok: true,
+            dataUri: `data:image/png;base64,${PNG.toString('base64')}`,
+          },
+        });
+      } finally {
+        await stopUi(ui);
+      }
+    },
+    TIMEOUT,
+  );
+});
+
+describe('widedoor ui --root: the API from inside the page, under the CSP', () => {
+  // A scan job always keeps the Chromium sandbox on, as widedoor scan does by default.
+  it.skipIf(unsafeNoSandbox)(
+    'scans, records a review and exports with no CSP violation, then shows the scan',
+    async () => {
+      const root = join(tmp, 'api-root');
+      mkdirSync(root, { recursive: true });
+      writeFileSync(
+        join(root, 'widedoor.config.yaml'),
+        'acr:\n  vendor: { name: Example Agency }\n  product: { name: Test portal }\n',
+      );
+      const ui = await startUi(['--root', root], tmp, dist);
+      try {
+        expect(ui.stdout()).toContain(`Folder: ${root}`);
+        const w = await openViewer(ui, 'widedoor ui was started without --report.');
+        const urls = ['alt-fail.html', 'labels-pass.html'].map((p) => `${site.origin}/${p}`);
+        // What the UI will do: fetch with the token, from the page's own origin.
+        const result = await w.page.evaluate(
+          async ({ key, urls }) => {
+            const token = sessionStorage.getItem(key) ?? '';
+            const api = (path: string, init: RequestInit = {}) =>
+              fetch(path, {
+                ...init,
+                headers: { 'x-widedoor-token': token, ...(init.headers ?? {}) },
+              });
+            const post = (path: string, body: unknown) =>
+              api(path, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+            const started = await post('/api/scans', { urls, profile: '508+wcag21aa' });
+            const job = (await started.json()) as { id: string };
+            let status: { status: string; report?: { assets: { uri: string }[] } } = {
+              status: 'queued',
+            };
+            for (let i = 0; i < 600 && ['queued', 'running'].includes(status.status); i++) {
+              await new Promise((done) => setTimeout(done, 200));
+              status = await (await api(`/api/scans/${job.id}`)).json();
+            }
+            const checklist = (await (await api('/api/checklist')).json()) as {
+              items: { id: string; status: string; criterion: { id: string } }[];
+            };
+            const item = checklist.items.find(
+              (i) => i.status === 'open' && i.criterion.id === '2.1.1',
+            );
+            const review = await post('/api/reviews', {
+              item: item?.id,
+              outcome: 'pass',
+              reviewer: 'Browser Test',
+              notes: 'Tabbed through the page.',
+            });
+            const exports: Record<string, { status: number; disposition: string | null }> = {};
+            for (const format of ['openacr', 'vpat-html', 'json', 'html']) {
+              const r = await api(`/api/export/${format}`);
+              await r.arrayBuffer();
+              exports[format] = {
+                status: r.status,
+                disposition: r.headers.get('content-disposition'),
+              };
+            }
+            return {
+              started: started.status,
+              status: status.status,
+              assets: status.report?.assets.map((a) => a.uri) ?? [],
+              review: review.status,
+              exports,
+            };
+          },
+          { key: TOKEN_KEY, urls },
+        );
+        expect(result.started).toBe(202);
+        expect(result.status).toBe('done');
+        expect(result.assets.sort()).toEqual([...urls].sort());
+        expect(result.review).toBe(201);
+        expect(result.exports).toEqual({
+          openacr: { status: 200, disposition: 'attachment; filename="report.openacr.yaml"' },
+          'vpat-html': { status: 200, disposition: 'attachment; filename="report.vpat.html"' },
+          json: { status: 200, disposition: 'attachment; filename="report.json"' },
+          html: { status: 200, disposition: 'attachment; filename="report.html"' },
+        });
+        // The job kept its report in memory; only the review was written, to widedoor-review/.
+        expect(readdirSync(root).sort()).toEqual(['widedoor-review', 'widedoor.config.yaml']);
+        expect(readdirSync(join(root, 'widedoor-review')).some((f) => f.endsWith('.yaml'))).toBe(
+          true,
+        );
+        expect(w.dialogs).toEqual([]);
+        expect(w.errors).toEqual([]);
+        expect(await w.violations()).toEqual([]);
+        await w.page.context().close();
+
+        // The built viewer shows the scan's report, still with no violation.
+        const shown = await openViewer(ui);
+        expect(await shown.page.locator('p.disclaimer').innerText()).toBe(DISCLAIMER);
+        expect(shown.errors).toEqual([]);
+        expect(await shown.violations()).toEqual([]);
+        await shown.page.context().close();
+      } finally {
+        await stopUi(ui);
+      }
     },
     TIMEOUT,
   );

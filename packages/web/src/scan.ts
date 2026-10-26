@@ -23,6 +23,7 @@ import {
   type AxeTarget,
   type NormalizedPass,
 } from './normalize.js';
+import { reviewHashFor } from './review-hash-run.js';
 import { DEFAULT_SITEMAP_LIMITS, loadSitemap, type SitemapLimits } from './sitemap.js';
 import { isPageUrl, normalizeUrl, originOf } from './url.js';
 
@@ -33,8 +34,8 @@ export const isPdfUrl = (url: string): boolean => /\.pdf$/i.test(new URL(url).pa
 export const MAX_LINKS_PER_PAGE = 5_000;
 /** PDF links taken from one page at most (default of WebScanOptions.maxPdfLinksPerPage). */
 export const DEFAULT_MAX_PDF_LINKS_PER_PAGE = 100;
-/** PDF URLs listed as skipped per run at most (default of WebScanOptions.maxPdfSkips). */
-export const DEFAULT_MAX_PDF_SKIPS = 200;
+/** PDF URLs handed on for fetching per run at most (default of WebScanOptions.maxPdfLinks). */
+export const DEFAULT_MAX_PDF_LINKS = 200;
 
 /** Default page cap (spec config `web.crawl.maxPages`). */
 export const DEFAULT_MAX_PAGES = 50;
@@ -62,7 +63,14 @@ export interface ScanError {
 export interface SkippedPage {
   url: string;
   finalUrl: string;
-  reason: 'redirect-off-origin' | 'pdf-url';
+  reason: 'redirect-off-origin';
+}
+
+/** A PDF in the web scope, for the caller to fetch (fetchPdf) and scan as a PDF. */
+export interface PdfLink {
+  url: string;
+  /** In scope by name (the URL list, or the sitemap without a crawl), not found by a crawl. */
+  listed: boolean;
 }
 
 export interface PageScan {
@@ -81,6 +89,8 @@ export interface PageScan {
   title?: string;
   error?: ScanError;
   skipped?: SkippedPage;
+  /** The server answered with a PDF (application/pdf), which the browser does not scan: fetch it instead. */
+  servedPdf?: boolean;
 }
 
 export interface WebScannerOptions extends HardeningOptions, LaunchOptions {
@@ -288,6 +298,11 @@ export class WebScanner {
     options: ScanPageOptions,
     remaining: () => number,
   ): Promise<PageScan> {
+    // The last main-frame document response: a PDF makes goto fail ("Download is starting").
+    let served: Response | undefined;
+    page.on('response', (r) => {
+      if (r.request().isNavigationRequest() && r.frame() === page.mainFrame()) served = r;
+    });
     let response: Response | null;
     try {
       response = await page.goto(url, {
@@ -295,6 +310,8 @@ export class WebScanner {
         timeout: Math.min(this.options.navigationTimeoutMs ?? 30_000, remaining()),
       });
     } catch (e) {
+      if (served && isPdfType(served.headers()['content-type']))
+        return servedPdf(url, normalizeUrl(served.url()), options);
       return error(url, 'navigation-failed', e);
     }
     // Any later document load means page script replaced what was requested.
@@ -315,6 +332,7 @@ export class WebScanner {
         };
       // axe-core needs an HTML document; SVG, XML and the like are reported, not scanned.
       const contentType = await page.evaluate(() => document.contentType);
+      if (isPdfType(contentType)) return servedPdf(url, uri, options);
       if (contentType !== 'text/html')
         return error(url, 'non-html-document', `document is ${contentType}`, uri);
       let bytes: Uint8Array | null;
@@ -327,7 +345,13 @@ export class WebScanner {
       }
       if (!bytes)
         return error(url, 'no-response', 'the browser returned no document response', uri);
-      const asset: Asset = { kind: 'web', uri, contentHash: sha256(bytes) };
+      const contentHash = sha256(bytes);
+      const review = await reviewHashFor(bytes, contentHash);
+      if (review.fallback)
+        this.warnings.push(
+          `${uri}: manual reviews are anchored to the content hash (${review.fallback})`,
+        );
+      const asset: Asset = { kind: 'web', uri, contentHash, reviewHash: review.hash };
       const title = (await page.title().catch(() => '')).slice(0, 500);
 
       const budget = { n: this.options.maxScreenshotsPerPage ?? 100 };
@@ -394,6 +418,21 @@ export async function readLinks(
   return { links: [...links], total, read: hrefs.length, unread };
 }
 
+const isPdfType = (type: string | undefined) =>
+  type?.split(';')[0]?.trim().toLowerCase() === 'application/pdf';
+
+/** A page that turned out to be a PDF: handed on for fetching, unless it redirected off-origin. */
+function servedPdf(url: string, finalUrl: string, options: ScanPageOptions): PageScan {
+  if (!options.allowOffOriginRedirect && originOf(finalUrl) !== originOf(url))
+    return {
+      url,
+      findings: [],
+      links: [],
+      skipped: { url, finalUrl, reason: 'redirect-off-origin' },
+    };
+  return { url, findings: [], links: [], servedPdf: true };
+}
+
 function error(url: string, code: ScanErrorCode, e: unknown, uri = url): PageScan {
   return {
     url,
@@ -425,8 +464,22 @@ export interface WebScanOptions extends WebScannerOptions {
   fetcher?: Fetcher;
   /** PDF links taken from one page at most; the rest are a scope gap. Default 100. */
   maxPdfLinksPerPage?: number;
-  /** PDF URLs listed as skipped per run at most; the rest are a scope gap. Default 200. */
-  maxPdfSkips?: number;
+  /** PDF URLs handed on per run at most; the rest are a scope gap. Default 200. */
+  maxPdfLinks?: number;
+  /**
+   * Stops the scan: no page is started after it fires, the browser is
+   * closed (ending the pages in flight), and scanWeb rejects with its reason.
+   */
+  signal?: AbortSignal;
+  /** Told when a page starts and when it is done: pages done, pages known so far (at most maxPages), and the page started. */
+  onProgress?: (progress: ScanProgress) => void;
+}
+
+/** How far a scan is: assets done, assets known so far, and the one just started. */
+export interface ScanProgress {
+  done: number;
+  known: number;
+  current?: string;
 }
 
 export interface WebScanResult {
@@ -437,6 +490,11 @@ export interface WebScanResult {
   errors: ScanError[];
   /** Pages that redirected off-origin and were not scanned. */
   skipped: SkippedPage[];
+  /**
+   * PDFs in scope (by URL, by link, or served as application/pdf to the
+   * browser), deduped, in the order found. The browser never scans them.
+   */
+  pdfs: PdfLink[];
   warnings: string[];
   /** True when maxPages stopped the scan with pages still queued. */
   truncated: boolean;
@@ -507,8 +565,8 @@ export async function scanWeb(
   const seen = new Set<string>();
   const assetUris = new Set<string>();
   const queue: string[] = [];
-  const pdfUrls: SkippedPage[] = [];
-  const maxPdfSkips = options.maxPdfSkips ?? DEFAULT_MAX_PDF_SKIPS;
+  const pdfs: PdfLink[] = [];
+  const maxPdfLinks = options.maxPdfLinks ?? DEFAULT_MAX_PDF_LINKS;
   const maxPdfPerPage = options.maxPdfLinksPerPage ?? DEFAULT_MAX_PDF_LINKS_PER_PAGE;
   let pdfOverRun = 0;
   let pdfOverPage = 0;
@@ -516,9 +574,9 @@ export async function scanWeb(
   const enqueue = (u: string) => {
     if (seen.has(u)) return;
     seen.add(u);
-    // PDFs reached by URL are not scanned in this version: listed (up to a cap), never loaded, no page spent.
+    // A .pdf URL is never loaded in the browser and spends no page: it is handed on (up to a cap).
     if (!isPdfUrl(u)) queue.push(u);
-    else if (pdfUrls.length < maxPdfSkips) pdfUrls.push({ url: u, finalUrl: u, reason: 'pdf-url' });
+    else if (pdfs.length < maxPdfLinks) pdfs.push({ url: u, listed: listed.has(u) });
     else pdfOverRun++;
   };
   seeds.forEach(enqueue);
@@ -535,22 +593,41 @@ export async function scanWeb(
     }
   };
 
+  const { signal, onProgress } = options;
+  signal?.throwIfAborted();
   const scanner = await WebScanner.launch(options);
+  // Closing the browser ends every page in flight; the loop starts no other.
+  const stop = () => void scanner.close().catch(() => undefined);
+  signal?.addEventListener('abort', stop, { once: true });
   const pages: { order: number; scan: PageScan }[] = [];
   try {
     const concurrency = Math.max(1, options.concurrency ?? 2);
     const pending = new Set<Promise<void>>();
     let claimed = 0;
+    const progress = (current?: string) =>
+      onProgress?.({
+        done: pages.length,
+        known: Math.min(maxPages, claimed + queue.length),
+        ...(current !== undefined ? { current } : {}),
+      });
     for (;;) {
-      while (pending.size < concurrency && claimed < maxPages && queue.length > 0) {
+      while (
+        pending.size < concurrency &&
+        claimed < maxPages &&
+        queue.length > 0 &&
+        !signal?.aborted
+      ) {
         const url = queue.shift() as string;
         // Already scanned as another URL's redirect target: do not spend a page on it.
         if (assetUris.has(url)) continue;
         const order = claimed++;
+        progress(url);
         const task: Promise<void> = scanner
           .scanPage(url, { allowOffOriginRedirect: crossOrigin })
           .then((scan) => {
             pages.push({ order, scan });
+            // Already a page of the scan, so no PDF cap applies.
+            if (scan.servedPdf) pdfs.push({ url, listed: listed.has(url) });
             if (scan.asset) {
               seen.add(scan.asset.uri);
               assetUris.add(scan.asset.uri);
@@ -561,6 +638,7 @@ export async function scanWeb(
                 `links on ${scan.asset?.uri ?? url} could not be read, so they were not followed`,
               );
             enqueueLinks(scan.links);
+            progress();
           });
         pending.add(task);
         const done = () => void pending.delete(task);
@@ -570,13 +648,15 @@ export async function scanWeb(
       await Promise.race(pending);
     }
   } finally {
+    signal?.removeEventListener('abort', stop);
     await scanner.close();
   }
+  signal?.throwIfAborted();
 
   pages.sort((a, b) => a.order - b.order);
   const assets: Asset[] = [];
   const findings: Finding[] = [];
-  const skipped: SkippedPage[] = [...pdfUrls];
+  const skipped: SkippedPage[] = [];
   const scanned = new Set<string>();
   const result: PageScan[] = [];
   for (const { scan } of pages) {
@@ -593,11 +673,11 @@ export async function scanWeb(
   }
   if (pdfOverPage > 0)
     scopeGaps.push(
-      `${pdfOverPage} PDF link(s) were not listed: at most ${maxPdfPerPage} are taken from one page`,
+      `${pdfOverPage} PDF link(s) were not scanned: at most ${maxPdfPerPage} are taken from one page`,
     );
   if (pdfOverRun > 0)
     scopeGaps.push(
-      `${pdfOverRun} PDF link(s) were not listed: at most ${maxPdfSkips} are listed per scan`,
+      `${pdfOverRun} PDF link(s) were not scanned: at most ${maxPdfLinks} are scanned per run`,
     );
   const unscannedListed = new Set(queue.filter((u) => listed.has(u))).size;
   if (unscannedListed > 0)
@@ -615,6 +695,7 @@ export async function scanWeb(
     findings,
     errors,
     skipped,
+    pdfs,
     warnings: [...scanner.warnings, ...scopeGaps],
     truncated: queue.length > 0,
     scopeGaps,
