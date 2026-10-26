@@ -12,8 +12,8 @@ import { buildScanReport, type ScanReport } from '@widedoor/report';
  * A 508+wcag21aa scan for the parity tests: a web page with an empty title
  * and a non-web PDF (so E205.4 exception notes and Chapter 5 conditions
  * appear in the roll-up), a finding with an ACT rule and a Baseline test, a
- * sitemap and a capped crawl, a pdf-url skip and more skips than the listing
- * cap.
+ * sitemap and a capped crawl, a PDF by URL, a pdf-url skip (which only an
+ * older report holds) and more skips than the listing cap.
  */
 
 const hash = (c: string) => `sha256:${c.repeat(64)}`;
@@ -89,7 +89,11 @@ export function fixture508(): ScanReport {
         crawl: { sameOrigin: true, maxPages: 2 },
         truncated: true,
       },
-      pdf: { files: [PDF.uri], include: ['docs/**/*.pdf'] },
+      pdf: {
+        files: [PDF.uri],
+        include: ['docs/**/*.pdf'],
+        urls: ['https://example.gov/forms/b.pdf'],
+      },
     },
     web: {
       engine: { name: 'axe-core', version: '4.14.0' },

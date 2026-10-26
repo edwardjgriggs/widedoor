@@ -1,0 +1,244 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Widedoor",
+          "version": "0.0.0",
+          "rules": [
+            {
+              "id": "axe-core/color-contrast",
+              "name": "color-contrast",
+              "shortDescription": {
+                "text": "Text does not stand out enough from its background."
+              },
+              "fullDescription": {
+                "text": "Text does not stand out enough from its background. People with low vision or color blindness may not be able to read it."
+              },
+              "help": {
+                "text": "Make the text darker or the background lighter. Aim for a contrast ratio of at least 4.5 to 1."
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.14/color-contrast",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 1.4.3"
+                ],
+                "engine": "axe-core",
+                "wcag": [
+                  "1.4.3"
+                ]
+              }
+            },
+            {
+              "id": "axe-core/image-alt",
+              "name": "image-alt",
+              "shortDescription": {
+                "text": "An image has no text alternative."
+              },
+              "fullDescription": {
+                "text": "An image has no text alternative. Screen reader users miss what the image shows."
+              },
+              "help": {
+                "text": "Add alt text that says what the image shows. Use empty alt text for images that are only for looks."
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.14/image-alt",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 1.1.1"
+                ],
+                "engine": "axe-core",
+                "wcag": [
+                  "1.1.1"
+                ]
+              }
+            },
+            {
+              "id": "verapdf/7.3-1",
+              "name": "7.3-1",
+              "shortDescription": {
+                "text": "An image has no alt text."
+              },
+              "fullDescription": {
+                "text": "An image has no alt text. Screen reader users miss what the image shows."
+              },
+              "help": {
+                "text": "Add alt text to the image in Acrobat, or in the program you made the file with."
+              },
+              "helpUri": "https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "accessibility",
+                  "WCAG 1.1.1"
+                ],
+                "engine": "verapdf",
+                "wcag": [
+                  "1.1.1"
+                ]
+              }
+            }
+          ]
+        },
+        "extensions": [
+          {
+            "name": "axe-core",
+            "version": "4.14.0"
+          },
+          {
+            "name": "veraPDF",
+            "version": "1.30.3"
+          },
+          {
+            "name": "Widedoor PDF checks",
+            "version": "0.0.0"
+          }
+        ]
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "startTimeUtc": "2026-10-23T12:00:00.000Z",
+          "endTimeUtc": "2026-10-23T12:05:00.000Z"
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "axe-core/image-alt",
+          "ruleIndex": 1,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "An image has no text alternative. At element img.hero."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.gov/apply"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "img.hero",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_d69cffd69fc2d95c"
+          },
+          "suppressions": [
+            {
+              "kind": "external",
+              "justification": "The hero image is decorative; axe misreads its role. </style></textarea><script>alert(1)</script>\"><img src=x onerror=alert(2)>"
+            }
+          ],
+          "properties": {
+            "widedoorFindingId": "wd_d69cffd69fc2d95c",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "critical",
+            "snippet": "<img class=\"hero\" src=\"hero.png\">"
+          }
+        },
+        {
+          "ruleId": "axe-core/color-contrast",
+          "ruleIndex": 0,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Text does not stand out enough from its background. At element p.faint."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://example.gov/apply"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "p.faint",
+                  "kind": "element"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_768f65db469e539e"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_768f65db469e539e",
+            "engineVersion": "4.14.0",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "impact": "serious"
+          }
+        },
+        {
+          "ruleId": "verapdf/7.3-1",
+          "ruleIndex": 2,
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "An image has no alt text. At page 1."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "docs/form.pdf"
+                },
+                "properties": {
+                  "page": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "widedoorFindingId/v1": "wd_5bbe0b363628261e"
+          },
+          "properties": {
+            "widedoorFindingId": "wd_5bbe0b363628261e",
+            "engineVersion": "1.30.3",
+            "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "impact": "serious"
+          }
+        }
+      ],
+      "properties": {
+        "disclaimer": "This report documents the testing performed. It is not a certification of conformance.",
+        "profile": "508+wcag21aa",
+        "pdfDocumentType": "non-web",
+        "engines": [
+          {
+            "name": "axe-core",
+            "version": "4.14.0"
+          },
+          {
+            "name": "verapdf",
+            "version": "1.30.3",
+            "runner": "docker"
+          },
+          {
+            "name": "widedoor",
+            "version": "0.0.0"
+          }
+        ],
+        "scopeComplete": true
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@
     { "path": "packages/web" },
     { "path": "packages/pdf" },
     { "path": "packages/report" },
+    { "path": "packages/server" },
     { "path": "packages/cli" },
     { "path": "packages/action" }
   ]

@@ -1,4 +1,11 @@
-import { IMPACT_ORDER, notEvaluated, summarize, type ScanReport } from '@widedoor/report';
+import { CHECKLIST_STATUSES } from '@widedoor/core';
+import {
+  IMPACT_ORDER,
+  levelsText,
+  notEvaluated,
+  summarize,
+  type ScanReport,
+} from '@widedoor/report';
 import type { FailOn } from './args.js';
 import type { ExitDecision } from './policy.js';
 import { plural, safeText } from './text.js';
@@ -33,6 +40,23 @@ export function printSummary(
       .join(', ');
   lines.push(`Failed checks by impact: ${impacts(s.failsByImpact)}.`);
   lines.push(`Needs review by impact: ${impacts(s.needsReviewByImpact)}.`);
+  if (s.overridden > 0)
+    lines.push(
+      `Set aside by a reviewer: ${plural(s.overridden, 'automated fail', 'automated fails')} (overridden as false positives; not counted as fails).`,
+    );
+  // Says which Supports rest on the errata basis, so 4.1.1 never reads as tested.
+  for (const c of s.criteria) lines.push(`Criteria, ${safeText(levelsText(c), 1000)}`);
+  if (report.checklist) {
+    const c = report.checklist;
+    const counts = CHECKLIST_STATUSES.map((st) => `${c.byStatus[st]} ${st}`).join(', ');
+    lines.push(
+      `Manual review checklist: ${plural(c.total, 'item', 'items')} (${counts}); widedoor review list shows them.`,
+    );
+    if (c.unscanned > 0)
+      lines.push(
+        `Manual review: ${plural(c.unscanned, 'page or file was', 'pages or files were')} not scanned and need a rescan before review.`,
+      );
+  }
 
   const gaps = notEvaluated(report);
   if (gaps.length > 0) {

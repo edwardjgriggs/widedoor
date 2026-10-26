@@ -4,6 +4,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Ajv } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import AjvDraft04 from 'ajv-draft-04';
 import addFormats from 'ajv-formats';
@@ -136,6 +137,15 @@ export function reportValidator() {
   addFormats.default(ajv);
   return ajv.compile(
     JSON.parse(readFileSync(join(ROOT, 'packages/report/schema/report.v1.json'), 'utf8')),
+  );
+}
+
+export function openAcrValidator() {
+  const ajv = new Ajv({ strict: true, allErrors: true });
+  return ajv.compile(
+    JSON.parse(
+      readFileSync(join(ROOT, 'packages/report/vendor/openacr/openacr-0.1.0.json'), 'utf8'),
+    ),
   );
 }
 

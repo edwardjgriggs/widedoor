@@ -4,3 +4,8 @@ export * from './finding-id.js';
 export * from './data.js';
 export * from './profiles.js';
 export * from './rollup.js';
+export * from './checklist.js';
+export * from './text.js';
+export * from './issues.js';
+export * from './repo-files.js';
+export * from './review-files.js';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadStandardsData } from '@widedoor/core';
 import { loadPlainData, parsePlainData } from '../src/plain.ts';
-import { fleschKincaid, syllables } from './readability.ts';
+import { fleschKincaid, syllables } from '../../core/test/readability.ts';
 
 const plain = loadPlainData();
 const data = loadStandardsData();

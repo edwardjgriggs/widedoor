@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   FindingSchema,
+  assetsLevel,
+  currentHashes,
   decidingRulesFrom,
+  errataFrom,
   getProfile,
+  isCurrentRecord,
   loadStandardsData,
   rollup,
   type Asset,
@@ -541,7 +545,28 @@ describe('rollup details', () => {
     );
     expect(row.evidence.sort()).toEqual([fail.id, pass.id].sort());
     expect(row.assets[0]?.undecided).toEqual([ignored.id]);
-    expect(row.reason).toBe('1 of 2 applicable assets fail; 1 pass');
+    expect(row.reason).toBe('1 of 2 applicable assets fails; 1 passes');
+  });
+
+  it('words each level reason in the singular for one asset and the plural for more', () => {
+    const units = (...states: ('pass' | 'fail' | 'not-evaluated')[]) =>
+      states.map((state) => ({ state, reason: 'no-results' as const }));
+    const reason = (...states: ('pass' | 'fail' | 'not-evaluated')[]) =>
+      assetsLevel(units(...states), [], undefined).reason;
+    expect(reason('pass')).toBe('the 1 applicable asset passes');
+    expect(reason('pass', 'pass', 'pass')).toBe('all 3 applicable assets pass');
+    expect(reason('fail')).toBe('the 1 applicable asset fails');
+    expect(reason('fail', 'fail', 'not-evaluated')).toBe(
+      '2 of 3 applicable assets fail; none pass',
+    );
+    expect(reason('fail', 'not-evaluated')).toBe('1 of 2 applicable assets fails; none pass');
+    expect(reason('fail', 'fail', 'pass')).toBe('2 of 3 applicable assets fail; 1 passes');
+    expect(reason('fail', 'pass', 'pass')).toBe('1 of 3 applicable assets fails; 2 pass');
+    expect(reason('not-evaluated')).toBe('the 1 applicable asset has no deciding result');
+    expect(reason('not-evaluated', 'not-evaluated')).toBe(
+      '2 of 2 applicable assets have no deciding result',
+    );
+    expect(reason('pass', 'not-evaluated')).toBe('1 of 2 applicable assets has no deciding result');
   });
 
   it('lists expired reviews on the asset', () => {
@@ -881,6 +906,354 @@ describe('assets in scope that were not scanned', () => {
     const row = criterion(result, 'wcag21aa', '2.1.2');
     expect(row.level).toBe('Not Evaluated');
     expect(row.reason).toMatch(/scope is incomplete: the sitemap could not be read/);
+  });
+});
+
+describe('review hash', () => {
+  const REVIEW = hash('b');
+  const CHANGED = hash('c');
+  const run = (asset: Asset, review: Finding) =>
+    criterion(
+      rollup({ findings: [], reviews: [review], profile: wcag21, assets: [asset] }),
+      'wcag21aa',
+      '1.1.1',
+    );
+
+  it('currentHashes gives the content hash and the review anchor per uri', () => {
+    const hashes = currentHashes([A, { ...B, reviewHash: REVIEW }]);
+    expect(hashes.get(A.uri)).toEqual({ content: CURRENT, review: CURRENT });
+    expect(hashes.get(B.uri)).toEqual({ content: CURRENT, review: REVIEW });
+  });
+
+  it('a review anchored to the review hash stays current when the content hash changes', () => {
+    const review = manual({ outcome: 'pass', expiresOnChangeOf: REVIEW });
+    const asset: Asset = { ...A, contentHash: CHANGED, reviewHash: REVIEW };
+    expect(isCurrentRecord(review, currentHashes([asset]))).toBe(true);
+    const row = run(asset, review);
+    expect(row.level).toBe('Supports');
+    expect(row.assets[0]?.reason).toBe('manual-pass');
+  });
+
+  it('a review anchored to the content hash expires when a different review hash is present', () => {
+    const review = manual({ outcome: 'pass', expiresOnChangeOf: CURRENT });
+    const asset: Asset = { ...A, reviewHash: REVIEW };
+    expect(isCurrentRecord(review, currentHashes([asset]))).toBe(false);
+    const row = run(asset, review);
+    expect(row.level).toBe('Not Evaluated');
+    expect(row.assets[0]?.expired).toEqual([review.id]);
+  });
+
+  it('automated passes are still judged against the content hash', () => {
+    const pass = automated({ outcome: 'pass' });
+    const row = criterion(
+      rollup({
+        findings: [pass],
+        reviews: [],
+        profile: wcag21,
+        assets: [{ ...A, reviewHash: REVIEW }],
+        decidingRules: DECIDING,
+      }),
+      'wcag21aa',
+      '1.1.1',
+    );
+    expect(row.level).toBe('Supports');
+  });
+});
+
+describe('4.1.1 errata basis', () => {
+  const errata = errataFrom(loadStandardsData());
+  const parsing = (input: Partial<Parameters<typeof rollup>[0]> & { assets: Asset[] }) =>
+    rollup({ findings: [], reviews: [], profile: wcag21, errata, ...input });
+
+  it('comes from the data and names only 4.1.1', () => {
+    expect([...errata.keys()]).toEqual(['4.1.1']);
+  });
+
+  it.each(['508', 'wcag21aa', '508+wcag21aa'] as const)(
+    'passes 4.1.1 on every scanned web page and PDF with nothing recorded (%s profile)',
+    (profileId) => {
+      const result = parsing({ profile: getProfile(profileId), assets: [A, naPdf] });
+      for (const s of result.standards) {
+        const row = criterion(result, s.standard, '4.1.1');
+        expect(row.level, s.standard).toBe('Supports');
+        expect(row.assets.map((a) => [a.state, a.reason])).toEqual([
+          ['pass', 'errata'],
+          ['pass', 'errata'],
+        ]);
+        expect(row.evidence).toEqual([]);
+        expect(row.reason).toContain('https://www.w3.org/WAI/WCAG20/errata/');
+        expect(row.reason).toContain('https://www.w3.org/WAI/WCAG21/errata/');
+        expect(row.reason).toContain(
+          'This criterion should be considered as always satisfied for any content using HTML or XML.',
+        );
+        expect(row.reason).toContain(
+          'This Success Criterion should be considered as always satisfied for any content using HTML or XML.',
+        );
+        expect(row.reason).toContain("Always answer 'Supports'");
+      }
+    },
+  );
+
+  it('no other criterion passes on the errata basis', () => {
+    const result = parsing({ profile: getProfile('508+wcag21aa'), assets: [A, naPdf] });
+    for (const s of result.standards)
+      for (const c of s.criteria.filter((c) => c.id !== '4.1.1')) {
+        expect(c.level, `${s.standard} ${c.id}`).not.toBe('Supports');
+        expect([...c.assets, ...(c.product ? [c.product] : [])].map((a) => a.reason)).not.toContain(
+          'errata',
+        );
+      }
+  });
+
+  it('without errata data 4.1.1 is Not Evaluated', () => {
+    const row = criterion(
+      rollup({ findings: [], reviews: [], profile: wcag21, assets: [A] }),
+      'wcag21aa',
+      '4.1.1',
+    );
+    expect(row.level).toBe('Not Evaluated');
+  });
+
+  it('an automated fail on 4.1.1 still wins', () => {
+    const fail = automated({ outcome: 'fail', wcag: ['4.1.1'], ruleId: 'duplicate-id' });
+    const row = criterion(parsing({ assets: [A, B], findings: [fail] }), 'wcag21aa', '4.1.1');
+    expect(row.level).toBe('Partially Supports');
+    expect(row.assets.map((a) => a.reason)).toEqual(['automated-fail', 'errata']);
+    expect(row.evidence).toEqual([fail.id]);
+  });
+
+  it('a PDF that fails 4.1.1 next to a web page that passes on the errata', () => {
+    const fail = automated({ asset: naPdf, outcome: 'fail', wcag: ['4.1.1'], ruleId: 'r' });
+    const row = criterion(parsing({ assets: [A, naPdf], findings: [fail] }), 'wcag21aa', '4.1.1');
+    expect(row.level).toBe('Partially Supports');
+    expect(row.assets.map((a) => [a.uri, a.state, a.reason])).toEqual([
+      [A.uri, 'pass', 'errata'],
+      [naPdf.uri, 'fail', 'automated-fail'],
+    ]);
+    expect(row.evidence).toEqual([fail.id]);
+    expect(row.reason).toContain(
+      '. 1 asset passes on the errata basis, not on a test: WCAG 2.0 errata (',
+    );
+  });
+
+  it('a manual N/A on 4.1.1 is listed as undecided when the errata pass wins', () => {
+    const na = manual({
+      asset: naPdf,
+      outcome: 'not-applicable',
+      wcag: ['4.1.1'],
+      notes: 'The PDF is not HTML or XML.',
+    });
+    const row = criterion(parsing({ assets: [naPdf], reviews: [na] }), 'wcag21aa', '4.1.1');
+    expect(row.level).toBe('Supports');
+    expect(row.assets[0]).toMatchObject({ state: 'pass', reason: 'errata', undecided: [na.id] });
+  });
+
+  it('a manual N/A is listed as undecided when a fail wins', () => {
+    const na = manual({ outcome: 'not-applicable', notes: 'No images.' });
+    const row = criterion(
+      parsing({ assets: [A], findings: [automated({ outcome: 'fail' })], reviews: [na] }),
+      'wcag21aa',
+      '1.1.1',
+    );
+    expect(row.assets[0]).toMatchObject({ state: 'fail', undecided: [na.id] });
+  });
+
+  it('a manual fail on 4.1.1 still wins', () => {
+    const fail = manual({ outcome: 'fail', wcag: ['4.1.1'] });
+    const row = criterion(parsing({ assets: [A], reviews: [fail] }), 'wcag21aa', '4.1.1');
+    expect(row.level).toBe('Does Not Support');
+    expect(row.assets[0]?.reason).toBe('manual-fail');
+  });
+
+  it('an unscanned asset still caps it', () => {
+    const row = criterion(
+      parsing({ assets: [A], unscanned: [{ uri: B.uri, kind: 'web' }] }),
+      'wcag21aa',
+      '4.1.1',
+    );
+    expect(row.level).toBe('Not Evaluated');
+    expect(row.assets.map((a) => a.reason)).toEqual(['errata', 'not-scanned']);
+  });
+
+  it('a scope gap still caps it', () => {
+    const row = criterion(
+      parsing({ assets: [A], scopeGaps: ['the sitemap could not be read'] }),
+      'wcag21aa',
+      '4.1.1',
+    );
+    expect(row.level).toBe('Not Evaluated');
+    // The cap comes first and the errata citation is a sentence of its own after it.
+    expect(row.reason).toMatch(
+      /^the 1 applicable asset passes, but the scope is incomplete: the sitemap could not be read\. 1 asset passes on the errata basis, not on a test: WCAG 2\.0 errata \(/,
+    );
+  });
+});
+
+describe('manual overrides', () => {
+  const run = (findings: Finding[], reviews: Finding[], assets: Asset[] = [A]) =>
+    criterion(
+      rollup({ findings, reviews, profile: wcag21, assets, decidingRules: DECIDING }),
+      'wcag21aa',
+      '1.1.1',
+    );
+  const override = (
+    ids: string[],
+    spec: Partial<Spec> & { notes?: string; expiresOnChangeOf?: string } = {},
+  ) =>
+    invalid(
+      manual({ outcome: 'pass', notes: 'False positive: the image is decorative.', ...spec }),
+      (f) => ({
+        ...f,
+        review: { ...(f.review as Loose), overrides: ids },
+      }),
+    );
+
+  it('a current pass that overrides an automated fail sets it aside', () => {
+    const fail = automated({ outcome: 'fail' });
+    const review = override([fail.id]);
+    expect(FindingSchema.safeParse(review).success).toBe(true);
+    const row = run([fail], [review]);
+    expect(row.level).toBe('Supports');
+    expect(row.assets[0]).toMatchObject({
+      state: 'pass',
+      reason: 'manual-override',
+      overridden: [fail.id],
+      evidence: [review.id],
+    });
+    expect(row.evidence).toEqual([review.id]);
+  });
+
+  it('sets aside every record with the overridden id on that asset', () => {
+    const fail = automated({ outcome: 'fail' });
+    const again = { ...automated({ outcome: 'fail' }), id: fail.id };
+    const row = run([fail, again], [override([fail.id])]);
+    expect(row.assets[0]?.reason).toBe('manual-override');
+    expect(row.assets[0]?.overridden).toEqual([fail.id]);
+  });
+
+  it('a stale automated fail can be overridden', () => {
+    const fail = automated({ outcome: 'fail', contentHash: OLD });
+    expect(run([fail], [override([fail.id])]).assets[0]?.reason).toBe('manual-override');
+  });
+
+  it('other current fails keep the state at fail', () => {
+    const named = automated({ outcome: 'fail' });
+    const other = automated({ outcome: 'fail', ruleId: 'role-img-alt' });
+    const manualFail = manual({ outcome: 'fail' });
+    const row = run([named, other], [override([named.id])]);
+    expect(row.level).toBe('Does Not Support');
+    expect(row.assets[0]).toMatchObject({
+      state: 'fail',
+      reason: 'automated-fail',
+      evidence: [other.id],
+      overridden: [named.id],
+    });
+    const withManual = run([named], [override([named.id]), manualFail]);
+    expect(withManual.assets[0]).toMatchObject({
+      state: 'fail',
+      reason: 'manual-fail',
+      evidence: [manualFail.id],
+      overridden: [named.id],
+    });
+  });
+
+  it('an override without notes is ignored and listed in undecided', () => {
+    const fail = automated({ outcome: 'fail' });
+    for (const notes of [undefined, '   ']) {
+      const review = invalid(override([fail.id]), (f) => {
+        const r = { ...(f.review as Loose) };
+        if (notes === undefined) delete r.notes;
+        else r.notes = notes;
+        return { ...f, review: r };
+      });
+      const row = run([fail], [review]);
+      expect(row.level).toBe('Does Not Support');
+      expect(row.assets[0]).toMatchObject({
+        reason: 'automated-fail',
+        overridden: [],
+        undecided: [review.id],
+      });
+      // With no fail to set aside, the record still does not count as a pass.
+      expect(run([], [review]).level).toBe('Not Evaluated');
+    }
+  });
+
+  it('an override naming a fail on another asset is ignored', () => {
+    const elsewhere = automated({ asset: B, outcome: 'fail' });
+    const row = run([elsewhere], [override([elsewhere.id], { asset: A })], [A, B]);
+    expect(row.level).toBe('Partially Supports');
+    expect(row.assets.map((a) => [a.reason, a.overridden])).toEqual([
+      ['manual-pass', []],
+      ['automated-fail', []],
+    ]);
+  });
+
+  it('an override naming a fail on another criterion is ignored', () => {
+    const contrast = automated({ outcome: 'fail', wcag: ['1.4.3'], ruleId: 'color-contrast' });
+    const result = rollup({
+      findings: [contrast],
+      reviews: [override([contrast.id])],
+      profile: wcag21,
+      assets: [A],
+    });
+    expect(criterion(result, 'wcag21aa', '1.4.3').assets[0]?.reason).toBe('automated-fail');
+    expect(criterion(result, 'wcag21aa', '1.1.1').assets[0]?.reason).toBe('manual-pass');
+  });
+
+  it('an override naming a manual fail or a non-fail is ignored', () => {
+    const manualFail = manual({ outcome: 'fail' });
+    const review = automated({ outcome: 'needs-review' });
+    const row = run([review], [manualFail, override([manualFail.id, review.id])]);
+    expect(row.assets[0]).toMatchObject({ reason: 'manual-fail', overridden: [] });
+  });
+
+  it('an expired override counts for nothing', () => {
+    const fail = automated({ outcome: 'fail' });
+    const stale = override([fail.id], { expiresOnChangeOf: OLD });
+    const row = run([fail], [stale]);
+    expect(row.level).toBe('Does Not Support');
+    expect(row.assets[0]).toMatchObject({
+      reason: 'automated-fail',
+      overridden: [],
+      expired: [stale.id],
+    });
+  });
+
+  it('an override record on a manual fail is ignored', () => {
+    const fail = automated({ outcome: 'fail' });
+    const bad = invalid(manual({ outcome: 'fail', notes: 'x' }), (f) => ({
+      ...f,
+      review: { ...(f.review as Loose), overrides: [fail.id] },
+    }));
+    expect(FindingSchema.safeParse(bad).success).toBe(false);
+    const row = run([fail], [bad]);
+    expect(row.assets[0]).toMatchObject({ reason: 'automated-fail', overridden: [] });
+  });
+
+  it('an override sets aside a fail on 4.1.1 the errata basis would otherwise lose to', () => {
+    const fail = automated({ outcome: 'fail', wcag: ['4.1.1'], ruleId: 'duplicate-id' });
+    const review = override([fail.id], { wcag: ['4.1.1'] });
+    const row = criterion(
+      rollup({
+        findings: [fail],
+        reviews: [review],
+        profile: wcag21,
+        assets: [A],
+        errata: errataFrom(loadStandardsData()),
+      }),
+      'wcag21aa',
+      '4.1.1',
+    );
+    expect(row.level).toBe('Supports');
+    expect(row.assets[0]?.reason).toBe('manual-override');
+  });
+
+  it('every determination lists overridden, empty by default', () => {
+    const result = rollup({ findings: [], reviews: [], profile: s508, assets: [A, naPdf] });
+    for (const s of result.standards)
+      for (const c of s.criteria)
+        for (const d of [...c.assets, ...(c.product ? [c.product] : [])])
+          expect(d.overridden, `${s.standard} ${c.id}`).toEqual([]);
   });
 });
 

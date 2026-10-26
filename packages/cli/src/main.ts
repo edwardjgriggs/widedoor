@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { loadReviews } from '@widedoor/core';
+import { ConfigError, buildPlan, loadConfig, type LoadedConfig } from '@widedoor/server';
 import { CONFIG_FILE, USAGE, UsageError, parseCommand } from './args.js';
-import { ConfigError, buildPlan, loadConfig, type LoadedConfig } from './config.js';
 import { EXIT_ERROR, EXIT_OK } from './policy.js';
-import { loadReviews } from './reviews.js';
 import { safeText } from './text.js';
 
 export interface Io {
@@ -42,9 +42,16 @@ export async function main(argv: readonly string[], io: Io = processIo()): Promi
       return EXIT_OK;
     }
     if (command.command === 'ui') {
-      // Loaded only for the viewer: it pulls in the HTTP server.
       const { runUi } = await import('./ui.js');
       return await runUi(command, io);
+    }
+    if (command.command === 'review') {
+      const { runReview } = await import('./review-cmd.js');
+      return await runReview(command, io);
+    }
+    if (command.command === 'diff') {
+      const { runDiff } = await import('./diff-cmd.js');
+      return runDiff(command, io);
     }
     const discovered = join(io.cwd, CONFIG_FILE);
     const configPath =
@@ -61,7 +68,6 @@ export async function main(argv: readonly string[], io: Io = processIo()): Promi
     const loaded: LoadedConfig | undefined = configPath ? loadConfig(configPath) : undefined;
     const plan = buildPlan(command, loaded, io.cwd);
     const { reviews } = await loadReviews(plan.reviewDir);
-    // Loaded only for a scan: it pulls in Playwright, pdf.js and the reporters.
     const { runScan } = await import('./run.js');
     return await runScan(plan, reviews, io);
   } catch (e) {

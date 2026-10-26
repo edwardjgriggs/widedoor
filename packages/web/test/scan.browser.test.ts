@@ -1,11 +1,22 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, type Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FindingSchema } from '@widedoor/core';
+import {
+  FindingSchema,
+  buildChecklist,
+  errataFrom,
+  getProfile,
+  loadReviews,
+  loadStandardsData,
+  recordReview,
+  reviewChecklist,
+  rollup,
+  type ReviewReport,
+} from '@widedoor/core';
 import {
   WebScanner,
   chromiumLaunchOptions,
@@ -13,6 +24,7 @@ import {
   launchChromium,
   scanWeb,
 } from '../src/index.ts';
+import { reviewHashOf } from '../src/review-hash.ts';
 import { page, serve, type TestServer } from './server.ts';
 
 /*
@@ -39,7 +51,10 @@ const REFLOW_PAGE = page(
 );
 
 beforeAll(async () => {
-  other = await serve(() => ({ '/x.html': { body: page('Other', '<p>other</p>') } }));
+  other = await serve(() => ({
+    '/x.html': { body: page('Other', '<p>other</p>') },
+    '/report': { body: '%PDF-1.7', type: 'application/pdf' },
+  }));
   site = await serve((o) => ({
     '/a.html': {
       body: page(
@@ -57,12 +72,30 @@ beforeAll(async () => {
       headers: { 'content-disposition': 'attachment; filename="x.bin"' },
     },
     '/fail.html': { body: FAIL_PAGE },
+    // A fresh CSRF field and script nonce on every request, as many sites serve them.
+    '/tokens.html': {
+      body: () => {
+        const token = randomBytes(16).toString('hex');
+        return page(
+          'Tokens',
+          `<h1>Sign up</h1><form><input type="hidden" name="csrf" value="${token}"><label>Name <input name="name"></label><button>Send</button></form>`,
+          `<script nonce="${token}">window.started = '${token}';</script>`,
+        );
+      },
+    },
     '/reflow.html': { body: REFLOW_PAGE },
     '/auth.html': { body: page('Auth', '<p>auth</p>') },
     '/pdf-links.html': {
       body: page('PDF links', '<a href="/doc.pdf">doc</a> <a href="/UPPER.PDF?v=1">upper</a>'),
     },
     '/doc.pdf': { body: '%PDF-1.7', type: 'application/pdf' },
+    // A PDF whose URL does not say so: only the browser's response does.
+    '/report': { body: '%PDF-1.7', type: 'application/pdf; charset=binary' },
+    '/to-other-report': {
+      status: 302,
+      body: '',
+      headers: { location: `${other.origin}/report` },
+    },
     '/many-pdfs.html': {
       body: page(
         'Many PDFs',
@@ -301,34 +334,61 @@ describe('scope and crawl', () => {
   );
 
   it(
-    'lists PDFs reached by URL as skipped without loading them or spending a page',
+    'hands PDF links on for fetching without loading them or spending a page',
     async () => {
       const r = await scanWeb(
-        { urls: [`${site.origin}/pdf-links.html`], crawl: { maxPages: 1 } },
+        {
+          urls: [`${site.origin}/pdf-links.html`, `${site.origin}/listed.pdf`],
+          crawl: { maxPages: 1 },
+        },
         base,
       );
       expect(scanned(r)).toEqual(['/pdf-links.html']);
       expect(r.truncated).toBe(false);
       expect(hitsOf(site, '/doc.pdf')).toBe(0);
       expect(r.errors).toEqual([]);
-      expect(r.skipped.map((s) => [new URL(s.url).pathname, s.reason]).sort()).toEqual([
-        ['/UPPER.PDF', 'pdf-url'],
-        ['/doc.pdf', 'pdf-url'],
+      expect(r.skipped).toEqual([]);
+      expect(r.pdfs).toEqual([
+        { url: `${site.origin}/listed.pdf`, listed: true },
+        { url: `${site.origin}/doc.pdf`, listed: false },
+        { url: `${site.origin}/UPPER.PDF?v=1`, listed: false },
       ]);
     },
     TIMEOUT,
   );
 
   it(
-    'caps the links read per page and the PDF links listed, and records the rest as scope gaps',
+    'hands on a page the server answers with a PDF, unless it redirected off-origin',
+    async () => {
+      const r = await scanWeb(
+        { urls: [`${site.origin}/report`, `${site.origin}/to-other-report`] },
+        { ...base, concurrency: 1 },
+      );
+      expect(r.errors).toEqual([]);
+      expect(r.assets).toEqual([]);
+      expect(r.pdfs).toEqual([{ url: `${site.origin}/report`, listed: true }]);
+      expect(r.skipped).toEqual([
+        {
+          url: `${site.origin}/to-other-report`,
+          finalUrl: `${other.origin}/report`,
+          reason: 'redirect-off-origin',
+        },
+      ]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'caps the links read per page and the PDF links handed on, and records the rest as scope gaps',
     async () => {
       const r = await scanWeb(
         { urls: [`${site.origin}/many-pdfs.html`], crawl: { maxPages: 5 } },
         base,
       );
-      expect(r.skipped).toHaveLength(100);
+      expect(r.pdfs).toHaveLength(100);
+      expect(r.skipped).toEqual([]);
       expect(r.scopeGaps).toEqual([
-        '4900 PDF link(s) were not listed: at most 100 are taken from one page',
+        '4900 PDF link(s) were not scanned: at most 100 are taken from one page',
         '1000 link(s) were not followed: at most 5000 are read from one page',
       ]);
       expect(r.warnings).toEqual(expect.arrayContaining(r.scopeGaps));
@@ -336,14 +396,14 @@ describe('scope and crawl', () => {
 
       const run = await scanWeb(
         { urls: [`${site.origin}/many-pdfs.html`], crawl: { maxPages: 5 } },
-        { ...base, maxPdfSkips: 30 },
+        { ...base, maxPdfLinks: 30 },
       );
-      expect(run.skipped).toHaveLength(30);
+      expect(run.pdfs).toHaveLength(30);
       expect(run.scopeGaps[0]).toBe(
-        '4900 PDF link(s) were not listed: at most 100 are taken from one page',
+        '4900 PDF link(s) were not scanned: at most 100 are taken from one page',
       );
       expect(run.scopeGaps[1]).toBe(
-        '70 PDF link(s) were not listed: at most 30 are listed per scan',
+        '70 PDF link(s) were not scanned: at most 30 are scanned per run',
       );
     },
     TIMEOUT,
@@ -419,6 +479,59 @@ describe('page deadline and page behavior', () => {
   );
 });
 
+describe('progress and cancel', () => {
+  it(
+    'tells progress as each page starts and ends',
+    async () => {
+      const seen: string[] = [];
+      await scanWeb(
+        { urls: [`${site.origin}/d.html`, `${site.origin}/e.html`] },
+        {
+          ...base,
+          concurrency: 1,
+          onProgress: (p) =>
+            seen.push(
+              `${p.done}/${p.known} ${p.current === undefined ? '-' : new URL(p.current).pathname}`,
+            ),
+        },
+      );
+      expect(seen).toEqual(['0/2 /d.html', '1/2 -', '1/2 /e.html', '2/2 -']);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'stops when its signal fires: the page in flight ends and no other starts',
+    async () => {
+      const stop = new AbortController();
+      const before = hitsOf(site, '/d.html');
+      const t0 = Date.now();
+      const run = scanWeb(
+        { urls: [`${site.origin}/hang.html`, `${site.origin}/d.html`] },
+        {
+          ...base,
+          concurrency: 1,
+          signal: stop.signal,
+          onProgress: (p) => {
+            if (p.current?.endsWith('/hang.html'))
+              setTimeout(() => stop.abort(new Error('stop')), 500);
+          },
+        },
+      );
+      await expect(run).rejects.toThrow('stop');
+      // Well before the default page deadline.
+      expect(Date.now() - t0).toBeLessThan(20_000);
+      expect(hitsOf(site, '/d.html')).toBe(before);
+      // A signal that already fired starts no browser.
+      await expect(
+        scanWeb({ urls: [`${site.origin}/d.html`] }, { ...base, signal: stop.signal }),
+      ).rejects.toThrow('stop');
+      expect(hitsOf(site, '/d.html')).toBe(before);
+    },
+    TIMEOUT,
+  );
+});
+
 describe('findings and evidence', () => {
   let scanner: WebScanner;
   const evidence = () => join(tmp, 'evidence');
@@ -432,12 +545,71 @@ describe('findings and evidence', () => {
     async () => {
       const r = await scanner.scanPage(`${site.origin}/fail.html`);
       const hash = `sha256:${createHash('sha256').update(FAIL_PAGE).digest('hex')}`;
-      expect(r.asset).toEqual({ kind: 'web', uri: `${site.origin}/fail.html`, contentHash: hash });
+      expect(r.asset).toEqual({
+        kind: 'web',
+        uri: `${site.origin}/fail.html`,
+        contentHash: hash,
+        reviewHash: reviewHashOf(FAIL_PAGE),
+      });
       expect(r.findings.length).toBeGreaterThan(0);
       for (const f of r.findings) {
         expect(FindingSchema.safeParse(f).success).toBe(true);
         expect(f.asset.contentHash).toBe(hash);
       }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'keeps the review hash of a page whose CSRF value and nonce change per request, so a review stays current',
+    async () => {
+      const data = loadStandardsData();
+      const profile = getProfile('wcag21aa');
+      const scanTokens = async () => {
+        const r = await scanner.scanPage(`${site.origin}/tokens.html`);
+        if (!r.asset) throw new Error('the page was not scanned');
+        return { asset: r.asset, findings: r.findings };
+      };
+      const reportOf = (scan: Awaited<ReturnType<typeof scanTokens>>): ReviewReport => {
+        const assets = [scan.asset];
+        return {
+          profile: { id: profile.id, pdfDocumentType: profile.pdfDocumentType },
+          assets,
+          findings: scan.findings,
+          rollup: rollup({
+            findings: scan.findings,
+            reviews: [],
+            profile,
+            assets,
+            errata: errataFrom(data),
+          }),
+        };
+      };
+      const first = await scanTokens();
+      const second = await scanTokens();
+      expect(second.asset.contentHash).not.toBe(first.asset.contentHash);
+      expect(second.asset.reviewHash).toBe(first.asset.reviewHash);
+      expect(first.asset.reviewHash).not.toBe(first.asset.contentHash);
+      // A reviewer records a result against the first scan; the second scan still counts it.
+      const before = reportOf(first);
+      const item = buildChecklist({ report: before, data }).find(
+        (i) => i.criterion.id === '2.1.1' && i.status === 'open',
+      );
+      if (!item) throw new Error('no open 2.1.1 item');
+      const dir = join(tmp, 'focus-1');
+      mkdirSync(dir);
+      await recordReview(dir, {
+        report: before,
+        item: item.id,
+        outcome: 'pass',
+        reviewer: 'Ann',
+        version: '0.0.0',
+        data,
+      });
+      const { reviews } = await loadReviews(dir);
+      const after = reviewChecklist(reportOf(second), reviews, data);
+      expect(after.notApplied).toEqual([]);
+      expect(after.items.find((i) => i.id === item.id)?.status).toBe('done');
     },
     TIMEOUT,
   );

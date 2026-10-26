@@ -5,10 +5,12 @@ import { CONTAINER_LABEL, TASKKILL, runProcess, type SpawnFn } from '@widedoor/p
 
 /*
  * Run lifecycle: every process the PDF scan starts goes through a tracker, so
- * an interrupt can kill it, and every veraPDF container is named after this
- * host and process, so a later run can tell a leftover of a dead run from a
- * container a live run still uses. Chromium is Playwright's: it closes its
- * browsers on SIGINT, SIGTERM and SIGHUP and kills them when this process exits.
+ * an interrupt or a cancelled scan job can kill it, and every veraPDF
+ * container is named after this host and process, so a later run can tell a
+ * leftover of a dead run from a container a live run still uses. Chromium is
+ * Playwright's: a cancelled scan closes the browser (performScan's signal),
+ * and Playwright closes its browsers on SIGINT, SIGTERM and SIGHUP and kills
+ * them when this process exits.
  */
 
 const isWindows = process.platform === 'win32';

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ISOLATED_HOST_ENV, VERAPDF_IMAGE_REF } from '@widedoor/pdf';
@@ -43,6 +43,45 @@ describe('Dockerfile', () => {
     expect(dockerfile).toContain('org.opencontainers.image.licenses="Apache-2.0 AND ');
     expect(dockerfile).toContain('io.widedoor.third-party-notices="/app/THIRD-PARTY-NOTICES.txt"');
     expect(dockerfile).toMatch(/^COPY .*docker\/THIRD-PARTY-NOTICES\.txt \.\/$/m);
+  });
+
+  it('copies every workspace package.json into both npm ci stages', () => {
+    const packages = readdirSync(join(ROOT, 'packages')).filter((p) =>
+      existsSync(join(ROOT, 'packages', p, 'package.json')),
+    );
+    expect(packages).toContain('server');
+    for (const stage of [' AS build', ' AS deps']) {
+      const from = dockerfile.indexOf(stage);
+      const ci = dockerfile.indexOf('RUN npm ci', from);
+      const copies = dockerfile.slice(from, ci);
+      for (const p of packages)
+        expect(copies, `${p} in${stage}`).toContain(
+          `COPY packages/${p}/package.json packages/${p}/\n`,
+        );
+    }
+  });
+
+  it('copies the build output of the CLI and every Widedoor package it depends on', () => {
+    const deps = (name: string): string[] => {
+      const json = JSON.parse(
+        readFileSync(join(ROOT, 'packages', name, 'package.json'), 'utf8'),
+      ) as { dependencies?: Record<string, string> };
+      return Object.keys(json.dependencies ?? {})
+        .filter((d) => d.startsWith('@widedoor/'))
+        .map((d) => d.slice('@widedoor/'.length));
+    };
+    const needed = new Set<string>();
+    const visit = (name: string) => {
+      if (needed.has(name)) return;
+      needed.add(name);
+      deps(name).forEach(visit);
+    };
+    visit('cli');
+    expect([...needed]).toContain('server');
+    for (const p of needed)
+      expect(dockerfile).toContain(
+        `COPY --from=build /src/packages/${p}/dist packages/${p}/dist\n`,
+      );
   });
 
   it('installs Chromium before any Widedoor build output, so a source edit reuses that layer', () => {

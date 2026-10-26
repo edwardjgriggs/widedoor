@@ -11,6 +11,8 @@ import { z } from 'zod';
  *   - review is present if and only if source.engine is "manual"
  *   - at least one of criteria.wcag / criteria.section508 is non-empty
  * Rules that live only in Zod:
+ *   - review.overrides only on a manual pass (the JSON Schema states it in
+ *     the field description)
  *   - findingId() output is not checked against the recomputed hash
  */
 
@@ -50,6 +52,8 @@ export const AssetSchema = z
     kind: AssetKindSchema,
     uri: nonEmpty,
     contentHash: sha256,
+    /** What a manual review is anchored to when present (a normalized hash for web pages); contentHash otherwise. */
+    reviewHash: sha256.optional(),
   })
   .strict();
 export type Asset = z.infer<typeof AssetSchema>;
@@ -119,19 +123,39 @@ export const EvidenceSchema = z
   .strict();
 export type Evidence = z.infer<typeof EvidenceSchema>;
 
+const findingIdPattern = z
+  .string()
+  .regex(/^wd_[0-9a-f]{16}$/, 'expected wd_ followed by 16 lowercase hex chars');
+
+// Relative, inside its folder: no leading slash or backslash, no drive letter, no ".." segment.
+const attachmentPath = z
+  .string()
+  .regex(
+    /^(?![\\/])(?![A-Za-z]:)(?!(?:.*[\\/])?\.\.(?:[\\/]|$)).+$/,
+    'expected a path relative to widedoor-review/ that stays inside it',
+  );
+
 export const ReviewSchema = z
   .object({
     reviewer: nonEmpty,
     date: z.iso.date(),
     notes: z.string().optional(),
     expiresOnChangeOf: sha256,
+    overrides: z
+      .array(findingIdPattern)
+      .describe(
+        'Ids of automated fails on the same asset and criterion that the reviewer sets aside as false positives. Allowed only on a manual pass (outcome "pass"), and counted only with non-empty notes.',
+      )
+      .optional(),
+    /** Files the reviewer attached, as paths relative to widedoor-review/. */
+    attachments: z.array(attachmentPath).optional(),
   })
   .strict();
 export type Review = z.infer<typeof ReviewSchema>;
 
 const commonShape = {
   schemaVersion: z.literal(1),
-  id: z.string().regex(/^wd_[0-9a-f]{16}$/, 'expected wd_ followed by 16 lowercase hex chars'),
+  id: findingIdPattern,
   criteria: CriteriaSchema,
   outcome: OutcomeSchema,
   impact: ImpactSchema.optional(),
@@ -156,14 +180,21 @@ function variant<K extends AssetKind, L extends z.ZodType, S extends z.ZodType>(
     .strict();
 }
 
+const overridesOnPass = (f: { outcome: Outcome; review: Review }) =>
+  f.outcome === 'pass' || f.review.overrides === undefined;
+const overridesIssue = {
+  message: 'only a manual pass may carry overrides',
+  path: ['review', 'overrides'],
+};
+
 const WebAutomated = variant('web', WebLocationSchema, AutomatedSourceSchema);
-const WebManual = variant('web', WebLocationSchema, ManualSourceSchema).extend({
-  review: ReviewSchema,
-});
+const WebManual = variant('web', WebLocationSchema, ManualSourceSchema)
+  .extend({ review: ReviewSchema })
+  .refine(overridesOnPass, overridesIssue);
 const PdfAutomated = variant('pdf', PdfLocationSchema, AutomatedSourceSchema);
-const PdfManual = variant('pdf', PdfLocationSchema, ManualSourceSchema).extend({
-  review: ReviewSchema,
-});
+const PdfManual = variant('pdf', PdfLocationSchema, ManualSourceSchema)
+  .extend({ review: ReviewSchema })
+  .refine(overridesOnPass, overridesIssue);
 
 export const FindingSchema = z.union([WebAutomated, WebManual, PdfAutomated, PdfManual]);
 export type Finding = z.infer<typeof FindingSchema>;
@@ -175,7 +206,7 @@ export function buildFindingJsonSchema(): Record<string, unknown> {
     $id: FINDING_SCHEMA_ID,
     title: 'Widedoor Finding v1',
     description:
-      'One accessibility result for a web page or PDF. A review block is required exactly when source.engine is "manual".',
+      'One accessibility result for a web page or PDF. A review block is required exactly when source.engine is "manual". review.overrides is allowed only on a manual pass (outcome "pass").',
     ...z.toJSONSchema(FindingSchema),
   };
 }

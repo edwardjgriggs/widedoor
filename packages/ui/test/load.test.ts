@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 /*
  * The code-for-token exchange in the page: only a 401 from /api/session
  * means the link was already used; any other refusal gets the generic text.
+ * A 401 for the token later means the session has ended.
  */
 
 const USED = /^This link was already used\./;
@@ -53,6 +54,25 @@ describe('fetchServedReport', () => {
     page(() => Promise.reject(new TypeError('fetch failed')));
     const r = await load();
     expect(!r.ok && r.message).toMatch(/server is not running/);
+  });
+
+  it('says so, with no unhandled rejection, when the session answer is not JSON', async () => {
+    page(async () => new Response('<html>proxy</html>', { status: 200 }));
+    const r = await load();
+    expect(!r.ok && r.message).toBe(
+      'The server sent an answer this page cannot read. Open the link widedoor ui printed in the terminal again.',
+    );
+  });
+
+  it('says the session has ended when the token is refused', async () => {
+    page(async () => Response.json({ token: 't0k' }));
+    vi.mocked(fetch).mockImplementation(async (url) =>
+      url === '/api/session'
+        ? Response.json({ token: 't0k' })
+        : new Response('Unauthorized', { status: 401 }),
+    );
+    const r = await load();
+    expect(!r.ok && r.message).toBe("This page's session has ended. Run widedoor ui again.");
   });
 
   it('trades the code once and then asks for the served report with the token', async () => {

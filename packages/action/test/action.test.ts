@@ -21,7 +21,7 @@ import {
   parseCommand,
   type ScanArgs,
 } from '../../cli/src/args.ts';
-import { MARKER as CLI_MARKER } from '../../cli/src/output.ts';
+import { MARKER as CLI_MARKER } from '../../server/src/output.ts';
 import { VERAPDF_IMAGE_REF } from '../../pdf/src/verapdf.ts';
 import {
   CONFIG_FILE,
@@ -564,8 +564,14 @@ describe('action.yml', () => {
     const digest = VERAPDF_IMAGE_REF.split('@')[1];
     const pull = steps.find((s) => s.name === 'Pull veraPDF image') as {
       env: { VERAPDF_DIGEST: string };
+      if: string;
+      run: string;
     };
     expect(pull.env.VERAPDF_DIGEST).toBe(digest);
+    // Every Linux run pulls (a URL-only scan can reach PDFs), unless Docker is missing.
+    expect(pull.if).toBe("runner.os == 'Linux'");
+    expect(pull.run.indexOf('command -v docker')).toBeGreaterThanOrEqual(0);
+    expect(pull.run.indexOf('command -v docker')).toBeLessThan(pull.run.indexOf('docker pull'));
     const ciPulls = workflowSteps.filter((s) => s.name === 'Pull veraPDF image');
     expect(ciPulls.length).toBeGreaterThan(0);
     for (const s of ciPulls)

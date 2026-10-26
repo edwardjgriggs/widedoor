@@ -1,0 +1,20 @@
+{
+  "name": "@widedoor/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "Scan orchestration and the local server behind widedoor ui: scan jobs, uploads, reviews and exports.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@hono/node-server": "2.1.4",
+    "@widedoor/core": "0.0.0",
+    "@widedoor/pdf": "0.0.0",
+    "@widedoor/report": "0.0.0",
+    "@widedoor/ui": "0.0.0",
+    "@widedoor/web": "0.0.0",
+    "hono": "4.13.13",
+    "zod": "4.6.7"
+  }
+}

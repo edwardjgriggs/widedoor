@@ -1,17 +1,22 @@
 import {
+  CONFORMANCE_LEVELS,
   currentHashes,
   isCurrentRecord,
   type Asset,
+  type DeterminationReason,
   type Finding,
   type Plain,
 } from '@widedoor/core/browser';
 import {
   SCOPE_ERROR_CODES,
   ordinal,
+  type ChecklistProgress,
+  type Override,
   type RunError,
   type ScanReport,
   type SkippedAsset,
 } from './model.js';
+import { NO_OVERRIDES, type OverrideTest } from './overrides.js';
 import {
   IMPACT_ORDER,
   type ImpactOrUnrated,
@@ -21,11 +26,11 @@ import {
 
 /*
  * What the HTML report and the local UI show, as data: labels, the finding
- * cards, per-asset finding order, unscanned assets, exception notes and the
- * manual review records, and every fixed sentence. Both renderers build their
- * markup from these, so the two never disagree on wording, grouping or order.
- * Sentences that wrap a URI in markup are split around it. No Node built-ins:
- * the UI bundles it.
+ * cards, per-asset finding order, unscanned assets, exception notes, the
+ * manual review progress, overrides and records, and every fixed sentence.
+ * Both renderers build their markup from these, so the two never disagree on
+ * wording, grouping or order. Sentences that wrap a URI in markup are split
+ * around it. No Node built-ins: the UI bundles it.
  */
 
 export const IMPACT_LABEL: Record<ImpactOrUnrated, string> = {
@@ -53,16 +58,21 @@ export const impactRank = (f: Finding) => IMPACT_ORDER.indexOf(f.impact ?? 'unra
 /** Outcomes the report lists one by one: fails and needs-review. */
 export const isShown = (f: Finding) => f.outcome === 'fail' || f.outcome === 'needs-review';
 
-type AssetHashes = readonly Pick<Asset, 'uri' | 'contentHash'>[];
+type HashedAssets = readonly Pick<Asset, 'uri' | 'contentHash' | 'reviewHash'>[];
 
 /**
  * The findings the report lists one by one: fails and needs-review that are
- * current (isCurrentRecord). An expired manual record is listed only under
- * the methodology, with the expired note.
+ * current (isCurrentRecord) and not set aside by a reviewer. An expired
+ * manual record is listed only under the methodology, with the expired note;
+ * an overridden fail only in the "Overridden by a reviewer" list.
  */
-export function listedFindings(findings: readonly Finding[], assets: AssetHashes): Finding[] {
+export function listedFindings(
+  findings: readonly Finding[],
+  assets: HashedAssets,
+  overridden: OverrideTest = NO_OVERRIDES,
+): Finding[] {
   const hashes = currentHashes(assets);
-  return findings.filter((f) => isShown(f) && isCurrentRecord(f, hashes));
+  return findings.filter((f) => isShown(f) && isCurrentRecord(f, hashes) && !overridden(f));
 }
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -88,9 +98,13 @@ export interface FindingCard {
 }
 
 /** The "What to fix first" cards: listed findings grouped by rule, worst impact first. */
-export function findingCards(findings: readonly Finding[], assets: AssetHashes): FindingCard[] {
+export function findingCards(
+  findings: readonly Finding[],
+  assets: HashedAssets,
+  overridden: OverrideTest = NO_OVERRIDES,
+): FindingCard[] {
   const byRule = new Map<string, FindingCard>();
-  for (const f of listedFindings(findings, assets)) {
+  for (const f of listedFindings(findings, assets, overridden)) {
     const key = `${f.source.engine}\u0000${f.source.ruleId}`;
     let card = byRule.get(key);
     if (!card) {
@@ -130,9 +144,10 @@ export const cardImpact = (c: FindingCard): ImpactOrUnrated => IMPACT_ORDER[c.wo
 export function assetFindings(
   findings: readonly Finding[],
   uri: string,
-  assets: AssetHashes,
+  assets: HashedAssets,
+  overridden: OverrideTest = NO_OVERRIDES,
 ): Finding[] {
-  return listedFindings(findings, assets)
+  return listedFindings(findings, assets, overridden)
     .map((f, order) => ({ f, order }))
     .filter(({ f }) => f.asset.uri === uri)
     .sort(
@@ -218,6 +233,8 @@ export interface ReviewRecord {
   /** No review data, or the asset content changed since the review. */
   expired: boolean;
   notes?: string;
+  /** Attachment paths the record names (attachments/<name>), as given: load them through the containment loader. */
+  attachments: string[];
 }
 
 export interface Reviewer {
@@ -257,6 +274,7 @@ export function manualReviews(report: ScanReport): {
         uri: f.asset.uri,
         expired: !isCurrentRecord(f, hashes),
         ...(r?.notes ? { notes: r.notes } : {}),
+        attachments: [...(r?.attachments ?? [])],
       };
     });
   const reviewers = [...people].map(([name, e]) => ({
@@ -270,6 +288,8 @@ export function manualReviews(report: ScanReport): {
 /** Fixed wording of the report. */
 export const TEXT = {
   heading: {
+    manual: 'Manual review',
+    overridden: 'Overridden by a reviewer',
     fix: 'What to fix first',
     byAsset: 'Results by page and file',
     summary: 'Summary',
@@ -284,9 +304,10 @@ export const TEXT = {
   nothingHere:
     'The automated checks found nothing here. Some criteria still need a person to test them.',
   noAssets: 'No page or file was in scope.',
+  // Older reports only: Widedoor fetches and scans PDFs by URL now, and no longer writes pdf-url.
   pdfUrlSkip:
-    'Not scanned: PDFs linked by URL are not fetched yet. Download the file and scan it as a local PDF (pdf-url).',
-  pdfUrlItem: ': a PDF link, not fetched (pdf-url)',
+    'Not scanned: the Widedoor version that wrote this report did not fetch PDFs by URL (pdf-url).',
+  pdfUrlItem: ': a PDF link, not fetched by that version (pdf-url)',
   emptyTitle: '(empty page title)',
   standardsAndRule: 'Standards and rule',
   whoAffects: 'Who this affects:',
@@ -299,6 +320,19 @@ export const TEXT = {
     'Automated checks find only some accessibility problems. These criteria have no deciding result for at least one page or file and need a person to test them:',
   noReviewers: 'None. Every result in this report comes from automated checks.',
   none: 'None.',
+  manual: {
+    lead: 'Automated checks cannot test every criterion. The manual review checklist has one item for each criterion a person still needs to test on each page or file (widedoor review list shows them; widedoor review record records a result).',
+    noChecklist:
+      'This report was written before Widedoor counted the manual review checklist. Run widedoor review list on it to see the items.',
+    caption: 'Checklist progress',
+    status: 'Status',
+    items: 'Items',
+    overriddenLead:
+      'A reviewer set these automated fails aside as false positives. They do not count as problems, in the exit code or in the results by criterion.',
+    noOverrides: 'None. No automated fail was set aside.',
+  },
+  attachmentAlt: 'Image the reviewer attached to this result',
+  errataBasis: 'Errata basis:',
   method: {
     tool: 'Tool',
     engines: 'Test engines',
@@ -328,6 +362,7 @@ export const TEXT = {
 /** The rows of the Counts table. */
 export const summaryRows = (s: ReportSummary): [string, number][] => [
   ['Problems found (fail)', s.outcomes.fail],
+  ['Problems set aside by a reviewer (overridden)', s.overridden],
   ['Items to check by hand (needs review)', s.outcomes['needs-review']],
   ['Criteria not tested (no deciding result)', s.notTested],
   ['Pages and files scanned', s.assets],
@@ -402,3 +437,68 @@ export const exceptionText = (e: ExceptionNote) =>
 
 export const conditionText = (c: NonNullable<Criterion['condition']>) =>
   `Condition (${c.provision}): ${c.text}`;
+
+/** The rows of the checklist progress table, by status, then the total. */
+export const checklistRows = (c: ChecklistProgress): [string, number][] => [
+  ['Open (not reviewed yet)', c.byStatus.open],
+  ['Done (a current manual result decides it)', c.byStatus.done],
+  ['Expired (the page or file changed since the review)', c.byStatus.expired],
+  [
+    'Failed an automated check (a review is optional; it can set aside a false positive)',
+    c.byStatus['failed-automated'],
+  ],
+  ['Total', c.total],
+];
+
+export const unscannedReviewText = (n: number) =>
+  `${plural(n, 'page or file was', 'pages or files were')} not scanned, so ${n === 1 ? 'it has' : 'they have'} no checklist items: scan ${n === 1 ? 'it' : 'them'} again before review.`;
+
+export const criterionName = (c: Override['criterion']) =>
+  `${c.type === 'wcag' ? 'WCAG' : 'Section 508'} ${c.id}`;
+
+/** The part of an override entry before its URI. */
+export const overrideText = (o: Override) =>
+  `${o.reviewer}, ${o.date}: ${engineName(o.engine)} rule ${o.ruleId} (${o.finding}) for ${criterionName(o.criterion)} on `;
+
+/** The part of an override entry after its URI. */
+export const overrideNotes = (o: Override) => `. Notes: ${o.notes}`;
+
+/** An attachment an earlier record named: it is embedded (or left out) only there. */
+export const attachmentAgainText = (path: string) =>
+  `Attachment ${path}: the same file as in an earlier record above.`;
+
+/** Why an attachment is not shown. */
+export const attachmentLeftOut = (path: string, reason: string) =>
+  `Attachment ${path} left out: ${reason}.`;
+
+/** Whether any asset (or the product) passes the criterion on the errata basis. */
+export const restsOnErrata = (c: Criterion) =>
+  (c.product ? [c.product] : c.assets).some((u) => u.reason === 'errata');
+
+/** "Section 508: 30 Supports (4.1.1 on the errata basis, not on a test), 2 Partially Supports, ..." */
+export function levelsText(c: ReportSummary['criteria'][number]): string {
+  const parts = CONFORMANCE_LEVELS.map((l) => {
+    const errata =
+      l === 'Supports' && c.errataSupports.length > 0
+        ? ` (${c.errataSupports.join(', ')} on the errata basis, not on a test)`
+        : '';
+    return `${c.levels[l]} ${l}${errata}`;
+  });
+  return `${STANDARD_LABEL[c.standard] ?? c.standard}: ${parts.join(', ')}.`;
+}
+
+/** What decided one asset's (or the product's) result, in words. */
+export const DETERMINATION_TEXT: Record<DeterminationReason, string> = {
+  'automated-fail': 'an automated check failed',
+  'manual-fail': 'a reviewer recorded a fail',
+  'deciding-automated-pass': 'a deciding automated check passed',
+  'manual-pass': 'a reviewer recorded a pass',
+  'manual-override':
+    'a reviewer recorded a pass and set aside the automated fails as false positives',
+  errata: 'satisfied on the errata basis, not on a test',
+  'profile-not-applicable': 'not applicable under the profile',
+  'manual-not-applicable': 'a reviewer recorded it as not applicable',
+  'no-deciding-result': 'no deciding result: a person needs to test it',
+  'no-results': 'no result: a person needs to test it',
+  'not-scanned': 'the page or file was not scanned',
+};

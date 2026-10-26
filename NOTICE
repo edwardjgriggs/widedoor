@@ -64,6 +64,16 @@ SARIF 2.1.0 JSON schema
   SARIF output in tests. The OASIS notice that must accompany copies is in
   packages/report/vendor/sarif/LICENSE.md.
 
+OpenACR schema and catalog
+  packages/report/vendor/openacr/ holds openacr-0.1.0.json, openacr-catalog-0.1.0.json and
+  2.5-edition-wcag-2.0-508-en.yaml, copied unmodified from the GSA OpenACR repository
+  (https://github.com/GSA/openacr, commit 86f890a07a2a193d2a9404fb57d2cc2d62a60a4f), with its
+  LICENSE.md. OpenACR is a work of the U.S. government, in the public domain within the United
+  States and dedicated worldwide under CC0 1.0 Universal. The WCAG 2.0 criterion handles in the
+  catalog are Copyright 2008 W3C (MIT, ERCIM, Keio), used under the W3C Software and Document
+  Notice and License. SOURCE.md there records each file's sha256. VPAT is a registered service
+  mark of the Information Technology Industry Council (ITI).
+
 Docker seccomp profile
   docker/chromium-seccomp.json is the default seccomp profile of the Moby project
   (github.com/moby/profiles/seccomp v0.2.3, as vendored in https://github.com/moby/moby at tag
@@ -79,5 +89,14 @@ Docker image
   MPL-2.0-or-later, https://github.com/veraPDF/veraPDF-apps). Each keeps its own license.
 
 Ajv, parse5
-  The report tests use Ajv, ajv-draft-04 and ajv-formats (MIT) to validate the JSON and SARIF
-  reports, and parse5 (MIT) to parse the HTML report. They are development dependencies only.
+  @widedoor/report uses Ajv 8.20.0 (MIT, Copyright (c) 2015-2021 Evgeny Poberezkin) at run time
+  to validate OpenACR reports. The report tests also use Ajv, ajv-draft-04 and ajv-formats
+  (MIT) to validate the JSON and SARIF reports, and parse5 (MIT) to parse the HTML report;
+  those three are development dependencies only.
+
+docx, JSZip
+  @widedoor/report uses docx 9.9.0 (MIT, Copyright (c) 2016 Dolan) to write the ACR as DOCX,
+  and JSZip 3.10.2 (dual licensed MIT or GPL-3.0-or-later, used under the MIT license, Copyright
+  (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso) to set the
+  dates in that file. Their dependencies carry their own licenses (MIT, ISC, BlueOak-1.0.0, and
+  pako under MIT and Zlib) in their folders under node_modules.

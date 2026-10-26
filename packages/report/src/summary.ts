@@ -7,13 +7,15 @@ import {
   type Outcome,
 } from '@widedoor/core/browser';
 import type { ScanReport } from './model.js';
+import { overriddenFails } from './overrides.js';
 
 /*
  * Counts by outcome, impact and conformance level. These are the numbers the
  * HTML summary shows and a CLI exit policy can read; this module sets no
  * policy of its own. Every count is over records, so two records that share a
  * finding id count twice. Expired manual records (isCurrentRecord) are not
- * counted: they no longer describe the asset.
+ * counted: they no longer describe the asset. Automated fails a reviewer set
+ * aside (overriddenFails) are counted on their own, never as fails.
  */
 
 export type ImpactOrUnrated = Impact | 'unrated';
@@ -22,14 +24,23 @@ export interface ReportSummary {
   assets: number;
   errors: number;
   skipped: number;
-  /** Every current finding record by outcome. */
+  /** Every current finding record by outcome; overridden fails are not in fail. */
   outcomes: Record<Outcome, number>;
+  /** Automated fail records a reviewer set aside as false positives. */
+  overridden: number;
   /** Fail records by impact. */
   failsByImpact: Record<ImpactOrUnrated, number>;
   /** Needs-review records by impact. */
   needsReviewByImpact: Record<ImpactOrUnrated, number>;
-  /** Criteria per conformance level, per standard. */
-  criteria: { standard: string; levels: Record<ConformanceLevel, number> }[];
+  /**
+   * Criteria per conformance level, per standard, and the ids among the Supports that rest
+   * on the errata basis for at least one asset (4.1.1), so no reader takes them as tested.
+   */
+  criteria: {
+    standard: string;
+    levels: Record<ConformanceLevel, number>;
+    errataSupports: string[];
+  }[];
   /** Distinct criterion ids with at least one asset (or the product) not evaluated, under any standard. */
   notTested: number;
 }
@@ -61,8 +72,14 @@ export function summarize(report: ScanReport): ReportSummary {
   const failsByImpact = zeroImpacts();
   const needsReviewByImpact = zeroImpacts();
   const hashes = currentHashes(report.assets);
+  const isOverridden = overriddenFails(report);
+  let overridden = 0;
   for (const f of report.findings) {
     if (!isCurrentRecord(f, hashes)) continue;
+    if (isOverridden(f)) {
+      overridden++;
+      continue;
+    }
     outcomes[f.outcome]++;
     const impact = f.impact ?? 'unrated';
     if (f.outcome === 'fail') failsByImpact[impact]++;
@@ -73,16 +90,21 @@ export function summarize(report: ScanReport): ReportSummary {
       ConformanceLevel,
       number
     >;
+    const errataSupports: string[] = [];
     for (const c of s.criteria) {
       levels[c.level]++;
+      const units = c.product ? [c.product] : c.assets;
+      if (c.level === 'Supports' && units.some((u) => u.reason === 'errata'))
+        errataSupports.push(c.id);
     }
-    return { standard: s.standard, levels };
+    return { standard: s.standard, levels, errataSupports };
   });
   return {
     assets: report.assets.length,
     errors: report.errors.length,
     skipped: report.skipped.length,
     outcomes,
+    overridden,
     failsByImpact,
     needsReviewByImpact,
     criteria,

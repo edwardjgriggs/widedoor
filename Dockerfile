@@ -24,6 +24,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/web/package.json packages/web/
 COPY packages/pdf/package.json packages/pdf/
 COPY packages/report/package.json packages/report/
+COPY packages/server/package.json packages/server/
 COPY packages/cli/package.json packages/cli/
 COPY packages/ui/package.json packages/ui/
 COPY packages/action/package.json packages/action/
@@ -40,6 +41,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/web/package.json packages/web/
 COPY packages/pdf/package.json packages/pdf/
 COPY packages/report/package.json packages/report/
+COPY packages/server/package.json packages/server/
 COPY packages/cli/package.json packages/cli/
 COPY packages/ui/package.json packages/ui/
 COPY packages/action/package.json packages/action/
@@ -124,6 +126,8 @@ COPY --from=build /src/packages/pdf/dist packages/pdf/dist
 COPY --from=build /src/packages/report/dist packages/report/dist
 COPY --from=build /src/packages/report/data packages/report/data
 COPY --from=build /src/packages/report/schema packages/report/schema
+COPY --from=build /src/packages/report/vendor/openacr packages/report/vendor/openacr
+COPY --from=build /src/packages/server/dist packages/server/dist
 COPY --from=build /src/packages/cli/dist packages/cli/dist
 COPY --from=build /src/packages/ui/dist packages/ui/dist
 COPY LICENSE NOTICE docker/THIRD-PARTY-NOTICES.txt ./

@@ -1,7 +1,7 @@
 {
   "$id": "urn:widedoor:schema:finding:v1",
   "title": "Widedoor Finding v1",
-  "description": "One accessibility result for a web page or PDF. A review block is required exactly when source.engine is \"manual\".",
+  "description": "One accessibility result for a web page or PDF. A review block is required exactly when source.engine is \"manual\". review.overrides is allowed only on a manual pass (outcome \"pass\").",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "anyOf": [
     {
@@ -162,6 +162,10 @@
               "minLength": 1
             },
             "contentHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "reviewHash": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
             }
@@ -389,6 +393,10 @@
             "contentHash": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "reviewHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
           },
           "required": [
@@ -456,6 +464,21 @@
             "expiresOnChangeOf": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "description": "Ids of automated fails on the same asset and criterion that the reviewer sets aside as false positives. Allowed only on a manual pass (outcome \"pass\"), and counted only with non-empty notes."
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$)).+$"
+              }
             }
           },
           "required": [
@@ -638,6 +661,10 @@
             "contentHash": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "reviewHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
           },
           "required": [
@@ -865,6 +892,10 @@
             "contentHash": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "reviewHash": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
           },
           "required": [
@@ -934,6 +965,21 @@
             "expiresOnChangeOf": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "overrides": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^wd_[0-9a-f]{16}$"
+              },
+              "description": "Ids of automated fails on the same asset and criterion that the reviewer sets aside as false positives. Allowed only on a manual pass (outcome \"pass\"), and counted only with non-empty notes."
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$)).+$"
+              }
             }
           },
           "required": [

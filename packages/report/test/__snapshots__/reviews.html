@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;sha256-CQoxWh2fLtA486fJvIfQOc5B7bSUElm1RUh0rQZEISw=&#39;; img-src data:; base-uri &#39;none&#39;; form-action &#39;none&#39;">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Accessibility report</title>
+<style>
+:root { color-scheme: light; --ink: #1b1b1b; --muted: #4a4a4a; --line: #c9c9c9; --bg: #ffffff;
+  --panel: #f4f4f2; --fail: #a4161a; --review: #7a4b00; --link: #0b4f9c; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--ink); background: var(--bg); }
+header, main, footer { max-width: 60rem; margin: 0 auto; padding: 1rem 1.25rem; }
+h1 { font-size: 1.9rem; margin: 0.5rem 0; }
+h2 { font-size: 1.45rem; margin-top: 2.5rem; border-bottom: 2px solid var(--line); }
+h3 { font-size: 1.2rem; margin: 0 0 0.5rem; }
+h4 { font-size: 1.05rem; margin: 0.25rem 0; }
+.lead { color: var(--muted); }
+.cards, .findings { list-style: none; padding: 0; }
+.card, .finding { border: 1px solid var(--line); border-radius: 6px; padding: 1rem; margin: 0 0 1rem;
+  background: var(--panel); }
+.badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.badge { border: 1px solid currentColor; border-radius: 999px; padding: 0 0.6rem; font-size: 0.9rem;
+  font-weight: 600; }
+.fail { color: var(--fail); }
+.review { color: var(--review); }
+.label { font-weight: 700; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--line);
+  padding: 0.5rem; margin: 0.5rem 0; font-size: 0.9rem; }
+code, .uri { overflow-wrap: anywhere; }
+img.shot { max-width: 100%; height: auto; border: 1px solid var(--line); background: var(--bg); }
+details { margin-top: 0.5rem; }
+summary { cursor: pointer; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+caption { text-align: left; font-weight: 700; font-size: 1.1rem; padding: 0.5rem 0; }
+th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+thead th { background: var(--panel); }
+dt { font-weight: 700; margin-top: 0.75rem; }
+dd { margin-left: 0; }
+.disclaimer { border: 2px solid var(--ink); padding: 1rem; font-weight: 700; }
+a { color: var(--link); }
+</style>
+</head>
+<body>
+<header>
+<h1>Accessibility report</h1>
+<p class="lead">Profile 508+wcag21aa. 2 pages and files scanned, finished 2026-10-23T12:05:00.000Z.</p>
+</header>
+<main>
+<section aria-labelledby="manual">
+<h2 id="manual">Manual review</h2>
+<p>Automated checks cannot test every criterion. The manual review checklist has one item for each criterion a person still needs to test on each page or file (widedoor review list shows them; widedoor review record records a result).</p>
+<table>
+<caption>Checklist progress</caption>
+<thead><tr><th scope="col">Status</th><th scope="col">Items</th></tr></thead>
+<tbody>
+<tr><th scope="row">Open (not reviewed yet)</th><td>135</td></tr>
+<tr><th scope="row">Done (a current manual result decides it)</th><td>2</td></tr>
+<tr><th scope="row">Expired (the page or file changed since the review)</th><td>1</td></tr>
+<tr><th scope="row">Failed an automated check (a review is optional; it can set aside a false positive)</th><td>2</td></tr>
+<tr><th scope="row">Total</th><td>140</td></tr>
+</tbody>
+</table>
+<h3 id="overridden">Overridden by a reviewer</h3>
+<p>A reviewer set these automated fails aside as false positives. They do not count as problems, in the exit code or in the results by criterion.</p>
+<ul>
+<li>Ada &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;, 2026-10-22: axe-core rule image-alt (wd_d69cffd69fc2d95c) for WCAG 1.1.1 on <span class="uri">https://example.gov/apply</span>. Notes: The hero image is decorative; axe misreads its role. &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</li>
+</ul>
+</section>
+<section aria-labelledby="fix">
+<h2 id="fix">What to fix first</h2>
+<ol class="cards">
+<li class="card">
+<h3>Text does not stand out enough from its background.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> People with low vision or color blindness may not be able to read it.</p>
+<p><span class="label">How to fix it:</span> Make the text darker or the background lighter. Aim for a contrast ratio of at least 4.5 to 1.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">1.4.3 Contrast (Minimum)</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/color-contrast">color-contrast</a></li>
+</ul>
+</details>
+</li>
+<li class="card">
+<h3>An image has no alt text.</h3>
+<ul class="badges">
+<li class="badge">Serious</li>
+<li class="badge fail">1 problem</li>
+<li class="badge">1 page or file</li>
+</ul>
+<p><span class="label">Who this affects:</span> Screen reader users miss what the image shows.</p>
+<p><span class="label">How to fix it:</span> Add alt text to the image in Acrobat, or in the program you made the file with.</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: veraPDF 1.30.3, 7.3-1</li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+<section aria-labelledby="by-asset">
+<h2 id="by-asset">Results by page and file</h2>
+<section aria-labelledby="asset-1">
+<h3 id="asset-1">Apply for a permit</h3>
+<p class="uri">https://example.gov/apply</p>
+<p class="lead">Web page. 1 problem, 0 items to check by hand.</p>
+<ol class="findings">
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>Text does not stand out enough from its background.</h4>
+<p>Element: p.faint</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html">1.4.3 Contrast (Minimum)</a></li>
+<li>Rule: axe-core 4.14.0, <a href="https://dequeuniversity.com/rules/axe/4.14/color-contrast">color-contrast</a></li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+<section aria-labelledby="asset-2">
+<h3 id="asset-2" class="uri">docs/form.pdf</h3>
+<p class="lead">PDF. 1 problem, 0 items to check by hand.</p>
+<ol class="findings">
+<li class="finding">
+<ul class="badges">
+<li class="badge fail">Problem</li>
+<li class="badge">Serious</li>
+</ul>
+<h4>An image has no alt text.</h4>
+<p>In the file: page 1</p>
+<details>
+<summary>Standards and rule</summary>
+<ul>
+<li>WCAG <a href="https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html">1.1.1 Non-text Content</a></li>
+<li>Rule: veraPDF 1.30.3, 7.3-1</li>
+</ul>
+</details>
+</li>
+</ol>
+</section>
+</section>
+<section aria-labelledby="summary">
+<h2 id="summary">Summary</h2>
+<table>
+<caption>Counts</caption>
+<thead><tr><th scope="col">What</th><th scope="col">Number</th></tr></thead>
+<tbody>
+<tr><th scope="row">Problems found (fail)</th><td>2</td></tr>
+<tr><th scope="row">Problems set aside by a reviewer (overridden)</th><td>1</td></tr>
+<tr><th scope="row">Items to check by hand (needs review)</th><td>0</td></tr>
+<tr><th scope="row">Criteria not tested (no deciding result)</th><td>90</td></tr>
+<tr><th scope="row">Pages and files scanned</th><td>2</td></tr>
+<tr><th scope="row">Pages and files that could not be scanned</th><td>0</td></tr>
+<tr><th scope="row">Pages skipped</th><td>0</td></tr>
+</tbody>
+</table>
+<table>
+<caption>Problems by impact</caption>
+<thead><tr><th scope="col">Impact</th><th scope="col">Problems</th><th scope="col">To check by hand</th></tr></thead>
+<tbody>
+<tr><th scope="row">Critical</th><td>0</td><td>0</td></tr>
+<tr><th scope="row">Serious</th><td>2</td><td>0</td></tr>
+<tr><th scope="row">Moderate</th><td>0</td><td>0</td></tr>
+<tr><th scope="row">Minor</th><td>0</td><td>0</td></tr>
+<tr><th scope="row">Impact not rated</th><td>0</td><td>0</td></tr>
+</tbody>
+</table>
+<p>Section 508: 1 Supports (4.1.1 on the errata basis, not on a test), 1 Partially Supports, 1 Does Not Support, 0 Not Applicable, 77 Not Evaluated.</p>
+<p>WCAG 2.1 Level AA: 1 Supports (4.1.1 on the errata basis, not on a test), 1 Partially Supports, 1 Does Not Support, 0 Not Applicable, 47 Not Evaluated.</p>
+</section>
+<section aria-labelledby="rollup">
+<h2 id="rollup">Results by criterion</h2>
+<table>
+<caption>Section 508</caption>
+<thead><tr><th scope="col">Criterion</th><th scope="col">Name</th><th scope="col">Result</th><th scope="col">Why</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.1</th><td>Non-text Content</td><td>Partially Supports</td><td>1 of 2 applicable assets fails; 1 passes</td></tr>
+<tr><th scope="row">1.2.1</th><td>Audio-only and Video-only (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.2</th><td>Captions (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.3</th><td>Audio Description or Media Alternative (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.4</th><td>Captions (Live)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.5</th><td>Audio Description (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.1</th><td>Info and Relationships</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.2</th><td>Meaningful Sequence</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.3</th><td>Sensory Characteristics</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.1</th><td>Use of Color</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.2</th><td>Audio Control</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.3</th><td>Contrast (Minimum)</td><td>Does Not Support</td><td>1 of 2 applicable assets fails; none pass</td></tr>
+<tr><th scope="row">1.4.4</th><td>Resize Text</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.5</th><td>Images of Text</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.1</th><td>Keyboard</td><td>Not Evaluated</td><td>1 of 2 applicable assets has no deciding result</td></tr>
+<tr><th scope="row">2.1.2</th><td>No Keyboard Trap</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.1</th><td>Timing Adjustable</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.2</th><td>Pause, Stop, Hide</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.3.1</th><td>Three Flashes or Below Threshold</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.1</th><td>Bypass Blocks</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Not applicable to 1 PDF under E205.4: Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification.</td></tr>
+<tr><th scope="row">2.4.2</th><td>Page Titled</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.3</th><td>Focus Order</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.4</th><td>Link Purpose (In Context)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.5</th><td>Multiple Ways</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Not applicable to 1 PDF under E205.4: Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification.</td></tr>
+<tr><th scope="row">2.4.6</th><td>Headings and Labels</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.7</th><td>Focus Visible</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.1</th><td>Language of Page</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.2</th><td>Language of Parts</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.1</th><td>On Focus</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.2</th><td>On Input</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.3</th><td>Consistent Navigation</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Not applicable to 1 PDF under E205.4: Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification.</td></tr>
+<tr><th scope="row">3.2.4</th><td>Consistent Identification</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Not applicable to 1 PDF under E205.4: Non-Web documents shall not be required to conform to the following four WCAG 2.0 Success Criteria: 2.4.1 Bypass Blocks, 2.4.5 Multiple Ways, 3.2.3 Consistent Navigation, and 3.2.4 Consistent Identification.</td></tr>
+<tr><th scope="row">3.3.1</th><td>Error Identification</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.2</th><td>Labels or Instructions</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.3</th><td>Error Suggestion</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.4</th><td>Error Prevention (Legal, Financial, Data)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">4.1.1</th><td>Parsing</td><td>Supports</td><td>all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): &quot;This criterion should be considered as always satisfied for any content using HTML or XML.&quot;; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): &quot;This Success Criterion should be considered as always satisfied for any content using HTML or XML.&quot;; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): &quot;Always answer &#39;Supports&#39;&quot;<br>
+Errata basis: <a href="https://www.w3.org/WAI/WCAG20/errata/">WCAG 2.0 errata</a>; <a href="https://www.w3.org/WAI/WCAG21/errata/">WCAG 2.1 errata</a>; <a href="https://www.itic.org/policy/accessibility/vpat">ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row</a></td></tr>
+<tr><th scope="row">4.1.2</th><td>Name, Role, Value</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">302.1</th><td>Without Vision</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.2</th><td>With Limited Vision</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.3</th><td>Without Perception of Color</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.4</th><td>Without Hearing</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.5</th><td>With Limited Hearing</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.6</th><td>Without Speech</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.7</th><td>With Limited Manipulation</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.8</th><td>With Limited Reach and Strength</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">302.9</th><td>With Limited Language, Cognitive, and Learning Abilities</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">502.2.1</th><td>User Control of Accessibility Features</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (502.2.1): Applies only to platform software, the addressee of 502.2.1. A web application is not platform software.</td></tr>
+<tr><th scope="row">502.2.2</th><td>No Disruption of Accessibility Features</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3</th><td>Accessibility Services</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (502.3): Applies only to platform software and software tools provided by the platform developer, the addressee of 502.3. A web application is not platform software.</td></tr>
+<tr><th scope="row">502.3.1</th><td>Object Information</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.2</th><td>Modification of Object Information</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.3</th><td>Row, Column, and Headers</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.4</th><td>Values</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.5</th><td>Modification of Values</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.6</th><td>Label Relationships</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.7</th><td>Hierarchical Relationships</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.8</th><td>Text</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.9</th><td>Modification of Text</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.10</th><td>List of Actions</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.11</th><td>Actions on Objects</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.12</th><td>Focus Cursor</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.13</th><td>Modification of Focus Cursor</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.3.14</th><td>Event Notification</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">502.4</th><td>Platform Accessibility Features</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (502.4): Applies only to platforms and platform software, the addressee of 502.4. A web application is not platform software.</td></tr>
+<tr><th scope="row">503.2</th><td>User Preferences</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">503.3</th><td>Alternative User Interfaces</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">503.4</th><td>User Controls for Captions and Audio Description</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">503.4.1</th><td>Caption Controls</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">503.4.2</th><td>Audio Description Controls</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (501.1): Applies only if the web application has access to platform accessibility services or includes components that do. Otherwise 501.1 exempts it from 502 and 503, provided it conforms to WCAG 2.0 Level A and AA.</td></tr>
+<tr><th scope="row">504.2</th><td>Content Creation or Editing</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (504.1): Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.</td></tr>
+<tr><th scope="row">504.2.1</th><td>Preservation of Information Provided for Accessibility in Format Conversion</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (504.1): Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.</td></tr>
+<tr><th scope="row">504.2.2</th><td>PDF Export</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (504.1): Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.</td></tr>
+<tr><th scope="row">504.3</th><td>Prompts</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (504.1): Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.</td></tr>
+<tr><th scope="row">504.4</th><td>Templates</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result<br>
+Condition (504.1): Applies only if the application is an authoring tool (504.1), and then to the extent that information required for accessibility is supported by the destination format.</td></tr>
+<tr><th scope="row">602.2</th><td>Accessibility and Compatibility Features</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">602.3</th><td>Electronic Support Documentation</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">602.4</th><td>Alternate Formats for Non-Electronic Support Documentation</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">603.2</th><td>Information on Accessibility and Compatibility Features</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+<tr><th scope="row">603.3</th><td>Accommodation of Communication Needs</td><td>Not Evaluated</td><td>the 1 applicable asset has no deciding result</td></tr>
+</tbody>
+</table>
+<table>
+<caption>WCAG 2.1 Level AA</caption>
+<thead><tr><th scope="col">Criterion</th><th scope="col">Name</th><th scope="col">Result</th><th scope="col">Why</th></tr></thead>
+<tbody>
+<tr><th scope="row">1.1.1</th><td>Non-text Content</td><td>Partially Supports</td><td>1 of 2 applicable assets fails; 1 passes</td></tr>
+<tr><th scope="row">1.2.1</th><td>Audio-only and Video-only (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.2</th><td>Captions (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.3</th><td>Audio Description or Media Alternative (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.4</th><td>Captions (Live)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.2.5</th><td>Audio Description (Prerecorded)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.1</th><td>Info and Relationships</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.2</th><td>Meaningful Sequence</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.3</th><td>Sensory Characteristics</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.4</th><td>Orientation</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.3.5</th><td>Identify Input Purpose</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.1</th><td>Use of Color</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.2</th><td>Audio Control</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.3</th><td>Contrast (Minimum)</td><td>Does Not Support</td><td>1 of 2 applicable assets fails; none pass</td></tr>
+<tr><th scope="row">1.4.4</th><td>Resize Text</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.5</th><td>Images of Text</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.10</th><td>Reflow</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.11</th><td>Non-text Contrast</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.12</th><td>Text Spacing</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">1.4.13</th><td>Content on Hover or Focus</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.1</th><td>Keyboard</td><td>Not Evaluated</td><td>1 of 2 applicable assets has no deciding result</td></tr>
+<tr><th scope="row">2.1.2</th><td>No Keyboard Trap</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.1.4</th><td>Character Key Shortcuts</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.1</th><td>Timing Adjustable</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.2.2</th><td>Pause, Stop, Hide</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.3.1</th><td>Three Flashes or Below Threshold</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.1</th><td>Bypass Blocks</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.2</th><td>Page Titled</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.3</th><td>Focus Order</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.4</th><td>Link Purpose (In Context)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.5</th><td>Multiple Ways</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.6</th><td>Headings and Labels</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.4.7</th><td>Focus Visible</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.1</th><td>Pointer Gestures</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.2</th><td>Pointer Cancellation</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.3</th><td>Label in Name</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">2.5.4</th><td>Motion Actuation</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.1</th><td>Language of Page</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.1.2</th><td>Language of Parts</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.1</th><td>On Focus</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.2</th><td>On Input</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.3</th><td>Consistent Navigation</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.2.4</th><td>Consistent Identification</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.1</th><td>Error Identification</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.2</th><td>Labels or Instructions</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.3</th><td>Error Suggestion</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">3.3.4</th><td>Error Prevention (Legal, Financial, Data)</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">4.1.1</th><td>Parsing</td><td>Supports</td><td>all 2 applicable assets pass. 2 assets pass on the errata basis, not on a test: WCAG 2.0 errata (https://www.w3.org/WAI/WCAG20/errata/): &quot;This criterion should be considered as always satisfied for any content using HTML or XML.&quot;; WCAG 2.1 errata (https://www.w3.org/WAI/WCAG21/errata/): &quot;This Success Criterion should be considered as always satisfied for any content using HTML or XML.&quot;; ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row (https://www.itic.org/policy/accessibility/vpat): &quot;Always answer &#39;Supports&#39;&quot;<br>
+Errata basis: <a href="https://www.w3.org/WAI/WCAG20/errata/">WCAG 2.0 errata</a>; <a href="https://www.w3.org/WAI/WCAG21/errata/">WCAG 2.1 errata</a>; <a href="https://www.itic.org/policy/accessibility/vpat">ITI Accessibility Conformance Report template, Revised Section 508 Edition (2.5Rev), 4.1.1 row</a></td></tr>
+<tr><th scope="row">4.1.2</th><td>Name, Role, Value</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+<tr><th scope="row">4.1.3</th><td>Status Messages</td><td>Not Evaluated</td><td>2 of 2 applicable assets have no deciding result</td></tr>
+</tbody>
+</table>
+</section>
+<section aria-labelledby="method">
+<h2 id="method">How this was tested</h2>
+<dl>
+<dt>Tool</dt>
+<dd>Widedoor 0.0.0</dd>
+<dt>Test engines</dt>
+<dd><ul>
+<li>axe-core 4.14.0</li>
+<li>veraPDF 1.30.3 (docker runner)</li>
+<li>Widedoor PDF checks 0.0.0</li>
+</ul></dd>
+<dt>Profile</dt>
+<dd>508+wcag21aa, with PDFs treated as non-web documents</dd>
+<dt>Dates</dt>
+<dd>Started 2026-10-23T12:00:00.000Z, finished 2026-10-23T12:05:00.000Z (UTC)</dd>
+<dt>Scope</dt>
+<dd><ul>
+<li>Web page: <span class="uri">https://example.gov/apply</span></li>
+<li>PDF: <span class="uri">docs/form.pdf</span></li>
+</ul></dd>
+<dt>What was not tested</dt>
+<dd><p>Automated checks find only some accessibility problems. These criteria have no deciding result for at least one page or file and need a person to test them:</p>
+<ul>
+<li>1.2.1 Audio-only and Video-only (Prerecorded): 2 of 2 pages and files not evaluated</li>
+<li>1.2.2 Captions (Prerecorded): 2 of 2 pages and files not evaluated</li>
+<li>1.2.3 Audio Description or Media Alternative (Prerecorded): 2 of 2 pages and files not evaluated</li>
+<li>1.2.4 Captions (Live): 2 of 2 pages and files not evaluated</li>
+<li>1.2.5 Audio Description (Prerecorded): 2 of 2 pages and files not evaluated</li>
+<li>1.3.1 Info and Relationships: 2 of 2 pages and files not evaluated</li>
+<li>1.3.2 Meaningful Sequence: 2 of 2 pages and files not evaluated</li>
+<li>1.3.3 Sensory Characteristics: 2 of 2 pages and files not evaluated</li>
+<li>1.4.1 Use of Color: 2 of 2 pages and files not evaluated</li>
+<li>1.4.2 Audio Control: 2 of 2 pages and files not evaluated</li>
+<li>1.4.3 Contrast (Minimum): 1 of 2 pages and files not evaluated</li>
+<li>1.4.4 Resize Text: 2 of 2 pages and files not evaluated</li>
+<li>1.4.5 Images of Text: 2 of 2 pages and files not evaluated</li>
+<li>2.1.1 Keyboard: 1 of 2 pages and files not evaluated</li>
+<li>2.1.2 No Keyboard Trap: 2 of 2 pages and files not evaluated</li>
+<li>2.2.1 Timing Adjustable: 2 of 2 pages and files not evaluated</li>
+<li>2.2.2 Pause, Stop, Hide: 2 of 2 pages and files not evaluated</li>
+<li>2.3.1 Three Flashes or Below Threshold: 2 of 2 pages and files not evaluated</li>
+<li>2.4.1 Bypass Blocks: 2 of 2 pages and files not evaluated</li>
+<li>2.4.2 Page Titled: 2 of 2 pages and files not evaluated</li>
+<li>2.4.3 Focus Order: 2 of 2 pages and files not evaluated</li>
+<li>2.4.4 Link Purpose (In Context): 2 of 2 pages and files not evaluated</li>
+<li>2.4.5 Multiple Ways: 2 of 2 pages and files not evaluated</li>
+<li>2.4.6 Headings and Labels: 2 of 2 pages and files not evaluated</li>
+<li>2.4.7 Focus Visible: 2 of 2 pages and files not evaluated</li>
+<li>3.1.1 Language of Page: 2 of 2 pages and files not evaluated</li>
+<li>3.1.2 Language of Parts: 2 of 2 pages and files not evaluated</li>
+<li>3.2.1 On Focus: 2 of 2 pages and files not evaluated</li>
+<li>3.2.2 On Input: 2 of 2 pages and files not evaluated</li>
+<li>3.2.3 Consistent Navigation: 2 of 2 pages and files not evaluated</li>
+<li>3.2.4 Consistent Identification: 2 of 2 pages and files not evaluated</li>
+<li>3.3.1 Error Identification: 2 of 2 pages and files not evaluated</li>
+<li>3.3.2 Labels or Instructions: 2 of 2 pages and files not evaluated</li>
+<li>3.3.3 Error Suggestion: 2 of 2 pages and files not evaluated</li>
+<li>3.3.4 Error Prevention (Legal, Financial, Data): 2 of 2 pages and files not evaluated</li>
+<li>4.1.2 Name, Role, Value: 2 of 2 pages and files not evaluated</li>
+<li>302.1 Without Vision: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.2 With Limited Vision: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.3 Without Perception of Color: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.4 Without Hearing: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.5 With Limited Hearing: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.6 Without Speech: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.7 With Limited Manipulation: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.8 With Limited Reach and Strength: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>302.9 With Limited Language, Cognitive, and Learning Abilities: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>502.2.1 User Control of Accessibility Features: 1 of 1 page or file not evaluated</li>
+<li>502.2.2 No Disruption of Accessibility Features: 1 of 1 page or file not evaluated</li>
+<li>502.3 Accessibility Services: 1 of 1 page or file not evaluated</li>
+<li>502.3.1 Object Information: 1 of 1 page or file not evaluated</li>
+<li>502.3.2 Modification of Object Information: 1 of 1 page or file not evaluated</li>
+<li>502.3.3 Row, Column, and Headers: 1 of 1 page or file not evaluated</li>
+<li>502.3.4 Values: 1 of 1 page or file not evaluated</li>
+<li>502.3.5 Modification of Values: 1 of 1 page or file not evaluated</li>
+<li>502.3.6 Label Relationships: 1 of 1 page or file not evaluated</li>
+<li>502.3.7 Hierarchical Relationships: 1 of 1 page or file not evaluated</li>
+<li>502.3.8 Text: 1 of 1 page or file not evaluated</li>
+<li>502.3.9 Modification of Text: 1 of 1 page or file not evaluated</li>
+<li>502.3.10 List of Actions: 1 of 1 page or file not evaluated</li>
+<li>502.3.11 Actions on Objects: 1 of 1 page or file not evaluated</li>
+<li>502.3.12 Focus Cursor: 1 of 1 page or file not evaluated</li>
+<li>502.3.13 Modification of Focus Cursor: 1 of 1 page or file not evaluated</li>
+<li>502.3.14 Event Notification: 1 of 1 page or file not evaluated</li>
+<li>502.4 Platform Accessibility Features: 1 of 1 page or file not evaluated</li>
+<li>503.2 User Preferences: 1 of 1 page or file not evaluated</li>
+<li>503.3 Alternative User Interfaces: 1 of 1 page or file not evaluated</li>
+<li>503.4 User Controls for Captions and Audio Description: 1 of 1 page or file not evaluated</li>
+<li>503.4.1 Caption Controls: 1 of 1 page or file not evaluated</li>
+<li>503.4.2 Audio Description Controls: 1 of 1 page or file not evaluated</li>
+<li>504.2 Content Creation or Editing: 1 of 1 page or file not evaluated</li>
+<li>504.2.1 Preservation of Information Provided for Accessibility in Format Conversion: 1 of 1 page or file not evaluated</li>
+<li>504.2.2 PDF Export: 1 of 1 page or file not evaluated</li>
+<li>504.3 Prompts: 1 of 1 page or file not evaluated</li>
+<li>504.4 Templates: 1 of 1 page or file not evaluated</li>
+<li>602.2 Accessibility and Compatibility Features: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>602.3 Electronic Support Documentation: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>602.4 Alternate Formats for Non-Electronic Support Documentation: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>603.2 Information on Accessibility and Compatibility Features: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>603.3 Accommodation of Communication Needs: judged for the product as a whole, not evaluated (the 1 applicable asset has no deciding result)</li>
+<li>1.3.4 Orientation: 2 of 2 pages and files not evaluated</li>
+<li>1.3.5 Identify Input Purpose: 2 of 2 pages and files not evaluated</li>
+<li>1.4.10 Reflow: 2 of 2 pages and files not evaluated</li>
+<li>1.4.11 Non-text Contrast: 2 of 2 pages and files not evaluated</li>
+<li>1.4.12 Text Spacing: 2 of 2 pages and files not evaluated</li>
+<li>1.4.13 Content on Hover or Focus: 2 of 2 pages and files not evaluated</li>
+<li>2.1.4 Character Key Shortcuts: 2 of 2 pages and files not evaluated</li>
+<li>2.5.1 Pointer Gestures: 2 of 2 pages and files not evaluated</li>
+<li>2.5.2 Pointer Cancellation: 2 of 2 pages and files not evaluated</li>
+<li>2.5.3 Label in Name: 2 of 2 pages and files not evaluated</li>
+<li>2.5.4 Motion Actuation: 2 of 2 pages and files not evaluated</li>
+<li>4.1.3 Status Messages: 2 of 2 pages and files not evaluated</li>
+</ul></dd>
+<dt>Reviewers</dt>
+<dd><ul>
+<li>Ada &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;: 1 record, reviewed 2026-10-22</li>
+<li>Grace Hopper: 2 records, reviewed 2026-10-22</li>
+</ul></dd>
+<dt>Manual review records</dt>
+<dd><ul>
+<li>Ada &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;, 2026-10-22: pass for WCAG 1.1.1 on <span class="uri">https://example.gov/apply</span>. Notes: The hero image is decorative; axe misreads its role. &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;
+<img class="shot" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" alt="Image the reviewer attached to this result">
+<p>Attachment attachments/ck_fedcba9876543210-1-0a1b2c3d.png left out: the file is not a whole PNG or JPEG image.</p></li>
+<li>Grace Hopper, 2026-10-22: pass for WCAG 2.1.1 on <span class="uri">https://example.gov/apply</span>. Notes: Tabbed through every control.
+<img class="shot" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/wAALCAABAAEBAREA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/ACv/2Q==" alt="Image the reviewer attached to this result">
+<p>Attachment attachments/ck_fedcba9876543210-2-0a1b2c3d.png left out: the file is not in the attachments folder.</p>
+<p>Attachment attachments/ck_0123456789abcdef-1-0a1b2c3d.png: the same file as in an earlier record above.</p></li>
+<li>Grace Hopper, 2026-10-22: pass for WCAG 1.3.2 on <span class="uri">docs/form.pdf</span> (expired: the content changed since this review, so the roll-up does not use it). Notes: Reading order checked in a screen reader.</li>
+</ul></dd>
+<dt>Pages and files that could not be scanned</dt>
+<dd>None.</dd>
+<dt>Pages skipped</dt>
+<dd>None.</dd>
+<dt>Warnings</dt>
+<dd><ul>
+<li>manual review record wd_0 (wcag-9.9.9) was left out: orphaned: &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</li>
+</ul></dd>
+</dl>
+</section>
+<section aria-labelledby="disclaimer">
+<h2 id="disclaimer">About this report</h2>
+<p class="disclaimer">This report documents the testing performed. It is not a certification of conformance.</p>
+</section>
+</main>
+<footer><p>Made with Widedoor 0.0.0.</p></footer>
+</body>
+</html>

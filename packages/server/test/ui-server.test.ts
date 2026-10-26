@@ -3,18 +3,17 @@ import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { ScanReport } from '@widedoor/report';
+import { startLocalServer, type UiServer } from '../src/app.ts';
 import {
   SECURITY_HEADERS,
   CODE_HEADER,
   TOKEN_HEADER,
   UI_CSP,
-  UiBuildError,
   hostAllowed,
-  loadStaticFiles,
-  startUiServer,
   tokenMatches,
-  type UiServer,
-} from '../src/ui-server.ts';
+} from '../src/security.ts';
+import { UiBuildError, loadStaticFiles } from '../src/static-files.ts';
 
 /*
  * The widedoor ui server over real loopback sockets: bind address, Host and
@@ -29,6 +28,7 @@ let dist: string;
 let server: UiServer;
 let empty: UiServer;
 let reuses = 0;
+const logs: string[] = [];
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'widedoor-ui-'));
@@ -46,14 +46,20 @@ beforeAll(async () => {
     // No symlink privilege (Windows without developer mode): the link case is then untested.
   }
   const files = loadStaticFiles(dist);
-  server = await startUiServer({
+  server = await startLocalServer({
     files,
-    reportBody: '{"report":{}}',
+    current: {
+      report: {} as ScanReport,
+      body: '{"report":{}}',
+      evidenceDir: join(dir, 'evidence'),
+    },
+    root: { dir },
     token: TOKEN,
     code: CODE,
     onCodeReuse: () => void reuses++,
+    log: (line) => void logs.push(line),
   });
-  empty = await startUiServer({ files });
+  empty = await startLocalServer({ files, root: { dir } });
 });
 
 afterAll(async () => {
@@ -107,9 +113,9 @@ describe('widedoor ui server', () => {
     expect(empty.token).not.toBe(server.token);
   });
 
-  it('sends the CSP from the ruling', () => {
+  it('sends the CSP from the ruling, with Trusted Types enforced and no policy allowed', () => {
     expect(UI_CSP).toBe(
-      "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types 'none'",
     );
   });
 
@@ -188,6 +194,8 @@ describe('widedoor ui server', () => {
   });
 
   it('trades the code for the token once, and only for the right code', async () => {
+    const own = { origin: `http://127.0.0.1:${server.port}` };
+    const wrongLines = () => logs.filter((l) => l.includes('refused a wrong access code')).length;
     for (const headers of [
       {},
       { [CODE_HEADER]: '' },
@@ -196,31 +204,47 @@ describe('widedoor ui server', () => {
       { [CODE_HEADER]: empty.code },
       { [TOKEN_HEADER]: TOKEN },
     ]) {
-      const r = await get(server.port, '/api/session', headers, 'POST');
+      const r = await get(server.port, '/api/session', { ...own, ...headers }, 'POST');
       expect(r.status, JSON.stringify(headers)).toBe(401);
       expect(r.body).not.toContain(TOKEN);
       expectSecured(r);
     }
+    // Wrong codes are logged, at most one line per 10 s (app.test.ts has the clock), never a code.
+    expect(wrongLines()).toBe(1);
     // GET does not trade, and wrong codes did not use the code up.
     expect((await get(server.port, '/api/session', { [CODE_HEADER]: CODE })).status).toBe(401);
     const host = await get(
       server.port,
       '/api/session',
-      { [CODE_HEADER]: CODE, host: `evil.example:${server.port}` },
+      { ...own, [CODE_HEADER]: CODE, host: `evil.example:${server.port}` },
       'POST',
     );
     expect(host.status).toBe(403);
-    const first = await get(server.port, '/api/session', { [CODE_HEADER]: CODE }, 'POST');
+    // Like every POST, it needs this server's own Origin; the refusal does not use the code up.
+    for (const origin of [undefined, 'https://evil.example', 'null']) {
+      const r = await get(
+        server.port,
+        '/api/session',
+        { [CODE_HEADER]: CODE, ...(origin ? { origin } : {}) },
+        'POST',
+      );
+      expect(r.status, origin).toBe(403);
+      expect(r.body).not.toContain(TOKEN);
+      expectSecured(r);
+    }
+    const first = await get(server.port, '/api/session', { ...own, [CODE_HEADER]: CODE }, 'POST');
     expect(first.status).toBe(200);
     expect(JSON.parse(first.body)).toEqual({ token: TOKEN });
     expectSecured(first);
     expect(reuses).toBe(0);
-    const second = await get(server.port, '/api/session', { [CODE_HEADER]: CODE }, 'POST');
+    const second = await get(server.port, '/api/session', { ...own, [CODE_HEADER]: CODE }, 'POST');
     expect(second.status).toBe(401);
-    // The right code a second time is reported (someone else may have used the link); a wrong one is not.
+    // The right code a second time is reported (someone else may have used the link); a wrong one is logged.
     expect(reuses).toBe(1);
-    await get(server.port, '/api/session', { [CODE_HEADER]: 'wrong' }, 'POST');
+    await get(server.port, '/api/session', { ...own, [CODE_HEADER]: 'wrong' }, 'POST');
     expect(reuses).toBe(1);
+    expect(wrongLines()).toBe(1);
+    expect(logs.join('\n')).not.toContain(CODE);
     expect(second.body).not.toContain(TOKEN);
   });
 
@@ -254,7 +278,7 @@ describe('widedoor ui server', () => {
     expectSecured(r);
   });
 
-  it('serves nothing but GET and HEAD (and the session POST), with no CORS headers', async () => {
+  it('serves the viewer to nothing but GET and HEAD, with no CORS headers', async () => {
     for (const method of ['POST', 'PUT', 'DELETE', 'OPTIONS']) {
       const r = await get(server.port, '/', { origin: 'https://evil.example' }, method);
       expect(r.status, method).toBe(404);

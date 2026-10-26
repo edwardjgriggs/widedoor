@@ -5,6 +5,8 @@ import {
   CONFORMANCE_LEVELS,
   FindingSchema,
   PROFILE_IDS,
+  STANDARD_IDS,
+  type ChecklistItemStatus,
 } from '@widedoor/core/browser';
 
 /*
@@ -16,7 +18,9 @@ import {
 
 const nonEmpty = z.string().min(1);
 const timestamp = z.iso.datetime();
-const findingIds = z.array(z.string().regex(/^wd_[0-9a-f]{16}$/));
+const findingIdSchema = z.string().regex(/^wd_[0-9a-f]{16}$/);
+const findingIds = z.array(findingIdSchema);
+const count = z.int().min(0);
 
 /** Spec section 10: every report states this. */
 export const DISCLAIMER =
@@ -47,6 +51,8 @@ export const ReportScopeSchema = z.strictObject({
     .strictObject({
       files: z.array(nonEmpty),
       include: z.array(nonEmpty),
+      /** PDFs fetched by URL (pdf.urls or the command line); crawled PDF links are not listed here. */
+      urls: z.array(nonEmpty).optional(),
     })
     .optional(),
 });
@@ -87,6 +93,8 @@ const determination = {
     'manual-fail',
     'deciding-automated-pass',
     'manual-pass',
+    'manual-override',
+    'errata',
     'profile-not-applicable',
     'manual-not-applicable',
     'no-deciding-result',
@@ -96,6 +104,8 @@ const determination = {
   evidence: findingIds,
   undecided: findingIds,
   expired: findingIds,
+  /** Absent in reports written before overrides existed; absent means none. */
+  overridden: findingIds.optional(),
   exception: z.strictObject({ provision: nonEmpty, reason: nonEmpty }).optional(),
 };
 
@@ -103,7 +113,7 @@ export const RollupSchema = z.strictObject({
   profile: z.enum(PROFILE_IDS),
   standards: z.array(
     z.strictObject({
-      standard: z.enum(['508', 'wcag21aa']),
+      standard: z.enum(STANDARD_IDS),
       criteria: z.array(
         z.strictObject({
           id: nonEmpty,
@@ -124,6 +134,46 @@ export const RollupSchema = z.strictObject({
   ),
 });
 export type ReportRollup = z.infer<typeof RollupSchema>;
+
+/**
+ * Progress of the manual review checklist when the report was built: item
+ * counts by status (core checklistSummary), and how many assets in scope
+ * were not scanned (they get no items and need a rescan). The items
+ * themselves are not stored; widedoor review list builds them on demand.
+ */
+export const ChecklistProgressSchema = z.strictObject({
+  total: count,
+  byStatus: z.strictObject({
+    open: count,
+    done: count,
+    expired: count,
+    'failed-automated': count,
+  } satisfies Record<ChecklistItemStatus, typeof count>),
+  unscanned: count,
+});
+export type ChecklistProgress = z.infer<typeof ChecklistProgressSchema>;
+
+/**
+ * An automated fail record a reviewer set aside as a false positive: the
+ * roll-up lists it as overridden in every criterion it counts in, so it is
+ * not a fail in the counts, the cards or the exit gate. One entry per fail
+ * record and the current manual pass that names it. Reviewer and notes come
+ * from review files: escape them on output.
+ */
+export const OverrideSchema = z.strictObject({
+  /** The overridden fail. Not unique: two records can share a finding id. */
+  finding: findingIdSchema,
+  uri: nonEmpty,
+  engine: z.enum(['axe-core', 'verapdf', 'widedoor']),
+  ruleId: nonEmpty,
+  /** The manual pass that sets it aside, and the criterion it cites. */
+  record: findingIdSchema,
+  criterion: z.strictObject({ type: z.enum(['wcag', 'section508']), id: nonEmpty }),
+  reviewer: nonEmpty,
+  date: nonEmpty,
+  notes: nonEmpty,
+});
+export type Override = z.infer<typeof OverrideSchema>;
 
 export const ScanReportSchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -152,6 +202,19 @@ export const ScanReportSchema = z.strictObject({
    */
   scopeGaps: z.array(nonEmpty).optional(),
   rollup: RollupSchema,
+  /** Absent in reports written before the checklist existed. */
+  checklist: ChecklistProgressSchema.optional(),
+  /**
+   * Overridden automated fails, derived from the roll-up's overridden lists and the manual
+   * records. Informational: renderers and the exit gate recompute it, so an edit here changes
+   * nothing. Absent in reports written before overrides existed.
+   */
+  overrides: z
+    .array(OverrideSchema)
+    .optional()
+    .describe(
+      'Derived and informational: the automated fails a reviewer set aside, recomputed by every renderer and the exit gate from rollup and findings. Editing it changes nothing.',
+    ),
   disclaimer: z.literal(DISCLAIMER),
 });
 
