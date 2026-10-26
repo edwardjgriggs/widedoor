@@ -17,7 +17,7 @@
 #     widedoor:dev scan docs/annual-report.pdf --out out
 
 # Build stage: dev dependencies, TypeScript build and the viewer bundle.
-FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS build
+FROM node:26.12.1-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS build
 WORKDIR /src
 COPY package.json package-lock.json .npmrc ./
 COPY packages/core/package.json packages/core/
@@ -34,7 +34,7 @@ COPY packages packages
 RUN npm run build
 
 # Production dependencies only, from the same lockfile.
-FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS deps
+FROM node:26.12.1-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 COPY packages/core/package.json packages/core/
@@ -61,7 +61,7 @@ RUN jlink \
 # veraPDF 1.30.3 itself, from the same pinned image the Docker runner uses (VERAPDF_IMAGE_REF).
 FROM verapdf/cli:v1.30.3@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c AS verapdf
 
-FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS runtime
+FROM node:26.12.1-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS runtime
 ARG WIDEDOOR_VERSION=0.0.0
 # The licenses label covers what the image bundles; THIRD-PARTY-NOTICES.txt in
 # the image says where each component's license and source are.
