@@ -42,7 +42,16 @@ describe('parseCommand', () => {
       concurrency: 4,
       memoryMb: 1024,
       unsafeNoSandbox: true,
+      ignoreOverrides: false,
     });
+  });
+
+  it('takes --ignore-overrides for scan only', () => {
+    expect(parseCommand(['scan', '--ignore-overrides'])).toMatchObject({ ignoreOverrides: true });
+    expect(USAGE).toContain('--ignore-overrides');
+    expect(() => parseCommand(['ui', '--ignore-overrides'])).toThrow(
+      /--ignore-overrides is not an option of widedoor ui/,
+    );
   });
 
   it('takes junit as an opt-in format', () => {
@@ -76,6 +85,7 @@ describe('parseCommand', () => {
       command: 'scan',
       targets: [],
       unsafeNoSandbox: false,
+      ignoreOverrides: false,
     });
   });
 

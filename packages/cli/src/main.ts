@@ -69,7 +69,7 @@ export async function main(argv: readonly string[], io: Io = processIo()): Promi
     const plan = buildPlan(command, loaded, io.cwd);
     const { reviews } = await loadReviews(plan.reviewDir);
     const { runScan } = await import('./run.js');
-    return await runScan(plan, reviews, io);
+    return await runScan(plan, reviews, io, { ignoreOverrides: command.ignoreOverrides });
   } catch (e) {
     if (e instanceof UsageError) {
       io.err(`widedoor: ${safeText(e.message, 1000)}`);

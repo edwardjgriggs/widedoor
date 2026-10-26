@@ -40,6 +40,8 @@ export {
 export interface ScanArgs extends PlanArgs {
   command: 'scan';
   config?: string;
+  /** The exit gate counts automated fails that review records override (CI on untrusted changes). */
+  ignoreOverrides: boolean;
 }
 
 export interface UiArgs {
@@ -138,6 +140,9 @@ Options:
   --storage-state <file>  Playwright storage state for signed-in pages (also from
                         WIDEDOOR_STORAGE_STATE); overrides web.auth.storageState
   --unsafe-no-sandbox   run Chromium without its OS sandbox (recorded as a warning)
+  --ignore-overrides    the exit code counts automated fails that a review record
+                        overrides; the reports still show the overrides. For CI on
+                        changes whose widedoor-review/ files are not trusted
   -h, --help            show this help
   -v, --version         show the version
 
@@ -353,6 +358,7 @@ export function parseCommand(argv: readonly string[]): Command {
         memory: { type: 'string' },
         'storage-state': { type: 'string' },
         'unsafe-no-sandbox': { type: 'boolean' },
+        'ignore-overrides': { type: 'boolean' },
         report: { type: 'string' },
         root: { type: 'string' },
         'no-open': { type: 'boolean' },
@@ -393,6 +399,7 @@ export function parseCommand(argv: readonly string[]): Command {
     command: 'scan',
     targets,
     unsafeNoSandbox: values['unsafe-no-sandbox'] === true,
+    ignoreOverrides: values['ignore-overrides'] === true,
   };
   if (values.config !== undefined) {
     if (values.config === '') throw new UsageError('--config needs a file');

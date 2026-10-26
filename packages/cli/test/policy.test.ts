@@ -188,5 +188,14 @@ describe('exitDecision', () => {
     ).toEqual(both);
     // A report without overridden lists sets nothing aside.
     expect(countingFails(report(both))).toEqual(both);
+    // --ignore-overrides: the override no longer takes the fail out of the gate.
+    const overriddenReport = { ...report(both), rollup: rollup([unit([set.id], [])]) };
+    expect(countingFails(overriddenReport, true)).toEqual(both);
+    expect(
+      exitDecision(overriddenReport, 'critical', { unscannedListed: 0 }, { ignoreOverrides: true }),
+    ).toEqual({
+      code: 1,
+      reason: '1 failed check at or above critical (review overrides ignored)',
+    });
   });
 });

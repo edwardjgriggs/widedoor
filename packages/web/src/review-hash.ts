@@ -5,8 +5,11 @@ import type { DefaultTreeAdapterMap } from 'parse5';
 type Node = DefaultTreeAdapterMap['node'];
 type Element = DefaultTreeAdapterMap['element'];
 
-/** Elements whose contents change without changing what a reviewer saw. */
-const DROP_CONTENTS = new Set(['script', 'style', 'noscript', 'template']);
+/**
+ * Elements whose contents change without changing what a reviewer saw. Style text
+ * stays in: a changed inline stylesheet can change contrast, visibility or reflow.
+ */
+const DROP_CONTENTS = new Set(['script', 'noscript', 'template']);
 const VOID = new Set([
   'area',
   'base',
@@ -82,7 +85,7 @@ const attrsOf = (el: Element): string => {
 
 /**
  * Hash of the served HTML after dropping what changes between loads without
- * changing the page: script, style, noscript and template contents, comments,
+ * changing the page: script, noscript and template contents, comments,
  * nonce and integrity attributes, token-like attributes and hidden input values,
  * and the length of whitespace runs. Pure and offline; a manual review is anchored to this
  * rather than to the byte hash. Throws on input it will not parse (nesting over

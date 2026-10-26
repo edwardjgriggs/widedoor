@@ -3,6 +3,7 @@ import type { Asset } from '@widedoor/core';
 import {
   ACR_TERM_IDS,
   MAX_ACR_FINDINGS,
+  SUPPORT_DOCS_NOTE,
   buildAcr,
   isAcrDate,
   type Acr,
@@ -14,11 +15,13 @@ import {
   NONCHARACTERS_SAFE,
   META,
   PAGE,
+  PAGE2,
   PDF,
   acrReport,
   automated,
   decidedReport,
   manual,
+  passEverything,
 } from './acr-fixture.ts';
 import { PAYLOAD } from './fixture.ts';
 
@@ -89,11 +92,99 @@ describe('buildAcr layout', () => {
     expect(acr.notes.join(' ')).toMatch(/Software and Authoring Tool columns are left out/);
   });
 
-  it('notes the roll-up rows the template has no row for, in their chapter', () => {
+  it('notes 502.3 and 503.4, heading rows in the template, in their chapter with the roll-up reading', () => {
     const software = acr.tables.find((t) => t.id === 'software');
     expect(rows(acr).map((r) => r.id)).not.toContain('502.3');
-    expect(software?.notes.join(' ')).toMatch(/502\.3 Accessibility Services has no row/);
-    expect(software?.notes.join(' ')).toMatch(/503\.4 .* has no row/);
+    const notes = software?.notes.join(' ');
+    expect(notes).toMatch(
+      /Section 508 502\.3 Accessibility Services is a heading row in the template \(no response required\); the roll-up reads Not Evaluated: /,
+    );
+    expect(notes).toMatch(/503\.4 .* is a heading row in the template \(no response required\)/);
+    expect(notes).not.toMatch(/has no row/);
+  });
+
+  it('opens Chapter 5 with 501.1, answered in the WCAG tables, never a verdict', () => {
+    const software = acr.tables.find((t) => t.id === 'software');
+    expect(software?.rows[0]).toEqual({
+      id: '501.1',
+      title: 'Scope - Incorporation of WCAG 2.0 AA',
+      components: [],
+      reference: {
+        conformance: 'See WCAG 2.x section',
+        remarks: 'See information in WCAG 2.x section',
+        note: `501.1 Scope - Incorporation of WCAG 2.0 AA is answered in Tables 1 and 2 (the template's cells read "See WCAG 2.x section"), so it has no criterion entry here.`,
+      },
+    });
+    // No Chapter 5 when no web page was scanned, so no 501.1 either.
+    const pdfOnly = buildAcr(acrReport({ assets: [PDF] }), META);
+    expect(rows(pdfOnly).map((r) => r.id)).not.toContain('501.1');
+  });
+
+  it('answers 504.2 and 602.3 in the WCAG tables, as the template does', () => {
+    for (const id of ['504.2', '602.3']) {
+      const r = row(acr, id);
+      expect(r.components, id).toEqual([]);
+      expect(r.reference?.conformance, id).toBe('See WCAG 2.x section');
+      expect(r.reference?.remarks, id).toBe('See information in WCAG 2.x section');
+    }
+    expect(row(acr, '504.2').title).toBe('Content Creation or Editing');
+  });
+
+  it('shows 504.2 Not Applicable when a reviewer recorded that the product is not an authoring tool', () => {
+    const na = manual(PAGE, { type: 'section508', id: '504.2' }, 'not-applicable', {
+      notes: 'The portal is not an authoring tool (504.1).',
+    });
+    const r = row(buildAcr(acrReport({ reviews: [na] }), META), '504.2');
+    expect(r.reference).toBeUndefined();
+    expect(r.components.map((c) => c.level)).toEqual(['Not Applicable']);
+    expect(r.components[0]?.remarks).toMatch(/Condition \(504\.1\): /);
+  });
+
+  it('keeps a result a reviewer recorded for 504.2 or 602.3 in the remarks, not as the row level', () => {
+    const fail = manual(PAGE, { type: 'section508', id: '602.3' }, 'fail', {
+      notes: 'The help pages have no headings.',
+    });
+    const r = row(buildAcr(acrReport({ reviews: [fail] }), META), '602.3');
+    expect(r.components).toEqual([]);
+    expect(r.reference?.conformance).toBe('See WCAG 2.x section');
+    expect(r.reference?.remarks).toMatch(
+      /^See information in WCAG 2\.x section\. A result is also on record for this row, Does Not Support: Judged for the product as a whole: /,
+    );
+    expect(r.reference?.remarks).toContain(
+      'A reviewer recorded a fail on https://example.com/apply: The help pages have no headings.',
+    );
+    expect(r.reference?.note).toContain(
+      'A result is also on record for this row, Does Not Support',
+    );
+  });
+
+  it('lists the records on an undecided 504.2 in its remarks, with no level', () => {
+    const na = manual(PAGE, { type: 'section508', id: '504.2' }, 'not-applicable', {
+      notes: 'Not an authoring tool (504.1).',
+    });
+    const report = acrReport({ assets: [PAGE, PAGE2, PDF], reviews: [na] });
+    const view = report.rollup.standards.find((s) => s.standard === '508');
+    // N/A on one page of two decides nothing for the other.
+    expect(view?.criteria.find((c) => c.id === '504.2')?.level).toBe('Not Evaluated');
+    const r = row(buildAcr(report, META), '504.2');
+    expect(r.components).toEqual([]);
+    expect(r.reference?.conformance).toBe('See WCAG 2.x section');
+    const recorded =
+      'Recorded for this row so far; the roll-up leaves it undecided: the 1 applicable asset has no deciding result. A reviewer recorded not applicable on https://example.com/apply: Not an authoring tool (504.1).';
+    expect(r.reference?.remarks).toBe(`See information in WCAG 2.x section. ${recorded}`);
+    expect(r.reference?.note.endsWith(`so it has no criterion entry here. ${recorded}`)).toBe(true);
+    expect(r.reference?.remarks).not.toMatch(/Not Applicable|Supports/);
+  });
+
+  it('notes that 602.3 covers only the support documentation scanned', () => {
+    expect(acr.notes).toContain(SUPPORT_DOCS_NOTE);
+    expect(SUPPORT_DOCS_NOTE).toMatch(/only where it was among the pages and files scanned/);
+  });
+
+  it('takes row titles from the catalog, which has the template wording', () => {
+    expect(row(acr, '1.4.4').title).toBe('Resize text');
+    expect(row(acr, '1.1.1').title).toBe('Non-text Content');
+    expect(row(acr, '302.1').title).toBe('Without Vision');
   });
 
   it('maps every level to its catalog term id', () => {
@@ -240,10 +331,10 @@ describe('buildAcr levels and remarks', () => {
   });
 
   it('lists a manual fail on a product item with the reviewer notes, made safe', () => {
-    const fail = manual(PAGE, { type: 'section508', id: '602.3' }, 'fail', {
+    const fail = manual(PAGE, { type: 'section508', id: '602.2' }, 'fail', {
       notes: `The help pages have no headings.\u001b[2J ${PAYLOAD}`,
     });
-    const c = cell(buildAcr(acrReport({ reviews: [fail] }), META), '602.3', 'none');
+    const c = cell(buildAcr(acrReport({ reviews: [fail] }), META), '602.2', 'none');
     expect(c.level).toBe('Does Not Support');
     expect(c.remarks).toMatch(/^Judged for the product as a whole: /);
     expect(c.remarks).toContain(
@@ -270,11 +361,34 @@ describe('buildAcr completeness', () => {
     ).toBe(true);
   });
 
-  it('counts the Not Evaluated criteria', () => {
+  it('is complete with 504.2 and 602.3 left Not Evaluated: the WCAG tables answer them', () => {
+    const left = new Set(['504.2', '602.3']);
+    const reviews = passEverything().filter(
+      (f) => !(f.criteria.section508 ?? []).some((id) => left.has(id)),
+    );
+    const report = acrReport({ reviews });
+    const view = report.rollup.standards.find((s) => s.standard === '508');
+    for (const id of left)
+      expect(view?.criteria.find((c) => c.id === id)?.level, id).toBe('Not Evaluated');
+    const acr = buildAcr(report, META);
+    expect(acr.incomplete).toEqual([]);
+    expect(acr.undecided).toBe(0);
+    expect(acr.complete).toBe(true);
+    for (const id of left)
+      expect(row(acr, id).reference?.remarks, id).toBe('See information in WCAG 2.x section');
+  });
+
+  it('counts the Not Evaluated criteria, never a reference row', () => {
     const acr = buildAcr(acrReport(), META);
     expect(acr.complete).toBe(false);
     const n = rows(acr).filter((r) => r.components.some((c) => c.level === 'Not Evaluated')).length;
     expect(n).toBeGreaterThan(1);
+    // 501.1, 504.2 and 602.3 are reference rows, with no level: none of them counts.
+    expect(rows(acr).flatMap((r) => (r.reference ? [r.id] : []))).toEqual([
+      '501.1',
+      '504.2',
+      '602.3',
+    ]);
     expect(acr.undecided).toBe(n);
     expect(acr.incomplete).toEqual([`${n} criteria are Not Evaluated`]);
     expect(buildAcr(decidedReport(), META).undecided).toBe(0);

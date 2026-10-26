@@ -25,8 +25,10 @@ import { MARKER as CLI_MARKER } from '../../server/src/output.ts';
 import { VERAPDF_IMAGE_REF } from '../../pdf/src/verapdf.ts';
 import {
   CONFIG_FILE,
+  CONTEXT_ENV,
   DEFAULT_FAIL_ON,
   DEFAULT_OUT,
+  DEFAULT_REVIEW_OVERRIDES,
   EXIT_ERROR,
   FAIL_ON,
   INPUT_ENV,
@@ -36,6 +38,7 @@ import {
   clearReports,
   REPORT_FILES,
   exitCode,
+  fromFork,
   main,
   outputRecord,
   plan,
@@ -224,6 +227,148 @@ describe('plan', () => {
   });
 });
 
+describe('review overrides', () => {
+  /** A GitHub event payload file for a pull request from head to base. */
+  function event(head: string | null, base = 'owner/site', name = 'pull_request') {
+    const file = join(mkdtempSync(join(tmp, 'event-')), 'event.json');
+    writeFileSync(
+      file,
+      JSON.stringify({
+        pull_request: {
+          head: { repo: head === null ? null : { full_name: head } },
+          base: { repo: { full_name: base } },
+        },
+      }),
+    );
+    return { GITHUB_EVENT_NAME: name, GITHUB_EVENT_PATH: file };
+  }
+  const urls = { urls: 'https://example.com/' };
+
+  it.each([
+    // Built inside the test: tmp exists only after beforeAll.
+    ['a push', () => ({ GITHUB_EVENT_NAME: 'push' }), false],
+    ['a pull request inside the repository', () => event('owner/site'), false],
+    ['the same repository in other letter case', () => event('Owner/Site'), false],
+    ['a pull request from a fork', () => event('someone/site'), true],
+    [
+      'pull_request_target from a fork',
+      () => event('someone/site', 'owner/site', 'pull_request_target'),
+      true,
+    ],
+    ['a pull request from a deleted fork', () => event(null), true],
+    [
+      'a pull request whose payload cannot be read',
+      () => ({ GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: join(tmp, 'missing.json') }),
+      true,
+    ],
+    [
+      'another event whose payload cannot be read',
+      () => ({ GITHUB_EVENT_NAME: 'schedule', GITHUB_EVENT_PATH: join(tmp, 'missing.json') }),
+      false,
+    ],
+  ])('auto: %s counts as a fork: %s', (_n, make: () => NodeJS.ProcessEnv, fork) => {
+    const github = make();
+    expect(fromFork(github)).toBe(fork);
+    const p = plan({ ...env(urls), ...github }, empty);
+    expect(p.argv.includes('--ignore-overrides')).toBe(fork);
+    expect(cliParse(p.argv).ignoreOverrides).toBe(fork);
+    expect(p.argv.at(-1)).toBe('https://example.com/');
+  });
+
+  it.each([
+    ['a push', { WIDEDOOR_EVENT_NAME: 'push' }, false],
+    [
+      'a pull request inside the repository',
+      {
+        WIDEDOOR_EVENT_NAME: 'pull_request',
+        WIDEDOOR_HEAD_REPO: 'owner/site',
+        WIDEDOOR_BASE_REPO: 'Owner/Site',
+      },
+      false,
+    ],
+    [
+      'a pull request from a fork',
+      {
+        WIDEDOOR_EVENT_NAME: 'pull_request',
+        WIDEDOOR_HEAD_REPO: 'someone/site',
+        WIDEDOOR_BASE_REPO: 'owner/site',
+      },
+      true,
+    ],
+    [
+      'a pull request from a deleted fork',
+      {
+        WIDEDOOR_EVENT_NAME: 'pull_request',
+        WIDEDOOR_HEAD_REPO: '',
+        WIDEDOOR_BASE_REPO: 'owner/site',
+      },
+      true,
+    ],
+    [
+      'a workflow_run inside the repository',
+      {
+        WIDEDOOR_EVENT_NAME: 'workflow_run',
+        WIDEDOOR_RUN_HEAD_REPO: 'owner/site',
+        WIDEDOOR_REPO: 'owner/site',
+      },
+      false,
+    ],
+    [
+      'a workflow_run for a fork',
+      {
+        WIDEDOOR_EVENT_NAME: 'workflow_run',
+        WIDEDOOR_RUN_HEAD_REPO: 'someone/site',
+        WIDEDOOR_REPO: 'owner/site',
+      },
+      true,
+    ],
+  ])('context: %s counts as a fork: %s', (_n, context, fork) => {
+    expect(fromFork(context)).toBe(fork);
+  });
+
+  it('trusts the runner context over a payload file an earlier step rewrote', () => {
+    // The payload claims the same repository; the context says fork.
+    const forged = event('owner/site');
+    expect(
+      fromFork({
+        ...forged,
+        WIDEDOOR_EVENT_NAME: 'pull_request',
+        WIDEDOOR_HEAD_REPO: 'someone/site',
+        WIDEDOOR_BASE_REPO: 'owner/site',
+      }),
+    ).toBe(true);
+  });
+
+  it('reads a workflow_run payload when the context is missing', () => {
+    const file = join(mkdtempSync(join(tmp, 'event-')), 'event.json');
+    writeFileSync(
+      file,
+      JSON.stringify({
+        workflow_run: { head_repository: { full_name: 'someone/site' } },
+        repository: { full_name: 'owner/site' },
+      }),
+    );
+    expect(fromFork({ GITHUB_EVENT_NAME: 'workflow_run', GITHUB_EVENT_PATH: file })).toBe(true);
+    expect(
+      fromFork({ GITHUB_EVENT_NAME: 'workflow_run', GITHUB_EVENT_PATH: join(tmp, 'missing.json') }),
+    ).toBe(true);
+  });
+
+  it('on counts overrides even from a fork; off ignores them everywhere', () => {
+    const fork = event('someone/site');
+    expect(plan({ ...env({ ...urls, reviewOverrides: 'on' }), ...fork }, empty).argv).not.toContain(
+      '--ignore-overrides',
+    );
+    const off = plan(env({ ...urls, reviewOverrides: 'off' }), empty);
+    expect(off.argv).toContain('--ignore-overrides');
+    expect(off.ignoreOverrides).toBe('review-overrides is off');
+    expect(() => plan(env({ ...urls, reviewOverrides: 'maybe' }), empty)).toThrow(
+      /review-overrides must be one of auto, on, off/,
+    );
+    expect(DEFAULT_REVIEW_OVERRIDES).toBe('auto');
+  });
+});
+
 describe('outputs', () => {
   it('a value with newlines and fake delimiters cannot add outputs', () => {
     const file = join(tmp, 'output-inject');
@@ -286,6 +431,10 @@ describe('run', () => {
       env: {
         ...process.env,
         ...env(inputs),
+        // A run on GitHub Actions must not read the real job's event.
+        GITHUB_EVENT_NAME: '',
+        GITHUB_EVENT_PATH: '',
+        ...Object.fromEntries(Object.values(CONTEXT_ENV).map((k) => [k, ''])),
         GITHUB_OUTPUT: output,
         FAKE_ARGV: record,
         FAKE_CODE: String(code),
@@ -433,6 +582,17 @@ describe('run', () => {
     expect(stderr).toMatch(/widedoor action: unexpected error: /);
   });
 
+  it('says in the log when overrides do not count', async () => {
+    const r = await runFake(0, { urls: 'https://example.com/', reviewOverrides: 'off' });
+    expect(r.child?.argv).toContain('--ignore-overrides');
+    expect(r.stderr).toContain(
+      'widedoor action: review overrides do not count toward the exit code: review-overrides is off',
+    );
+    expect(r.stdout).toContain(
+      '::notice title=widedoor::Review overrides did not count toward the exit code: review-overrides is off',
+    );
+  });
+
   it('exits 2 on a bad input without running the CLI', async () => {
     const r = await runFake(0, { urls: 'https://example.com/', failOn: 'loud' });
     expect(r.result).toBe(2);
@@ -509,9 +669,18 @@ describe('action.yml', () => {
       INPUT_FAIL_ON: '${{ inputs.fail-on }}',
       INPUT_OUT: '${{ inputs.out }}',
       INPUT_UPLOAD_SARIF: '${{ inputs.upload-sarif }}',
+      INPUT_REVIEW_OVERRIDES: '${{ inputs.review-overrides }}',
     };
-    expect(scan.env).toEqual(expected);
+    const context = {
+      WIDEDOOR_EVENT_NAME: '${{ github.event_name }}',
+      WIDEDOOR_HEAD_REPO: '${{ github.event.pull_request.head.repo.full_name }}',
+      WIDEDOOR_BASE_REPO: '${{ github.event.pull_request.base.repo.full_name }}',
+      WIDEDOOR_RUN_HEAD_REPO: '${{ github.event.workflow_run.head_repository.full_name }}',
+      WIDEDOOR_REPO: '${{ github.repository }}',
+    };
+    expect(scan.env).toEqual({ ...expected, ...context });
     expect(Object.keys(expected).sort()).toEqual(Object.values(INPUT_ENV).sort());
+    expect(Object.keys(context).sort()).toEqual(Object.values(CONTEXT_ENV).sort());
     expect(scan.run).toBe('node "$GITHUB_ACTION_PATH/dist/entry.js"');
   });
 
@@ -523,6 +692,7 @@ describe('action.yml', () => {
         'files',
         'out',
         'profile',
+        'review-overrides',
         'sarif-category',
         'upload-sarif',
         'urls',
@@ -532,6 +702,7 @@ describe('action.yml', () => {
     expect(action.inputs.out.default).toBe(DEFAULT_OUT);
     expect(action.inputs['upload-sarif'].default).toBe('true');
     expect(action.inputs['sarif-category'].default).toBe('widedoor');
+    expect(action.inputs['review-overrides'].default).toBe(DEFAULT_REVIEW_OVERRIDES);
     expect(Object.keys(action.outputs).sort()).toEqual(['exit-code', 'report-dir']);
   });
 

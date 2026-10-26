@@ -17,7 +17,7 @@ import { formatIssues } from './issues.js';
 import type { PdfDocumentType, ProfileId } from './profile-ids.js';
 import { getProfile } from './profiles.js';
 import { ConfigError, parseRepoYaml, readRepoFile } from './repo-files.js';
-import { decidingRulesFrom, errataFrom, rollup } from './rollup.js';
+import { decidingRulesFrom, errataFrom, rollup, type Errata } from './rollup.js';
 import {
   FindingSchema,
   type Asset,
@@ -246,7 +246,7 @@ function checkAttachment(folder: string, path: string): string {
 /** What parseReviewFile checks records against, shared by the files of one folder. */
 interface FolderContext {
   folder: string;
-  errata: ReadonlySet<string>;
+  errata: Errata;
   product: ReadonlySet<string>;
   /** Items already seen in the folder (asset uri or product, criterion) and the file that holds each. */
   seen: Map<string, string>;
@@ -258,7 +258,7 @@ interface FolderContext {
 function folderContext(folder: string, data: ReviewData): FolderContext {
   return {
     folder,
-    errata: new Set(data.errata.criteria.map((c) => c.id)),
+    errata: errataFrom(data),
     product: productProvisions(data),
     seen: new Map(),
     attachments: new Map(),
@@ -269,8 +269,10 @@ function folderContext(folder: string, data: ReviewData): FolderContext {
 /** Why a valid manual record cannot be used where it sits, if it cannot. */
 function placementProblem(f: Finding, name: string, at: string, ctx: FolderContext) {
   const [type, id] = criterionOf(f);
-  if (type === 'wcag' && ctx.errata.has(id))
-    return `${at}criteria: record ${f.id} cites WCAG ${id}, which is satisfied by the errata; no review needed`;
+  const basis = type === 'wcag' ? ctx.errata.get(id) : undefined;
+  // Any outcome: a fail would move 4.1.1 off the Supports the template requires, and a pass or N/A adds nothing.
+  if (basis)
+    return `${at}criteria: record ${f.id} cites WCAG ${id}, which is satisfied by the errata; no review needed, so no outcome (${f.outcome}) is accepted. Basis: ${basis.citations.map((c) => `${c.name} (${c.url})`).join('; ')}`;
   const expectedId = findingId(f.asset.uri, f.location, 'manual', f.source.ruleId);
   if (f.id !== expectedId)
     return `${at}id: record ${f.id} does not match its asset, location and rule (expected ${expectedId})`;

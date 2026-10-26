@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { appendFileSync, existsSync, lstatSync, rmSync } from 'node:fs';
+import { appendFileSync, existsSync, lstatSync, readFileSync, rmSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +22,13 @@ export const MARKER = '.widedoor-report';
 /** Every format, so SARIF is there to upload and the HTML and JSON reports to keep. */
 export const FORMATS = 'html,json,sarif';
 export const EXIT_ERROR = 2;
+/**
+ * Whether review overrides take automated fails out of the exit gate. auto:
+ * not on a pull request from a fork, whose widedoor-review/ files the
+ * contributor wrote; on: always; off: never.
+ */
+export const REVIEW_OVERRIDES = ['auto', 'on', 'off'] as const;
+export const DEFAULT_REVIEW_OVERRIDES = 'auto';
 
 /** Environment variables the composite step sets, one per input. */
 export const INPUT_ENV = {
@@ -32,6 +39,7 @@ export const INPUT_ENV = {
   failOn: 'INPUT_FAIL_ON',
   out: 'INPUT_OUT',
   uploadSarif: 'INPUT_UPLOAD_SARIF',
+  reviewOverrides: 'INPUT_REVIEW_OVERRIDES',
 } as const;
 
 export class InputError extends Error {
@@ -44,6 +52,73 @@ export interface Plan {
   /** Absolute report folder. */
   reportDir: string;
   uploadSarif: boolean;
+  /** Why the scan ignores review overrides, when it does. */
+  ignoreOverrides?: string;
+}
+
+/**
+ * Event facts the scan step reads from the runner's own github context
+ * (action.yml), which no earlier step can rewrite, unlike the payload file.
+ */
+export const CONTEXT_ENV = {
+  event: 'WIDEDOOR_EVENT_NAME',
+  headRepo: 'WIDEDOOR_HEAD_REPO',
+  baseRepo: 'WIDEDOOR_BASE_REPO',
+  runHeadRepo: 'WIDEDOOR_RUN_HEAD_REPO',
+  repo: 'WIDEDOOR_REPO',
+} as const;
+
+interface Repo {
+  full_name?: unknown;
+}
+
+interface EventPayload {
+  pull_request?: { head?: { repo?: Repo | null }; base?: { repo?: Repo | null } };
+  workflow_run?: { head_repository?: Repo | null };
+  repository?: Repo | null;
+}
+
+/** Two repositories differ, or one is unknown (a deleted fork): counts as a fork. */
+const differ = (head: unknown, base: unknown) =>
+  typeof head !== 'string' ||
+  typeof base !== 'string' ||
+  head === '' ||
+  base === '' ||
+  head.toLowerCase() !== base.toLowerCase();
+
+/**
+ * Whether the run is for changes from a fork: a pull_request* event whose
+ * head repository is not the base (or is gone), or a workflow_run whose head
+ * repository is not this one. Read from the github context the scan step
+ * passes in (CONTEXT_ENV); without it, from the payload at GITHUB_EVENT_PATH.
+ * A pull request or workflow_run whose facts cannot be read counts as a
+ * fork: the check fails closed. Other events (push, merge_group, schedule)
+ * run on changes a maintainer accepted.
+ */
+export function fromFork(env: NodeJS.ProcessEnv): boolean {
+  const context = env[CONTEXT_ENV.event];
+  if (context) {
+    if (context.startsWith('pull_request'))
+      return differ(env[CONTEXT_ENV.headRepo], env[CONTEXT_ENV.baseRepo]);
+    if (context === 'workflow_run')
+      return differ(env[CONTEXT_ENV.runHeadRepo], env[CONTEXT_ENV.repo]);
+    return false;
+  }
+  const name = env.GITHUB_EVENT_NAME ?? '';
+  const pr = name.startsWith('pull_request');
+  if (!pr && name !== 'workflow_run') return false;
+  let event: EventPayload;
+  try {
+    event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH ?? '', 'utf8')) as EventPayload;
+  } catch {
+    return true;
+  }
+  if (pr)
+    return differ(
+      event?.pull_request?.head?.repo?.full_name,
+      event?.pull_request?.base?.repo?.full_name,
+    );
+  return differ(event?.workflow_run?.head_repository?.full_name, event?.repository?.full_name);
 }
 
 // Control characters (C0, DEL, C1) and the line and paragraph separators.
@@ -106,6 +181,17 @@ export function plan(env: NodeJS.ProcessEnv, cwd: string): Plan {
     'true',
     'false',
   ]);
+  const overrides = oneOf(
+    'review-overrides',
+    single('review-overrides', read('reviewOverrides')) || DEFAULT_REVIEW_OVERRIDES,
+    REVIEW_OVERRIDES,
+  );
+  const ignoreOverrides =
+    overrides === 'off'
+      ? 'review-overrides is off'
+      : overrides === 'auto' && fromFork(env)
+        ? 'this pull request comes from a fork (review-overrides: auto)'
+        : undefined;
 
   if (
     urls.length === 0 &&
@@ -120,11 +206,13 @@ export function plan(env: NodeJS.ProcessEnv, cwd: string): Plan {
   const argv = ['scan', `--format=${FORMATS}`, `--out=${out}`, `--fail-on=${failOn}`];
   if (profile !== '') argv.push(`--profile=${oneOf('profile', profile, PROFILES)}`);
   if (config !== '') argv.push(`--config=${config}`);
+  if (ignoreOverrides) argv.push('--ignore-overrides');
   argv.push('--', ...urls, ...files);
   return {
     argv,
     reportDir: isAbsolute(out) ? resolve(out) : resolve(cwd, out),
     uploadSarif: upload === 'true',
+    ...(ignoreOverrides ? { ignoreOverrides } : {}),
   };
 }
 
@@ -171,6 +259,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
   // Scanned pages can put text in the log; stop the runner reading workflow commands from it.
   const token = env.GITHUB_ACTIONS === 'true' ? `widedoor-${randomUUID()}` : undefined;
   if (token) out(`::stop-commands::${token}\n`);
+  let ignored: string | undefined;
   try {
     let p: Plan;
     try {
@@ -181,9 +270,16 @@ export async function run(options: RunOptions = {}): Promise<number> {
       writeOutputs(env.GITHUB_OUTPUT, { 'exit-code': String(EXIT_ERROR) });
       return EXIT_ERROR;
     }
+    ignored = p.ignoreOverrides;
+    if (p.ignoreOverrides)
+      err(
+        `widedoor action: review overrides do not count toward the exit code: ${p.ignoreOverrides}
+`,
+      );
     clearReports(p.reportDir);
     const childEnv = { ...env };
-    for (const key of Object.values(INPUT_ENV)) delete childEnv[key];
+    for (const key of [...Object.values(INPUT_ENV), ...Object.values(CONTEXT_ENV)])
+      delete childEnv[key];
     const code = await new Promise<number>((done) => {
       const child = spawn(process.execPath, [options.bin ?? CLI_BIN, ...p.argv], {
         cwd,
@@ -214,6 +310,11 @@ export async function run(options: RunOptions = {}): Promise<number> {
     return code;
   } finally {
     if (token) out(`::${token}::\n`);
+    // After commands resume, so the checks UI shows it. The reason is fixed text.
+    if (ignored)
+      out(
+        `::notice title=widedoor::Review overrides did not count toward the exit code: ${ignored}\n`,
+      );
   }
 }
 

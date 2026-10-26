@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import {
   OPENACR_CATALOG_ID,
+  SUPPORT_DOCS_NOTE,
   OPENACR_FILES,
   checkAcrTables,
   contactFields,
@@ -19,12 +20,15 @@ import {
 } from '../src/index.ts';
 import {
   HOSTILE_META,
+  HOSTILE_NOTES_SAFE,
   META,
   NONCHARACTERS_SAFE,
   PAGE,
   acrReport,
   automated,
   decidedReport,
+  hostileReferenceReport,
+  manual,
 } from './acr-fixture.ts';
 import { PAYLOAD, fixtureReport } from './fixture.ts';
 import { reviewFixtureReport } from './review-fixture.ts';
@@ -242,7 +246,39 @@ describe('OpenACR report', () => {
       level: 'supports',
       notes: acr.tables[0]?.rows[0]?.components[0]?.remarks,
     });
-    expect(doc.chapters.software.notes).toMatch(/502\.3 Accessibility Services has no row/);
+    expect(doc.chapters.software.notes).toMatch(
+      /502\.3 Accessibility Services is a heading row in the template/,
+    );
+  });
+
+  it('writes 501.1, 504.2 and 602.3 as chapter notes, never as a criterion with a level', () => {
+    const acr = buildAcr(acrReport(), META);
+    const doc: Doc = parse(serializeOpenAcr(acr));
+    const nums = (id: string): string[] => doc.chapters[id].criteria.map((c: Doc) => c.num);
+    expect(nums('software')).not.toContain('501.1');
+    expect(nums('software')).not.toContain('504.2');
+    expect(nums('software')).toContain('504.2.1');
+    expect(nums('support_documentation_and_services')).toEqual([
+      '602.2',
+      '602.4',
+      '603.2',
+      '603.3',
+    ]);
+    const software: string[] = doc.chapters.software.notes.split('\n\n');
+    expect(software.slice(0, 2)).toEqual([
+      `501.1 Scope - Incorporation of WCAG 2.0 AA is answered in Tables 1 and 2 (the template's cells read "See WCAG 2.x section"), so it has no criterion entry here.`,
+      `504.2 Content Creation or Editing is answered in Tables 1 and 2 (the template's cells read "See WCAG 2.x section"), so it has no criterion entry here.`,
+    ]);
+    expect(doc.chapters.support_documentation_and_services.notes).toBe(
+      `602.3 Electronic Support Documentation is answered in Tables 1 and 2 (the template's cells read "See WCAG 2.x section"), so it has no criterion entry here.`,
+    );
+    // 504.2 marked not applicable (not an authoring tool) is an ordinary criterion again.
+    const na = manual(PAGE, { type: 'section508', id: '504.2' }, 'not-applicable', {
+      notes: 'Not an authoring tool (504.1).',
+    });
+    const withNa: Doc = parse(serializeOpenAcr(buildAcr(acrReport({ reviews: [na] }), META)));
+    const c504 = withNa.chapters.software.criteria.find((c: Doc) => c.num === '504.2');
+    expect(c504.components[0].adherence.level).toBe('not-applicable');
   });
 
   it('puts the contact in the contact field its shape belongs to', () => {
@@ -312,6 +348,35 @@ describe('OpenACR report', () => {
       return (code < 0x20 && ch !== '\n') || code === 0x7f || code === 0x202e;
     });
     expect(raw).toEqual([]);
+  });
+
+  it('keeps hostile reviewer notes on 504.2 and 602.3 inert, as chapter note text', () => {
+    const text = serializeOpenAcr(buildAcr(hostileReferenceReport(), META));
+    const doc: Doc = parse(text);
+    expect(checkOpenAcrSchema(doc)).toEqual([]);
+    expect(checkOpenAcrCatalog(doc)).toEqual([]);
+    const software: string = doc.chapters.software.notes;
+    const support: string = doc.chapters.support_documentation_and_services.notes;
+    expect(software).toContain(
+      `Recorded for this row so far; the roll-up leaves it undecided: the 1 applicable asset has no deciding result. A reviewer recorded not applicable on https://example.com/apply: ${HOSTILE_NOTES_SAFE}.`,
+    );
+    expect(support).toContain(`A result is also on record for this row, Does Not Support: `);
+    expect(support).toContain(`${HOSTILE_NOTES_SAFE}.`);
+    // Neither row becomes a criterion, and the notes add no key to the document.
+    const nums = (id: string): string[] => doc.chapters[id].criteria.map((c: Doc) => c.num);
+    expect(nums('software')).not.toContain('504.2');
+    expect(nums('support_documentation_and_services')).not.toContain('602.3');
+    expect(Object.keys(doc.chapters.software)).toEqual(['notes', 'criteria']);
+    const raw = [...text].filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return (code < 0x20 && ch !== '\n') || code === 0x7f || code === 0x202e;
+    });
+    expect(raw).toEqual([]);
+  });
+
+  it('carries the support documentation note in the report notes', () => {
+    const doc: Doc = parse(serializeOpenAcr(buildAcr(acrReport(), META)));
+    expect(doc.notes.split('\n\n')).toContain(SUPPORT_DOCS_NOTE);
   });
 
   it('quotes strings a YAML 1.1 reader would take for dates or numbers', () => {

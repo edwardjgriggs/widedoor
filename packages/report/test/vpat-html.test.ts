@@ -3,12 +3,21 @@ import type { DefaultTreeAdapterMap } from 'parse5';
 import { describe, expect, it } from 'vitest';
 import {
   DISCLAIMER,
+  SUPPORT_DOCS_NOTE,
   buildAcr,
   loadOpenAcrCatalog,
   renderVpatHtml,
   vpatOutline,
 } from '../src/index.ts';
-import { HOSTILE_META, NONCHARACTERS_SAFE, META, acrReport, decidedReport } from './acr-fixture.ts';
+import {
+  HOSTILE_META,
+  HOSTILE_NOTES_SAFE,
+  NONCHARACTERS_SAFE,
+  META,
+  acrReport,
+  decidedReport,
+  hostileReferenceReport,
+} from './acr-fixture.ts';
 import { PAYLOAD } from './fixture.ts';
 import { expectInert } from './inert.ts';
 import { REVIEWER, reviewFixtureReport } from './review-fixture.ts';
@@ -53,23 +62,29 @@ const outline = (doc: Node) =>
       (e.tagName === 'span' && attr(e, 'class') === 'label'),
   ).map((e) => `${e.tagName === 'span' ? 'label' : e.tagName} ${textOf(e)}`);
 
-/** The cells of the table row headed by header, each as its text. */
-function rowCells(doc: Node, header: string): string[] {
+/** The row whose header cell starts with the line header (any "Also applies to" lines follow it). */
+function rowOf(doc: Node, header: string): Element {
   const tr = tagged(doc, 'tr').find((r) =>
-    r.childNodes.some((c) => isElement(c) && c.tagName === 'th' && textOf(c) === header),
+    r.childNodes.some(
+      (c) => isElement(c) && c.tagName === 'th' && textOf(c).split('\n')[0] === header,
+    ),
   );
   if (!tr) throw new Error(`no row ${header}`);
-  return tr.childNodes.filter(isElement).map(textOf);
+  return tr;
 }
+
+/** The cells of the table row headed by header, each as its text. */
+const rowCells = (doc: Node, header: string): string[] =>
+  rowOf(doc, header).childNodes.filter(isElement).map(textOf);
+
+/** The lines of the row header cell of the row headed by header. */
+const headerLines = (doc: Node, header: string): string[] =>
+  textOf(rowOf(doc, header).childNodes.find(isElement) as Element).split('\n');
 
 /** The paragraphs of the cells of the row headed by header (a one-line cell is its own paragraph). */
 function rowLines(doc: Node, header: string): string[][] {
-  const tr = tagged(doc, 'tr').find((r) =>
-    r.childNodes.some((c) => isElement(c) && c.tagName === 'th' && textOf(c) === header),
-  );
-  if (!tr) throw new Error(`no row ${header}`);
-  return tr.childNodes
-    .filter(isElement)
+  return rowOf(doc, header)
+    .childNodes.filter(isElement)
     .filter((c) => c.tagName === 'td')
     .map((td) => {
       const ps = tagged(td, 'p');
@@ -164,7 +179,81 @@ describe('VPAT HTML, complete', () => {
     expect(textOf(aaa as Element)).toContain(complete.omitted[0]?.reason);
     const software = tagged(doc, 'section').find((s) => attr(s, 'aria-labelledby') === 'software');
     expect(tagged(software as Element, 'table')).toHaveLength(1);
-    expect(textOf(software as Element)).toContain('502.3 Accessibility Services has no row');
+    expect(textOf(software as Element)).toContain(
+      '502.3 Accessibility Services is a heading row in the template (no response required)',
+    );
+  });
+
+  it('opens the WCAG 2.0 Report with the template introduction', () => {
+    const section = tagged(doc, 'section').find((s) => attr(s, 'aria-labelledby') === 'wcag-2.0');
+    const intro = (section as Element).childNodes
+      .filter(isElement)
+      .filter((e) => e.tagName === 'p')
+      .map(textOf);
+    expect(intro).toEqual([
+      'Tables 1 and 2 also document conformance with Revised Section 508:',
+      'Chapter 5 - 501.1 Scope, 504.2 Content Creation or Editing',
+      'Chapter 6 - 602.3 Electronic Support Documentation',
+      'Note: When reporting on conformance with the WCAG 2.0 Success Criteria, they are scoped for full pages, complete processes, and accessibility-supported ways of using technology as documented in the WCAG 2.0 Conformance Requirements.',
+    ]);
+  });
+
+  it('writes the template "Also applies to" lines under each Table 1 and 2 row', () => {
+    expect(headerLines(doc, '1.1.1 Non-text Content (Level A)')).toEqual([
+      '1.1.1 Non-text Content (Level A)',
+      'Also applies to:',
+      'Revised Section 508',
+      '501 (Web)(Software)',
+      '504.2 (Authoring Tool)',
+      '602.3 (Support Docs)',
+    ]);
+    for (const header of [
+      '2.4.1 Bypass Blocks (Level A)',
+      '2.4.5 Multiple Ways (Level AA)',
+      '3.2.3 Consistent Navigation (Level AA)',
+      '3.2.4 Consistent Identification (Level AA)',
+    ])
+      expect(headerLines(doc, header).slice(1), header).toEqual([
+        'Also applies to:',
+        'Revised Section 508',
+        '501 (Web)(Software) - Does not apply to non-web software',
+        '504.2 (Authoring Tool)',
+        '602.3 (Support Docs) - Does not apply to non-web docs',
+      ]);
+    expect(headerLines(doc, '4.1.1 Parsing (Level A)').slice(1, 3)).toEqual([
+      'Also applies to:',
+      "WCAG 2.0 - Always answer 'Supports'",
+    ]);
+    // The lines sit in the row header, in normal weight; Chapter rows have none.
+    expect(completeHtml).toContain('th .also { font-weight: normal; }');
+    expect(headerLines(doc, '302.1 Without Vision')).toEqual(['302.1 Without Vision']);
+  });
+
+  it('takes the row titles from the catalog (the template wording)', () => {
+    expect(rowCells(doc, '1.4.4 Resize text (Level AA)')[0]).toMatch(/^1\.4\.4 Resize text/);
+  });
+
+  it('writes 501.1 first in Chapter 5, and 504.2 and 602.3, as the template does', () => {
+    const software = tagged(doc, 'section').find((s) => attr(s, 'aria-labelledby') === 'software');
+    const first = tagged(software as Element, 'tbody')
+      .flatMap((b) => tagged(b, 'tr'))
+      .map((tr) => tr.childNodes.filter(isElement).map(textOf))[0];
+    expect(first).toEqual([
+      '501.1 Scope - Incorporation of WCAG 2.0 AA',
+      'See WCAG 2.x section',
+      'See information in WCAG 2.x section',
+    ]);
+    // The complete fixture records a pass on 504.2 and 602.3: kept in the remarks, not as the level.
+    for (const header of [
+      '504.2 Content Creation or Editing',
+      '602.3 Electronic Support Documentation',
+    ]) {
+      const [level, remarks] = rowLines(doc, header);
+      expect(level, header).toEqual(['See WCAG 2.x section']);
+      expect(remarks?.[0], header).toMatch(
+        /^See information in WCAG 2\.x section\. A result is also on record for this row, Supports: /,
+      );
+    }
   });
 
   it('writes the metadata fields, notes, methods, terms and disclaimer', () => {
@@ -180,6 +269,7 @@ describe('VPAT HTML, complete', () => {
     const lists = tagged(doc, 'ul').map((ul) => tagged(ul, 'li').map(textOf));
     expect(lists[0]).toEqual(['Tested on the staging site.', ...complete.notes]);
     expect(lists[0]).toContain('Generated by Widedoor 0.0.0.');
+    expect(lists[0]).toContain(SUPPORT_DOCS_NOTE);
     expect(lists[1]).toEqual(complete.methods);
     expect(lists[1]?.[0]).toMatch(/^Automated checks: .*axe-core 4\.14\.0.*veraPDF 1\.30\.3/);
     expect(lists[1]?.at(-1)).toMatch(/^Manual review: \d+ current records by 1 reviewer: Ann Lee/);
@@ -215,11 +305,13 @@ describe('VPAT HTML, complete', () => {
     for (const th of tagged(doc, 'th')) expect(['col', 'row']).toContain(attr(th, 'scope'));
   });
 
-  it('lists the Web and Electronic Documents cells of a row on their own lines', () => {
+  it('lists the Web and Electronic Docs cells of a row on their own lines, labelled as the template does', () => {
     const c111 = complete.tables[0]?.rows[0];
     const [levels, remarks] = rowLines(doc, '1.1.1 Non-text Content (Level A)');
-    expect(levels).toEqual(['Web: Supports', 'Electronic Documents: Supports']);
-    expect(remarks).toEqual(c111?.components.map((c) => `${c.label}: ${c.remarks}`));
+    expect(levels).toEqual(['Web: Supports', 'Electronic Docs: Supports']);
+    expect(remarks).toEqual(
+      c111?.components.map((c, i) => `${i === 0 ? 'Web' : 'Electronic Docs'}: ${c.remarks}`),
+    );
     // A Chapter 3 row has one cell and no component label.
     const [level, remark] = rowLines(doc, '302.1 Without Vision');
     expect(level).toEqual(['Supports']);
@@ -316,6 +408,26 @@ describe('VPAT HTML escaping', () => {
     );
     expect(text).toContain(`---\nchapters: {}\n${PAYLOAD}\\x07`);
     expect(text).toContain('Contact Information: x@example.com\\x0akey: injected');
+  });
+
+  it('shows hostile reviewer notes on 504.2 and 602.3 as text, creating no element', () => {
+    const acr = buildAcr(hostileReferenceReport(), META);
+    const page = renderVpatHtml(acr);
+    expectInert(page);
+    expect(page).not.toContain(PAYLOAD);
+    expect(page).not.toMatch(/<b>|<a |<script|<img/i);
+    for (const code of [0x202e, 0x07]) expect(page).not.toContain(String.fromCharCode(code));
+    const d = parse(page);
+    // The notes add no element: every a, b, script and img in the page is absent.
+    expect(tagged(d, 'a', 'b', 'script', 'img')).toEqual([]);
+    for (const header of [
+      '504.2 Content Creation or Editing',
+      '602.3 Electronic Support Documentation',
+    ]) {
+      const [level, remarks] = rowLines(d, header);
+      expect(level, header).toEqual(['See WCAG 2.x section']);
+      expect(remarks?.[0], header).toContain(`${HOSTILE_NOTES_SAFE}.`);
+    }
   });
 
   it('shows hostile reviewer names in the methods as text', () => {
