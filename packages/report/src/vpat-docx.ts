@@ -73,6 +73,15 @@ const bullets = (items: readonly string[]) =>
 const cell = (lines: readonly string[], bold = false) =>
   new TableCell({ children: lines.map((l) => new Paragraph({ children: runs(l, bold) })) });
 
+/** A row header cell: the header in bold, then any lines under it in normal weight. */
+const headerCell = (header: string, also: readonly string[] = []) =>
+  new TableCell({
+    children: [
+      new Paragraph({ children: runs(header, true) }),
+      ...also.map((l) => new Paragraph({ children: runs(l) })),
+    ],
+  });
+
 function table(b: Extract<VpatBlock, { kind: 'table' }>): Table {
   // Criteria tables give the remarks half the width; the standards table splits it evenly.
   const widths =
@@ -85,7 +94,10 @@ function table(b: Extract<VpatBlock, { kind: 'table' }>): Table {
     rows: [
       new TableRow({ tableHeader: true, children: b.head.map((h) => cell([h], true)) }),
       ...b.rows.map(
-        (r) => new TableRow({ children: [cell([r.header], true), ...r.cells.map((c) => cell(c))] }),
+        (r) =>
+          new TableRow({
+            children: [headerCell(r.header, r.also), ...r.cells.map((c) => cell(c))],
+          }),
       ),
     ],
   });

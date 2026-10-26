@@ -18,7 +18,7 @@ describe('reviewHashOf', () => {
 
   it.each([
     ['a script body', BASE.replace('var a = 1;', 'var b = 2; track();')],
-    ['a style body', BASE.replace('color: red', 'color: blue')],
+    ['whitespace inside a style body', BASE.replace('p { color: red }', 'p {\n  color:   red\n}')],
     ['a hidden input value', BASE.replace('value="aaa"', 'value="zzz"')],
     ['a csrf meta content', BASE.replace('content="tok1"', 'content="tok2"')],
     ['a nonce attribute', BASE.replace('nonce="n1"', 'nonce="n2"')],
@@ -38,6 +38,7 @@ describe('reviewHashOf', () => {
     ['a label', BASE.replace('>Search<', '>Find<')],
     ['a heading level', BASE.replace('<h1>Welcome</h1>', '<h2>Welcome</h2>')],
     ['a link href', BASE.replace('href="/a"', 'href="/b"')],
+    ['a style body', BASE.replace('color: red', 'color: blue')],
     ['a visible input value', BASE.replace('<input id="q"', '<input value="x" id="q"')],
   ])('changes with %s', (_n, changed) => {
     expect(reviewHashOf(changed)).not.toBe(reviewHashOf(BASE));

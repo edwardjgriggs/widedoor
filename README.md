@@ -150,7 +150,9 @@ widedoor --help
   folder's permissions.
 - In CI, the gate is only as trustworthy as `widedoor.config.yaml` and `widedoor-review/` on the
   protected branch: a pull request can change both. Pass `--fail-on` explicitly and protect those
-  paths (for example with CODEOWNERS).
+  paths (for example with CODEOWNERS). `--ignore-overrides` makes the exit code count automated
+  fails that a review record overrides (the reports still show the overrides), for runs on
+  changes whose `widedoor-review/` files are not trusted.
 - Manual review records in `widedoor-review/*.yaml` next to the config (or the current folder)
   are added to the report. Records for pages or files outside the run, of the wrong kind, with an
   override the run does not support, replaced by a newer record or for a criterion that is not a
@@ -160,6 +162,10 @@ widedoor --help
   keeps it, with a warning (`review list` warns about it the same way). A record for a
   criterion the profile does not have (Level AAA, or a 508 provision under `wcag21aa`) decides
   nothing in the report and is left out whatever its outcome, with its own warning.
+- In the ACR exports, 504.2 and 602.3 read "See WCAG 2.x section", as the ITI template does,
+  so a result recorded for either appears only in that row's remarks. The exception is 504.2
+  Not Applicable recorded on every page (the product is not an authoring tool), which sets the
+  row's level.
 - Every report starts with a Manual review section: the checklist progress (items open, done,
   expired and failed by an automated check) and the "Overridden by a reviewer" list, which names
   each automated fail a reviewer set aside as a false positive with the reviewer, date and
@@ -193,13 +199,15 @@ widedoor --help
   removes the replaced result's images once the new file is written. A result expires when the
   page or file changes, and the next scan shows the item as `expired`. For a PDF, any change to
   its bytes counts. For a web page, the result is tied to a review hash of the served HTML with
-  what changes on every request left out: the contents of `script`, `style`, `noscript` and
-  `template` elements, comments, `nonce` and `integrity` attributes, `data-` attributes whose
+  what changes on every request left out: the contents of `script`, `noscript` and `template`
+  elements, comments, `nonce` and `integrity` attributes, `data-` attributes whose
   name looks like a token (`csrf`, `xsrf`, `token` or `nonce` in it), the value of a hidden input
   and the value or content of an element whose `name` or `id` looks like a token, and the length
   of whitespace runs. So a page that serves a fresh CSRF value or script nonce each time keeps
   its results, and a change to its visible content (text, `alt` text, labels, headings, link
-  targets) expires them. A page too deeply nested to normalize falls back to its byte hash,
+  targets) or to an inline `<style>` block expires them. A change to a linked stylesheet does
+  not, because only the HTML is hashed: re-check visual criteria such as contrast after a
+  stylesheet change. A page too deeply nested to normalize falls back to its byte hash,
   which only ever expires a result sooner. A product-wide result is anchored to the first page or file of
   the report and expires when that one changes. Bad input exits 2 and writes nothing.
 - Review files may come from a pull request, so Widedoor refuses links and junctions anywhere
@@ -488,16 +496,17 @@ jobs:
           fail-on: serious
 ```
 
-| Input            | Default                     | Meaning                                                                                                      |
-| ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `urls`           |                             | Web pages, one http or https URL per line                                                                    |
-| `files`          |                             | PDF files, one path per line, absolute or relative to the workspace                                          |
-| `config`         |                             | A `widedoor.config.yaml`; without `urls`, `files` or `config`, `./widedoor.config.yaml` is used when present |
-| `profile`        | config, else `508+wcag21aa` | `508`, `wcag21aa` or `508+wcag21aa`                                                                          |
-| `fail-on`        | `serious`                   | `critical`, `serious`, `moderate`, `minor` or `none`; overrides the config's `report.failOn`                 |
-| `out`            | `widedoor-report`           | Report folder, absolute or relative to the workspace                                                         |
-| `upload-sarif`   | `true`                      | Upload `report.sarif` to code scanning                                                                       |
-| `sarif-category` | `widedoor`                  | Code scanning category, to keep several runs apart                                                           |
+| Input              | Default                     | Meaning                                                                                                                                                                     |
+| ------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `urls`             |                             | Web pages, one http or https URL per line                                                                                                                                   |
+| `files`            |                             | PDF files, one path per line, absolute or relative to the workspace                                                                                                         |
+| `config`           |                             | A `widedoor.config.yaml`; without `urls`, `files` or `config`, `./widedoor.config.yaml` is used when present                                                                |
+| `profile`          | config, else `508+wcag21aa` | `508`, `wcag21aa` or `508+wcag21aa`                                                                                                                                         |
+| `fail-on`          | `serious`                   | `critical`, `serious`, `moderate`, `minor` or `none`; overrides the config's `report.failOn`                                                                                |
+| `out`              | `widedoor-report`           | Report folder, absolute or relative to the workspace                                                                                                                        |
+| `upload-sarif`     | `true`                      | Upload `report.sarif` to code scanning                                                                                                                                      |
+| `sarif-category`   | `widedoor`                  | Code scanning category, to keep several runs apart                                                                                                                          |
+| `review-overrides` | `auto`                      | Whether review records that override automated fails count toward the exit code: `auto` ignores them on pull requests from forks, `on` always counts them, `off` never does |
 
 Outputs: `exit-code` (the CLI's) and `report-dir` (absolute path of the report folder). To keep
 the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
@@ -538,7 +547,19 @@ the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
   (manual results that can mark items reviewed) come from the pull request's own branch, so a
   change to them changes what is scanned and what passes. Require review of those paths (for
   example with CODEOWNERS and branch protection), or pass `config` pointing at a file the
-  pull request cannot change, such as one checked out from the base branch.
+  pull request cannot change, such as one checked out from the base branch. Overrides (review
+  records that set an automated fail aside) would let a pull request from a fork turn the job
+  green, so by default (`review-overrides: auto`) they do not count toward the exit code on a
+  `pull_request*` or `workflow_run` event from a fork, or on one whose repositories cannot be
+  read; the log and a notice in the checks say so, and the reports still list them.
+  `review-overrides: off` ignores them on every run; `on` trusts them everywhere (for example
+  under `pull_request_target`, whose default checkout is the base branch). The fork test reads
+  the runner's own event context, not a file, but it is only a guard, not a boundary: under
+  `pull_request` a fork also supplies the workflow file, so make the scan a required check and
+  protect `.github/workflows/`, `widedoor-review/` and `widedoor.config.yaml` with CODEOWNERS;
+  run no code from the pull request earlier in the same job; and note that `auto` does not
+  recognise other triggers that check out a pull request's code (an `issue_comment` command),
+  so set `off` in those workflows.
 
 ## Reports
 

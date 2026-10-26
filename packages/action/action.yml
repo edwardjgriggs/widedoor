@@ -33,6 +33,10 @@ inputs:
     description: Upload report.sarif to GitHub code scanning (needs security-events write).
     required: false
     default: 'true'
+  review-overrides:
+    description: Whether review records that override automated fails (widedoor-review/) count toward the exit code. auto (default) ignores them on pull_request* and workflow_run events from forks, whose review files the contributor wrote; on always counts them; off never does. The reports show overrides either way.
+    required: false
+    default: auto
   sarif-category:
     description: Code scanning category for the upload, to keep several Widedoor runs apart.
     required: false
@@ -110,6 +114,14 @@ runs:
         INPUT_FAIL_ON: ${{ inputs.fail-on }}
         INPUT_OUT: ${{ inputs.out }}
         INPUT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        INPUT_REVIEW_OVERRIDES: ${{ inputs.review-overrides }}
+        # Event facts for review-overrides: auto, from the runner's context rather than
+        # the payload file, which code run earlier in the job could rewrite.
+        WIDEDOOR_EVENT_NAME: ${{ github.event_name }}
+        WIDEDOOR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        WIDEDOOR_BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+        WIDEDOOR_RUN_HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        WIDEDOOR_REPO: ${{ github.repository }}
       run: node "$GITHUB_ACTION_PATH/dist/entry.js"
 
     # Runs after a failing scan too (the step exits with the CLI's code), but

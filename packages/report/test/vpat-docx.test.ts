@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { DISCLAIMER, buildAcr, renderVpatDocx, vpatOutline, type Acr } from '../src/index.ts';
-import { HOSTILE_META, NONCHARACTERS_SAFE, META, acrReport, decidedReport } from './acr-fixture.ts';
+import {
+  DISCLAIMER,
+  SUPPORT_DOCS_NOTE,
+  buildAcr,
+  renderVpatDocx,
+  vpatOutline,
+  type Acr,
+} from '../src/index.ts';
+import {
+  HOSTILE_META,
+  HOSTILE_NOTES_SAFE,
+  NONCHARACTERS_SAFE,
+  META,
+  acrReport,
+  decidedReport,
+  hostileReferenceReport,
+} from './acr-fixture.ts';
 import { PAYLOAD } from './fixture.ts';
 import { descendants, parseXml, type XmlElement } from './xml.ts';
 import { readZip, type ZipEntry } from './zip.ts';
@@ -203,16 +218,51 @@ describe('VPAT DOCX content', () => {
     for (const m of complete.methods) expect(text).toContain(m);
   });
 
-  it('lists the Web and Electronic Documents cells of a row as their own paragraphs', async () => {
+  it('lists the Web and Electronic Docs cells of a row as their own paragraphs', async () => {
     const d = await open(complete);
     const row = descendants(body(d), 'w:tr').find((r) =>
       textOf(r).startsWith('1.1.1 Non-text Content (Level A)'),
     );
     if (!row) throw new Error('no 1.1.1 row');
     const cells = descendants(row, 'w:tc').map((c) => descendants(c, 'w:p').map(lines));
-    expect(cells[1]).toEqual(['Web: Supports', 'Electronic Documents: Supports']);
+    expect(cells[1]).toEqual(['Web: Supports', 'Electronic Docs: Supports']);
     expect(cells[2]).toEqual(
-      complete.tables[0]?.rows[0]?.components.map((c) => `${c.label}: ${c.remarks}`),
+      complete.tables[0]?.rows[0]?.components.map(
+        (c, i) => `${i === 0 ? 'Web' : 'Electronic Docs'}: ${c.remarks}`,
+      ),
+    );
+  });
+
+  it('puts the "Also applies to" lines in the row header cell, not in bold', async () => {
+    const d = await open(complete);
+    const row = descendants(body(d), 'w:tr').find((r) =>
+      textOf(r).startsWith('4.1.1 Parsing (Level A)'),
+    );
+    if (!row) throw new Error('no 4.1.1 row');
+    const header = descendants(row, 'w:tc')[0] as XmlElement;
+    const paragraphs = descendants(header, 'w:p');
+    expect(paragraphs.map(lines)).toEqual([
+      '4.1.1 Parsing (Level A)',
+      'Also applies to:',
+      "WCAG 2.0 - Always answer 'Supports'",
+      'Revised Section 508',
+      '501 (Web)(Software)',
+      '504.2 (Authoring Tool)',
+      '602.3 (Support Docs)',
+    ]);
+    // The library writes <w:b w:val="false"/> for a run that is not bold.
+    const bold = (p: XmlElement) =>
+      descendants(p, 'w:b').some((b) => !['false', '0'].includes(b.attrs['w:val'] ?? ''));
+    expect(paragraphs.map(bold)).toEqual(paragraphs.map((_, i) => i === 0));
+  });
+
+  it('writes the WCAG 2.0 Report introduction and the 501.1 row', async () => {
+    const text = textOf(body(await open(complete)));
+    expect(text).toContain(
+      'Tables 1 and 2 also document conformance with Revised Section 508:Chapter 5 - 501.1 Scope, 504.2 Content Creation or EditingChapter 6 - 602.3 Electronic Support DocumentationNote: When reporting on conformance',
+    );
+    expect(text).toContain(
+      '501.1 Scope - Incorporation of WCAG 2.0 AASee WCAG 2.x sectionSee information in WCAG 2.x section',
     );
   });
 
@@ -260,6 +310,32 @@ describe('VPAT DOCX content', () => {
     expect(paragraphs).toContain(`---\nchapters: {}\n${PAYLOAD}\\x07`);
     expect(paragraphs).toContain('Contact Information: x@example.com\\x0akey: injected');
     for (const e of d.entries.filter((x) => /\.(xml|rels)$/.test(x.name))) parseXml(utf8(e.data));
+  });
+});
+
+describe('VPAT DOCX reviewer notes', () => {
+  it('keeps hostile reviewer notes on 504.2 and 602.3 as text', async () => {
+    const d = await open(buildAcr(hostileReferenceReport(), META));
+    expect(d.xml).not.toContain(PAYLOAD);
+    expect(d.xml).not.toMatch(/<b>|<a |<script|<img/i);
+    for (const code of [0x202e, 0x07]) expect(d.xml).not.toContain(String.fromCharCode(code));
+    const rows = descendants(body(d), 'w:tr');
+    for (const header of [
+      '504.2 Content Creation or Editing',
+      '602.3 Electronic Support Documentation',
+    ]) {
+      const row = rows.find((r) => textOf(r).startsWith(header));
+      if (!row) throw new Error(`no row ${header}`);
+      const cells = descendants(row, 'w:tc').map((c) => descendants(c, 'w:p').map(lines));
+      expect(cells[1], header).toEqual(['See WCAG 2.x section']);
+      expect(cells[2]?.[0], header).toContain(`${HOSTILE_NOTES_SAFE}.`);
+    }
+    for (const e of d.entries.filter((x) => /\.(xml|rels)$/.test(x.name))) parseXml(utf8(e.data));
+  });
+
+  it('carries the support documentation note', async () => {
+    const paragraphs = descendants(body(await open(complete)), 'w:p').map(lines);
+    expect(paragraphs).toContain(SUPPORT_DOCS_NOTE);
   });
 });
 

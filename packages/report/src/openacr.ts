@@ -215,16 +215,23 @@ export function toOpenAcr(acr: Acr): Doc {
   };
 }
 
+/** A table as a chapter. Reference rows have no level to give, so each is a chapter note instead of a criterion entry. */
 function chapter(table: AcrTable): Doc {
+  const notes = [
+    ...table.rows.flatMap((row) => (row.reference ? [row.reference.note] : [])),
+    ...table.notes,
+  ];
   return {
-    ...(table.notes.length > 0 ? { notes: table.notes.join('\n\n') } : {}),
-    criteria: table.rows.map((row) => ({
-      num: row.id,
-      components: row.components.map((c) => ({
-        name: c.id,
-        adherence: { level: c.term, notes: c.remarks },
+    ...(notes.length > 0 ? { notes: notes.join('\n\n') } : {}),
+    criteria: table.rows
+      .filter((row) => !row.reference)
+      .map((row) => ({
+        num: row.id,
+        components: row.components.map((c) => ({
+          name: c.id,
+          adherence: { level: c.term, notes: c.remarks },
+        })),
       })),
-    })),
   };
 }
 

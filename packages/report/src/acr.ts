@@ -38,7 +38,11 @@ import {
  * Every level comes from the roll-up's 508 view; buildAcr never decides one.
  * The WCAG rows split into a Web and an Electronic Documents column, each
  * levelled by the roll-up's own rule (core assetsLevel) over that kind's
- * per-asset details. Every string from a scan, a review file or the config
+ * per-asset details. As in the template, Chapter 5 opens with 501.1, and
+ * 504.2 and 602.3 are answered in the WCAG tables (reference rows, never a
+ * verdict), except that 504.2 shows a Not Applicable a reviewer recorded
+ * because the product is not an authoring tool. Row titles are the catalog's,
+ * which are the template's. Every string from a scan, a review file or the config
  * is made safe text here (core safeText), so each renderer only has to apply
  * its own escaping. complete and incomplete are decided here, once, for the
  * OpenACR, VPAT HTML and DOCX outputs alike.
@@ -96,10 +100,27 @@ export interface AcrComponent {
   remarks: string;
 }
 
+/**
+ * A row the template answers in the WCAG tables instead (501.1, and 504.2 and
+ * 602.3, which incorporate WCAG 2.0). It is not a verdict: it never counts as
+ * Supports or as undecided.
+ */
+export interface AcrReference {
+  /** The template's Conformance Level cell. */
+  conformance: string;
+  /** The template's Remarks and Explanations cell, then any result a reviewer recorded for the row. */
+  remarks: string;
+  /** The same, for a format with no row for it (OpenACR: the catalog has no 501.1, and every criterion entry needs a level). */
+  note: string;
+}
+
 export interface AcrRow {
   id: string;
+  /** The catalog's title where it has the row (the template's wording), the roll-up's otherwise. */
   title: string;
+  /** Empty on a reference row. */
   components: AcrComponent[];
+  reference?: AcrReference;
 }
 
 export interface AcrTable {
@@ -200,6 +221,31 @@ const CHAPTER_OF: Record<string, string> = {
   '5': 'software',
   '6': 'support_documentation_and_services',
 };
+
+/** The template's cells on a row answered in the WCAG tables. */
+export const SEE_WCAG = {
+  conformance: 'See WCAG 2.x section',
+  remarks: 'See information in WCAG 2.x section',
+} as const;
+
+/** The template's first Chapter 5 row, which the catalog does not have (hyphen for the template's dash). */
+const SCOPE_501_1 = { id: '501.1', title: 'Scope - Incorporation of WCAG 2.0 AA' };
+
+/** Roll-up rows the template answers in the WCAG tables, by catalog chapter. */
+const SEE_WCAG_ROWS: Record<string, ReadonlySet<string>> = {
+  software: new Set(['504.2']),
+  support_documentation_and_services: new Set(['602.3']),
+};
+
+/**
+ * Why "See WCAG 2.x section" on 602.3, and "602.3 (Support Docs)" under each
+ * WCAG row, cover only the support documentation that was scanned.
+ */
+export const SUPPORT_DOCS_NOTE =
+  'Support documentation (602.3) is covered by the WCAG tables only where it was among the pages and files scanned. Support documentation outside that scope was not assessed.';
+
+/** Roll-up rows that are heading rows in the template, which need no response. */
+const HEADING_ROWS: ReadonlySet<string> = new Set(['502.3', '503.4']);
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -359,6 +405,61 @@ function section508Component(ctx: Context, c: Criterion): AcrComponent {
   return component('none', '', c.level, remarks);
 }
 
+const OUTCOME_TEXT: Record<Finding['outcome'], string> = {
+  pass: 'a pass',
+  fail: 'a fail',
+  'not-applicable': 'not applicable',
+  'needs-review': 'needs review',
+  'not-tested': 'not tested',
+};
+
+/**
+ * What reviewers recorded for a row answered in the WCAG tables: the roll-up's
+ * reading when it decides the row, otherwise each current manual record
+ * citing it, with no level (a record on some pages decides nothing for the
+ * rest). Empty when there is nothing on record.
+ */
+function recordedText(ctx: Context, c: Criterion): string {
+  if (c.level !== 'Not Evaluated') {
+    const decided = section508Component(ctx, c);
+    return `A result is also on record for this row, ${decided.level}: ${decided.remarks}`;
+  }
+  const items = ctx.report.findings
+    .filter(
+      (f) =>
+        f.source.engine === 'manual' &&
+        (f.criteria.section508 ?? []).includes(c.id) &&
+        ctx.current(f),
+    )
+    .map((f) => {
+      const notes = 'review' in f ? f.review.notes?.trim() : undefined;
+      return `A reviewer recorded ${OUTCOME_TEXT[f.outcome]} on ${safeText(f.asset.uri, 500)}${notes ? `: ${sentence(safeText(notes, 500))}` : '.'}`;
+    });
+  if (items.length === 0) return '';
+  const shown = items.slice(0, MAX_ACR_FINDINGS);
+  const more = items.length - shown.length;
+  return join([
+    `Recorded for this row so far; the roll-up leaves it undecided: ${sentence(safeText(c.reason, 500))}`,
+    ...shown,
+    more > 0 ? `And ${more} more.` : '',
+  ]);
+}
+
+/** A row answered in the WCAG tables, with what reviewers recorded for it, if anything, after the template's remark. */
+function referenceRow(id: string, title: string, recorded = ''): AcrRow {
+  const also = recorded === '' ? '' : ` ${recorded}`;
+  return {
+    id,
+    title,
+    components: [],
+    reference: {
+      conformance: SEE_WCAG.conformance,
+      remarks: recorded === '' ? SEE_WCAG.remarks : `${SEE_WCAG.remarks}.${also}`,
+      note: `${id} ${title} is answered in Tables 1 and 2 (the template's cells read "${SEE_WCAG.conformance}"), so it has no criterion entry here.${also}`,
+    },
+  };
+}
+
 function methodsOf(report: ScanReport): string[] {
   const web = report.assets.filter((a) => a.kind === 'web').length;
   const pdf = report.assets.length - web;
@@ -457,10 +558,18 @@ export function buildAcr(report: ScanReport, meta: AcrMeta, options: BuildAcrOpt
       const c = view.criteria.find((x) => x.type === type && x.id === row.id);
       if (!c) return [];
       placed.add(`${type}:${c.id}`);
+      const title = row.handle ?? c.title;
+      // 504.2 keeps a Not Applicable a reviewer recorded under 504.1 (not an authoring tool), as the template asks.
+      if (
+        type === 'section508' &&
+        SEE_WCAG_ROWS[chapter.id]?.has(c.id) &&
+        !(c.id === '504.2' && c.level === 'Not Applicable')
+      )
+        return [referenceRow(c.id, title, recordedText(ctx, c))];
       return [
         {
           id: c.id,
-          title: c.title,
+          title,
           components: type === 'wcag' ? wcagComponents(ctx, c, cat) : [section508Component(ctx, c)],
         },
       ];
@@ -473,16 +582,22 @@ export function buildAcr(report: ScanReport, meta: AcrMeta, options: BuildAcrOpt
       });
       continue;
     }
+    if (chapter.id === 'software') rows.unshift(referenceRow(SCOPE_501_1.id, SCOPE_501_1.title));
     const notes: string[] = [];
     tableNotes.set(chapter.id, notes);
     tables.push({ id: chapter.id, label: chapter.label, standard, notes, rows });
   }
 
   const notes = [`Generated by Widedoor ${safeText(report.tool.version, 50)}.`];
-  // Roll-up rows the template has no row for (502.3 and 503.4 are section headings there).
+  // Roll-up rows the catalog has no row for (502.3 and 503.4 are heading rows in the template).
   for (const c of view.criteria) {
     if (placed.has(`${c.type}:${c.id}`)) continue;
-    const text = `${c.type === 'wcag' ? 'WCAG' : 'Section 508'} ${c.id} ${c.title} has no row of its own in the template; the roll-up reads ${c.level}: ${sentence(safeText(c.reason, 2000))}`;
+    const name = `${c.type === 'wcag' ? 'WCAG' : 'Section 508'} ${c.id} ${c.title}`;
+    const where =
+      c.type === 'section508' && HEADING_ROWS.has(c.id)
+        ? 'is a heading row in the template (no response required)'
+        : 'has no row of its own in the template';
+    const text = `${name} ${where}; the roll-up reads ${c.level}: ${sentence(safeText(c.reason, 2000))}`;
     const at =
       c.type === 'section508' ? tableNotes.get(CHAPTER_OF[c.id[0] ?? ''] ?? '') : undefined;
     if (at) at.push(text);
@@ -498,6 +613,7 @@ export function buildAcr(report: ScanReport, meta: AcrMeta, options: BuildAcrOpt
   notes.push(
     'The Software and Authoring Tool columns are left out: Widedoor tests web pages and PDFs, not software or authoring tools. Chapter 5 rows are reported for the web pages scanned, each with the condition under which it applies; a reviewer marks a row Not Applicable when its condition does not hold.',
   );
+  if (wcagRows.length > 0) notes.push(SUPPORT_DOCS_NOTE);
   const terms = (Object.keys(TERMS) as ConformanceLevel[]).map((level): AcrTerm => {
     const t = cat.terms.find((x) => x.id === ACR_TERM_IDS[level]);
     if (!t) throw new Error(`the OpenACR catalog has no term ${ACR_TERM_IDS[level]}`);

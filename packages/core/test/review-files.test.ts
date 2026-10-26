@@ -626,6 +626,19 @@ describe('loadReviews', () => {
     ]);
   });
 
+  it('refuses a 4.1.1 fail record, citing the errata basis, so it can never move 4.1.1 off Supports', async () => {
+    const dir = files({ [fileFor(A)]: stringify([manualOn(A, '4.1.1', { outcome: 'fail' })]) });
+    const error = await problemsOf(dir);
+    expect(error.problems).toHaveLength(1);
+    expect(error.problems[0]).toMatch(/no outcome \(fail\) is accepted\. Basis: WCAG 2\.0 errata /);
+    expect(error.problems[0]).toContain('https://www.w3.org/WAI/WCAG20/errata/');
+    // Under a 508 profile a 4.1.1 unit is never a checklist item, so `review record` cannot write one.
+    expect(REPORT.profile.id).toBe('508+wcag21aa');
+    expect(ITEMS.some((i) => i.criterion.type === 'wcag' && i.criterion.id === '4.1.1')).toBe(
+      false,
+    );
+  });
+
   it('binds each record to the file named for its asset, or product.yaml', async () => {
     const product = manualOn(A, '302.1');
     const misplaced = files({

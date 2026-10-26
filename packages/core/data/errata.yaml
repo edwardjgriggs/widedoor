@@ -1,9 +1,12 @@
 # Success criteria satisfied by a published erratum (Phase 2 decision P2-6). The W3C errata
-# for WCAG 2.0 and WCAG 2.1 (2023-04-18) add a note to 4.1.1 Parsing that it is always satisfied
-# for content using HTML or XML, and the ITI VPAT 2.5Rev Section 508 edition tells authors to
-# always answer Supports for 4.1.1. The roll-up passes 4.1.1 on this basis on every scanned web
-# page and PDF, in both the 508 and the WCAG 2.1 views, unless a current fail is recorded;
-# unscanned assets and scope gaps still cap it. The validator accepts no SC here but 4.1.1
+# add a note to 4.1.1 Parsing that it is always satisfied for content using HTML or XML: the
+# WCAG 2.1 errata entry is dated 2023-04-18; the WCAG 2.0 entry is undated, and that page was
+# last modified 2023-09-06 (checked 2026-10-26), the "September 2023 errata update" the ITI
+# template cites. The ITI VPAT 2.5Rev Section 508 edition tells authors to always answer
+# Supports for 4.1.1. The roll-up passes 4.1.1 on this basis on every scanned web
+# page and PDF, in both the 508 and the WCAG 2.1 views, unless a current fail is recorded
+# (review files refuse any 4.1.1 record, so only a library caller can pass one); unscanned
+# assets and scope gaps still cap it. The validator accepts no SC here but 4.1.1
 # (CLAUDE.md: the honesty rule names only the 4.1.1 errata basis).
 
 meta:

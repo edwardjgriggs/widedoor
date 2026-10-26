@@ -11,12 +11,15 @@ import { loadOpenAcrCatalog, type OpenAcrCatalog } from './openacr.js';
  * version, report date, description, contact, notes, evaluation methods,
  * applicable standards, terms, the WCAG 2.0 report (Tables 1 to 3), the
  * Revised Section 508 report (Chapters 3 to 6) and the legal disclaimer.
- * Headings and column labels are the template's; the rest is Widedoor's own
- * text. ITI allows the VPAT name only on a report that keeps the template's
- * Essential Requirements, so a complete ACR writes it as VPAT® and a draft
- * never writes it at all. The outline only arranges the ACR: every level,
- * remark, note and reason comes from buildAcr. Its strings are not escaped;
- * each renderer escapes for its own output.
+ * Headings, column labels, the WCAG 2.0 Report introduction and the "Also
+ * applies to" lines under the Table 1 and 2 rows are the template's wording
+ * (a hyphen where it has a dash), as is the "Electronic Docs" cell label;
+ * the rest is Widedoor's own text. ITI allows the VPAT name only on a
+ * report that keeps the template's Essential Requirements, so a complete
+ * ACR writes it as VPAT® and a draft never writes it at all. The outline
+ * only arranges the ACR: every level, remark, note and reason comes from
+ * buildAcr. Its strings are not escaped; each renderer escapes for its own
+ * output.
  */
 
 /** The template's name, with the registered mark ITI requires. */
@@ -29,8 +32,16 @@ export type VpatBlock =
   | { kind: 'paragraph'; text: string }
   /** Each item may hold line breaks. */
   | { kind: 'list'; items: string[] }
-  /** A data table, under the heading before it: column labels, then rows of a header cell and data cells, each cell a list of lines. */
-  | { kind: 'table'; head: string[]; rows: { header: string; cells: string[][] }[] };
+  /**
+   * A data table, under the heading before it: column labels, then rows of a
+   * header cell and data cells, each cell a list of lines. also holds the lines
+   * under the header in its cell, set in normal weight.
+   */
+  | {
+      kind: 'table';
+      head: string[];
+      rows: { header: string; also?: string[]; cells: string[][] }[];
+    };
 
 export interface VpatOutline {
   /** Whether the ACR is complete; a draft never names the template. */
@@ -81,18 +92,52 @@ const WCAG_LEVEL: Record<string, string> = {
   success_criteria_level_aaa: 'AAA',
 };
 
+/** The template's cell labels where they differ from the catalog's component labels. */
+const COMPONENT_LABEL: Readonly<Record<string, string>> = { 'electronic-docs': 'Electronic Docs' };
+
 /** One line per component: "Web: Supports" when the row has labelled components, the level alone otherwise. */
 const lines = (row: AcrRow, of: (c: AcrRow['components'][number]) => string) =>
-  row.components.map((c) => (c.label === '' ? of(c) : `${c.label}: ${of(c)}`));
+  row.components.map((c) =>
+    c.label === '' ? of(c) : `${COMPONENT_LABEL[c.id] ?? c.label}: ${of(c)}`,
+  );
+
+/** The WCAG 2.0 Report introduction, one paragraph each, as the template words it. */
+export const WCAG_REPORT_INTRO = [
+  'Tables 1 and 2 also document conformance with Revised Section 508:',
+  'Chapter 5 - 501.1 Scope, 504.2 Content Creation or Editing',
+  'Chapter 6 - 602.3 Electronic Support Documentation',
+  'Note: When reporting on conformance with the WCAG 2.0 Success Criteria, they are scoped for full pages, complete processes, and accessibility-supported ways of using technology as documented in the WCAG 2.0 Conformance Requirements.',
+];
+
+/** Level A and AA criteria the template says do not apply to non-web software and documents. */
+const WEB_ONLY: ReadonlySet<string> = new Set(['2.4.1', '2.4.5', '3.2.3', '3.2.4']);
+
+/** The template's "Also applies to" lines under a Level A or AA row. */
+export function alsoAppliesTo(id: string): string[] {
+  const webOnly = WEB_ONLY.has(id);
+  return [
+    'Also applies to:',
+    ...(id === '4.1.1' ? ["WCAG 2.0 - Always answer 'Supports'"] : []),
+    'Revised Section 508',
+    `501 (Web)(Software)${webOnly ? ' - Does not apply to non-web software' : ''}`,
+    '504.2 (Authoring Tool)',
+    `602.3 (Support Docs)${webOnly ? ' - Does not apply to non-web docs' : ''}`,
+  ];
+}
 
 function table(t: AcrTable): VpatBlock {
   const level = WCAG_LEVEL[t.id];
+  // Level AAA is never reported (the template's AAA rows read "Revised Section 508 - Does not apply").
+  const also = level === 'A' || level === 'AA';
   return {
     kind: 'table',
     head: CRITERIA_COLUMNS,
     rows: t.rows.map((r) => ({
       header: `${r.id} ${r.title}${level ? ` (Level ${level})` : ''}`,
-      cells: [lines(r, (c) => c.level), lines(r, (c) => c.remarks)],
+      ...(also ? { also: alsoAppliesTo(r.id) } : {}),
+      cells: r.reference
+        ? [[r.reference.conformance], [r.reference.remarks]]
+        : [lines(r, (c) => c.level), lines(r, (c) => c.remarks)],
     })),
   };
 }
@@ -146,6 +191,8 @@ export function vpatOutline(acr: Acr, cat: OpenAcrCatalog = loadOpenAcrCatalog()
   ];
   for (const standard of cat.standards) {
     blocks.push({ kind: 'heading', level: 2, id: standard.id, text: standard.report_heading });
+    if (standard.id === 'wcag-2.0')
+      blocks.push(...WCAG_REPORT_INTRO.map((text): VpatBlock => ({ kind: 'paragraph', text })));
     // In the catalog's order within the standard, not the order of the file.
     const chapters = cat.chapters
       .filter((x) => standard.chapters.includes(x.id))

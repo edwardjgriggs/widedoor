@@ -147,6 +147,33 @@ export function acrReport(options: ScanOptions = {}): ScanReport {
   });
 }
 
+/** A second web page, for records that cover some pages but not all. */
+export const PAGE2: Asset = {
+  kind: 'web',
+  uri: 'https://example.com/status',
+  contentHash: hash('c'),
+};
+
+/** Reviewer notes with markup, a javascript: URL, a bidi override and a control character. */
+export const HOSTILE_NOTES = `<b>bold</b> <a href="javascript:alert(3)">x</a> ${PAYLOAD}${String.fromCharCode(0x202e)}\u0007`;
+/** HOSTILE_NOTES as safe text writes them. */
+export const HOSTILE_NOTES_SAFE = `<b>bold</b> <a href="javascript:alert(3)">x</a> ${PAYLOAD}\\u202e\\x07`;
+
+/**
+ * A scan with hostile reviewer notes on both reference rows: a 504.2 N/A on
+ * one of two pages (the row stays undecided) and a 602.3 fail (decided).
+ */
+export const hostileReferenceReport = () =>
+  acrReport({
+    assets: [PAGE, PAGE2, PDF],
+    reviews: [
+      manual(PAGE, { type: 'section508', id: '504.2' }, 'not-applicable', {
+        notes: HOSTILE_NOTES,
+      }),
+      manual(PAGE, { type: 'section508', id: '602.3' }, 'fail', { notes: HOSTILE_NOTES }),
+    ],
+  });
+
 /** Manual passes for every row of the 508 view on every asset (product rows once, on the page). */
 export function passEverything(assets: readonly Asset[] = [PAGE, PDF]): Finding[] {
   const view = acrReport({ assets }).rollup.standards.find((s) => s.standard === '508');

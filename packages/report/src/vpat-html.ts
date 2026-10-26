@@ -16,6 +16,7 @@ import { vpatOutline, type VpatBlock } from './vpat.js';
 const STYLE = `${REPORT_STYLE}section[aria-labelledby=draft] { border: 3px solid var(--fail); padding: 0 1rem 0.5rem; margin: 1rem 0; }
 section[aria-labelledby=draft] h2 { margin-top: 0.75rem; color: var(--fail); border-bottom: none; }
 td p, th p { margin: 0 0 0.5rem; }
+th .also { font-weight: normal; }
 `;
 
 // No images, so no img-src; reportCsp throws at load if the style needs escaping.
@@ -28,6 +29,10 @@ const text = (value: string) =>
 /** A table cell's lines: one paragraph each when there are several. */
 const cell = (lines: readonly string[]) =>
   lines.length === 1 ? text(lines[0] ?? '') : html`${lines.map((l) => html`<p>${text(l)}</p>`)}`;
+
+/** The lines under a row header, each on its own line, in normal weight. */
+const also = (lines: readonly string[] | undefined) =>
+  lines ? html`<span class="also">${lines.map((l) => html`<br>${l}`)}</span>` : '';
 
 function block(b: VpatBlock): SafeHtml {
   switch (b.kind) {
@@ -45,7 +50,7 @@ function block(b: VpatBlock): SafeHtml {
       return html`<table>
 <thead><tr>${b.head.map((h) => html`<th scope="col">${h}</th>`)}</tr></thead>
 <tbody>
-${b.rows.map((r) => html`<tr><th scope="row">${r.header}</th>${r.cells.map((c) => html`<td>${cell(c)}</td>`)}</tr>\n`)}</tbody>
+${b.rows.map((r) => html`<tr><th scope="row">${r.header}${also(r.also)}</th>${r.cells.map((c) => html`<td>${cell(c)}</td>`)}</tr>\n`)}</tbody>
 </table>\n`;
   }
 }

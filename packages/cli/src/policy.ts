@@ -9,8 +9,9 @@ import { plural } from './text.js';
  * pages (or sitemap pages without a crawl) unscanned, or when nothing was
  * scanned at all; 1 when a current fail record has an impact at or above the
  * threshold; 0 otherwise. Needs-review never counts, nor does an automated
- * fail a reviewer set aside as a false positive (overriddenFails), and a
- * crawl stopped by the page cap is a scope gap, not an error.
+ * fail a reviewer set aside as a false positive (overriddenFails) unless
+ * the run ignores overrides, and a crawl stopped by the page cap is a scope
+ * gap, not an error.
  */
 
 export const EXIT_OK = 0;
@@ -38,14 +39,21 @@ export type GateReport = Pick<ScanReport, 'findings' | 'assets'> &
  * The fail records that count. A manual record counts only while its review
  * still matches the asset's current content hash (an expired review no longer
  * describes the asset; the roll-up lists it as expired). An automated fail
- * the roll-up lists as overridden in every criterion it counts in does not.
+ * the roll-up lists as overridden in every criterion it counts in does not,
+ * unless ignoreOverrides is set (the review files are not trusted).
  */
-export function countingFails(report: GateReport): ScanReport['findings'] {
+export function countingFails(report: GateReport, ignoreOverrides = false): ScanReport['findings'] {
   const hashes = currentHashes(report.assets);
-  const overridden = report.rollup ? overriddenFails({ rollup: report.rollup }) : NO_OVERRIDES;
+  const overridden =
+    report.rollup && !ignoreOverrides ? overriddenFails({ rollup: report.rollup }) : NO_OVERRIDES;
   return report.findings.filter(
     (f) => f.outcome === 'fail' && isCurrentRecord(f, hashes) && !overridden(f),
   );
+}
+
+export interface GateOptions {
+  /** Count automated fails that review records override (--ignore-overrides). */
+  ignoreOverrides?: boolean;
 }
 
 export interface ScopeCap {
@@ -60,6 +68,7 @@ export function exitDecision(
   report: GateReport & Pick<ScanReport, 'errors' | 'skipped'>,
   failOn: FailOn,
   cap: ScopeCap = { unscannedListed: 0 },
+  options: GateOptions = {},
 ): ExitDecision {
   if (report.errors.length > 0)
     return {
@@ -76,13 +85,15 @@ export function exitDecision(
   }
   // Skipped pages alone (a PDF URL, an off-origin redirect) are not a scan.
   if (report.assets.length === 0) return { code: EXIT_ERROR, reason: 'nothing was scanned' };
-  const fails = countingFails(report).filter((f) => tripsThreshold(f.impact, failOn));
+  const fails = countingFails(report, options.ignoreOverrides).filter((f) =>
+    tripsThreshold(f.impact, failOn),
+  );
   if (failOn === 'none')
     return { code: EXIT_OK, reason: 'the fail threshold is off (--fail-on none)' };
   if (fails.length > 0)
     return {
       code: EXIT_FAIL,
-      reason: `${plural(fails.length, 'failed check', 'failed checks')} at or above ${failOn}`,
+      reason: `${plural(fails.length, 'failed check', 'failed checks')} at or above ${failOn}${options.ignoreOverrides ? ' (review overrides ignored)' : ''}`,
     };
   return { code: EXIT_OK, reason: `no failed check at or above ${failOn}` };
 }

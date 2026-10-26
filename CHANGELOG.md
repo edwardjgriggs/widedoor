@@ -82,10 +82,12 @@ npm package or container image has been released.
   basis. The findings schema gains optional `asset.reviewHash`, `review.overrides` and
   `review.attachments`, and the roll-up a `manual-override` reason.
 - Task 2.2: a review hash for web pages (`asset.reviewHash`). A manual result on a page is
-  anchored to a hash of the served HTML with script, style, noscript and template contents,
+  anchored to a hash of the served HTML with script, noscript and template contents,
   comments, nonce and integrity attributes, token-like attributes, hidden input values and
   whitespace runs normalized away, so a fresh CSRF value or nonce per request no longer expires
-  it, and a change to visible content still does. For a PDF the review hash is its content hash.
+  it, and a change to visible content or to an inline stylesheet still does. (Inline style text
+  joined the hash after the Phase 2 commit, so results recorded before it on pages with a
+  `<style>` block expire once.) For a PDF the review hash is its content hash.
 - Task 2.3: manual steps data (`packages/core/data/manual-steps.yaml`, ICT Testing Baseline
   test ids and plain-language steps for each criterion) and the manual review checklist
   generator in `@widedoor/core`: one stable item (`ck_...`) per page or file and criterion that
@@ -180,6 +182,28 @@ record` writes one result (pass, fail or not applicable, notes, overrides and PN
   an upload nothing used within 15 minutes. `GET /api/checklist` gives each item its record in
   the review files (outcome, reviewer, date, notes, override and attachment counts, and whether
   it is current).
+- Override gate on untrusted changes: `widedoor scan --ignore-overrides` makes the exit code
+  count automated fails that review records override (reports still show them), and the
+  Action's `review-overrides` input (`auto`, the default, `on` or `off`) passes it on pull
+  requests and `workflow_run` events from forks, read from the runner's event context (the
+  payload file only as a fallback), failing closed when the repositories cannot be read, with
+  a notice in the checks.
+- ACR exports follow the ITI VPAT 2.5Rev 508 template row by row: Chapter 5 opens with 501.1
+  Scope - Incorporation of WCAG 2.0 AA, and 504.2 and 602.3 read "See WCAG 2.x section" (504.2
+  shows Not Applicable when a reviewer records that the product is not an authoring tool). These
+  rows carry no verdict, so they no longer keep an ACR in draft; a result recorded for 504.2 or
+  602.3 is kept in the remarks. OpenACR lists 501.1, 504.2 and 602.3 as chapter notes.
+- VPAT HTML and DOCX: the WCAG 2.0 Report introduction, the "Also applies to" lines under each
+  Table 1 and 2 row, the template's "Electronic Docs:" cell label, and row titles from the
+  OpenACR catalog (the template wording, for example 1.4.4 "Resize text"). The Chapter 5 note
+  calls 502.3 and 503.4 heading rows in the template (no response required).
+- ACR notes say that 602.3 support documentation is covered by the WCAG tables only where it was
+  among the pages and files scanned. A reviewer's records on 504.2 or 602.3 always reach that
+  row's remarks (VPAT) and chapter note (OpenACR); records that do not decide the row (N/A on
+  some pages but not all) are listed without a level. The checklist still lists both items; a
+  504.2 Not Applicable recorded on every page is the only result that sets a row's level.
+- A review record for 4.1.1 is refused with the errata basis cited, and `errata.yaml` carries
+  the corrected errata dates.
 
 ### Changed
 

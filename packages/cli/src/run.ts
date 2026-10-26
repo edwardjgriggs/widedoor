@@ -9,7 +9,7 @@ import {
   writeReports,
   type ScanPlan,
 } from '@widedoor/server';
-import { EXIT_ERROR, exitDecision } from './policy.js';
+import { EXIT_ERROR, exitDecision, type GateOptions } from './policy.js';
 import { printSummary } from './summary.js';
 import { firstLine, safeText } from './text.js';
 import type { Io } from './main.js';
@@ -25,6 +25,7 @@ export async function runScan(
   plan: ScanPlan,
   reviews: readonly Finding[],
   io: Io,
+  gate: GateOptions = {},
 ): Promise<number> {
   const stop = new AbortController();
   let stopping = false;
@@ -68,12 +69,17 @@ export async function runScan(
       return EXIT_ERROR;
     }
 
-    const decision = exitDecision(report, plan.failOn, {
-      unscannedListed,
-      ...(plan.web
-        ? { maxPages: plan.web.maxPages, maxPagesSetting: plan.web.maxPagesSetting }
-        : {}),
-    });
+    const decision = exitDecision(
+      report,
+      plan.failOn,
+      {
+        unscannedListed,
+        ...(plan.web
+          ? { maxPages: plan.web.maxPages, maxPagesSetting: plan.web.maxPagesSetting }
+          : {}),
+      },
+      gate,
+    );
     printSummary(report, { written, decision, failOn: plan.failOn }, io);
     return decision.code;
   } finally {
