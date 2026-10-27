@@ -381,7 +381,7 @@ describe('the Checklist screen', () => {
     expect(text).toContain('axe-core image-alt: fail (set aside by a reviewer)');
     expect(text).toContain(`Recorded: Pass, by ${norm(REVIEWER)} on ${dateOf(OVERRIDE)}`);
     expect(text).toContain('Sets aside 1 automated fail');
-    expect(text).toContain(`Recorded: Pass, by ${norm(REVIEWER)} on ${dateOf(KEYBOARD)}`);
+    expect(text).toContain(`Recorded: Pass, by Grace Hopper on ${dateOf(KEYBOARD)}.`);
     expect(text).toContain(
       `Recorded before the page or file changed (expired): Pass, by Grace Hopper on ${dateOf(EXPIRED)}`,
     );

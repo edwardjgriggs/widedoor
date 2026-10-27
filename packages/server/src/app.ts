@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { homedir, tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { getRequestListener } from '@hono/node-server';
 import { Hono, type Context } from 'hono';
@@ -19,6 +20,8 @@ import { acrMeta } from './config.js';
 import { buildReport, type performScan } from './engine.js';
 import { Jobs } from './jobs.js';
 import { reportBodyOf, type CurrentReport } from './report-file.js';
+import { rootRelative, withoutPaths } from './paths.js';
+import { Refusals, type RefusalKind } from './refusals.js';
 import { buildReportFiles } from './report-files.js';
 import {
   checklistNotes,
@@ -34,14 +37,7 @@ import {
   readBody,
   readJson,
 } from './requests.js';
-import {
-  loadRootConfig,
-  planScan,
-  removeWorkDir,
-  rootRelative,
-  runScanJob,
-  type LocalRoot,
-} from './scan-job.js';
+import { loadRootConfig, planScan, removeWorkDir, runScanJob, type LocalRoot } from './scan-job.js';
 import {
   CODE_HEADER,
   LOOPBACK,
@@ -83,10 +79,12 @@ import {
  *
  * A scan job's report keeps what it was built from, so a recorded review is
  * applied to it at once (the report is rebuilt); a report file is shown as
- * scanned. The log hook gets one line per scan started and ended, review
- * recorded, export served and wrong access code, and the cause of every
- * server error (escaped first lines only; never a code, a token or a scanned
- * string beyond ids). A 500 body never carries the cause.
+ * scanned. The log hook gets one line per scan started and ended (with the
+ * cause of a failure), review recorded, export served and wrong access code,
+ * the counts of refused requests (Refusals), and the cause of every server
+ * error (escaped first lines only; never a code, a token or a scanned string
+ * beyond ids). A 500 body never carries the cause, and no refusal or job
+ * error names an absolute path (withoutPaths).
  */
 
 /** The body of every 500: the cause goes to the log, never to the page. */
@@ -139,6 +137,8 @@ export interface LocalAppOptions {
   log?: (line: string) => void;
   /** For tests; Date.now otherwise (the wrong-code log limit reads it). */
   now?: () => number;
+  /** Counts refused requests; one that logs through log otherwise. */
+  refusals?: Refusals;
 }
 
 /** Wrong access codes are logged at most once in this long; the next line counts the rest. */
@@ -150,7 +150,11 @@ const text = (body: string, status: Status) =>
   new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
 /** A refusal whose message may quote a request or a file: escaped, one line. */
-const refuse = (message: string, status: Status) => text(safeText(message, 1000), status);
+const refusal = (message: string, status: Status) => text(safeText(message, 1000), status);
+
+/** The check a refused body failed, by its status. */
+const bodyRefusal = (status: 400 | 413 | 415): RefusalKind =>
+  status === 415 ? 'type' : status === 413 ? 'size' : 'schema';
 
 /** JSON with every unsafe character of scanned or review-file text escaped (safeJson). */
 const json = (value: unknown, status: 200 | 201 | 202 = 200) =>
@@ -162,6 +166,22 @@ const json = (value: unknown, status: 200 | 201 | 202 = 200) =>
 export function createLocalApp(options: LocalAppOptions): Hono {
   const { files, state, token, code, port, onCodeReuse } = options;
   const log = (line: string) => options.log?.(`widedoor ui: ${line}`);
+  const now = options.now ?? Date.now;
+  const refusals = options.refusals ?? new Refusals(log, now);
+  /** A refusal naming files root-relative, or by name outside the root, never by absolute path. */
+  const refuse = (message: string, status: Status) =>
+    refusal(
+      withoutPaths(message, state.root.dir, {
+        folders: [state.uploads.dir, tmpdir()],
+        home: homedir(),
+      }),
+      status,
+    );
+  /** Counts a refusal of kind, then refuses. */
+  const refused = (kind: RefusalKind, message: string, status: Status) => {
+    refusals.count(kind);
+    return refuse(message, status);
+  };
   const configProblem = (e: ConfigError) =>
     refuse(`${rootRelative(state.root.dir, e.file)} is not usable: ${e.problems.join('; ')}`, 422);
   /** Logs the cause of a server error and answers the fixed 500. */
@@ -213,7 +233,6 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     await rebuild();
   };
   // Wrong access codes are logged at most once per WRONG_CODE_LOG_MS, with a count of the rest.
-  const now = options.now ?? Date.now;
   let wrongCodeLogged = -Infinity;
   let wrongCodesSince = 0;
   const wrongCode = () => {
@@ -234,12 +253,13 @@ export function createLocalApp(options: LocalAppOptions): Hono {
   let currentJob: string | undefined;
   const app = new Hono();
   app.use(async (c, next) => {
-    if (!hostAllowed(c.req.header('host'), port())) return text('Forbidden: unexpected Host.', 403);
+    if (!hostAllowed(c.req.header('host'), port()))
+      return refused('host', 'Forbidden: unexpected Host.', 403);
     await next();
   });
   app.post('/api/session', (c) => {
     if (!originAllowed(c.req.header('origin'), c.req.header('host')))
-      return text('Forbidden: the request did not come from this page.', 403);
+      return refused('origin', 'Forbidden: the request did not come from this page.', 403);
     const right = tokenMatches(c.req.header(CODE_HEADER), code);
     if (codeUsed || !right) {
       // The right code again: onCodeReuse warns. A wrong one is logged (never the code itself).
@@ -254,11 +274,11 @@ export function createLocalApp(options: LocalAppOptions): Hono {
   });
   app.use('/api/*', async (c, next) => {
     if (!tokenMatches(c.req.header(TOKEN_HEADER), token))
-      return text('Unauthorized: open the link widedoor ui printed.', 401);
+      return refused('token', 'Unauthorized: open the link widedoor ui printed.', 401);
     // A page on another origin cannot change anything, even with the token.
     if (c.req.method !== 'GET' && c.req.method !== 'HEAD')
       if (!originAllowed(c.req.header('origin'), c.req.header('host')))
-        return text('Forbidden: the request did not come from this page.', 403);
+        return refused('origin', 'Forbidden: the request did not come from this page.', 403);
     await next();
   });
 
@@ -279,7 +299,7 @@ export function createLocalApp(options: LocalAppOptions): Hono {
         return refuse('a scan is already running; wait for it or cancel it', 409);
       planned = planScan(body, state.root, state.uploads, state.env);
     } catch (e) {
-      if (e instanceof RequestError) return refuse(e.message, e.status);
+      if (e instanceof RequestError) return refused(bodyRefusal(e.status), e.message, e.status);
       if (e instanceof UsageError) return refuse(e.message, 400);
       if (e instanceof ConfigError) return configProblem(e);
       throw e;
@@ -323,15 +343,16 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     // Content type, then the kind, then whether they fit, then size (the ruling 5 order).
     const type = c.req.header('content-type') ?? null;
     if (!hasType(type, ANY_UPLOAD_TYPE))
-      return refuse(`an upload must be sent as ${ANY_UPLOAD_TYPE.join(' or ')}`, 415);
+      return refused('type', `an upload must be sent as ${ANY_UPLOAD_TYPE.join(' or ')}`, 415);
     const kind = c.req.query('kind');
     if (!UPLOAD_KINDS.includes(kind as UploadKind))
-      return refuse(`kind must be one of ${UPLOAD_KINDS.join(', ')}`, 400);
+      return refused('schema', `kind must be one of ${UPLOAD_KINDS.join(', ')}`, 400);
     const k = kind as UploadKind;
     if (!hasType(type, UPLOAD_TYPES[k]))
-      return refuse(`a ${k} upload must be sent as ${UPLOAD_TYPES[k].join(' or ')}`, 415);
+      return refused('type', `a ${k} upload must be sent as ${UPLOAD_TYPES[k].join(' or ')}`, 415);
     if (uploading >= MAX_UPLOADS_IN_FLIGHT)
-      return refuse(
+      return refused(
+        'rate',
         `at most ${MAX_UPLOADS_IN_FLIGHT} uploads at once; send this one when another finishes`,
         429,
       );
@@ -343,7 +364,7 @@ export function createLocalApp(options: LocalAppOptions): Hono {
         : maxUploadBytes(k),
     );
     if (reservation === undefined)
-      return refuse('too many uploads are held; record or scan them first', 413);
+      return refused('size', 'too many uploads are held; record or scan them first', 413);
     const name = c.req.query('name');
     uploading++;
     try {
@@ -360,8 +381,9 @@ export function createLocalApp(options: LocalAppOptions): Hono {
       );
     } catch (e) {
       if (e instanceof RequestError)
-        return refuse(`the ${k} is over ${maxUploadBytes(k) / 1024 / 1024} MiB`, 413);
-      if (e instanceof UploadError) return refuse(e.message, e.status);
+        return refused('size', `the ${k} is over ${maxUploadBytes(k) / 1024 / 1024} MiB`, 413);
+      if (e instanceof UploadError)
+        return refused(e.status === 413 ? 'size' : 'schema', e.message, e.status);
       throw e;
     } finally {
       uploading--;
@@ -394,7 +416,7 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     try {
       body = await readJson(c.req.raw, ReviewBodySchema);
     } catch (e) {
-      if (e instanceof RequestError) return refuse(e.message, e.status);
+      if (e instanceof RequestError) return refused(bodyRefusal(e.status), e.message, e.status);
       throw e;
     }
     if (current === undefined) return refuse('there is no report yet; scan or open one first', 409);
@@ -560,12 +582,15 @@ const CLOSE_WAIT_MS = 15_000;
 export async function startLocalServer(options: LocalServerOptions): Promise<UiServer> {
   const token = options.token ?? randomBytes(32).toString('base64url');
   const code = options.code ?? randomBytes(32).toString('base64url');
+  const log = (line: string) => options.log?.(`widedoor ui: ${line}`);
+  const refusals = new Refusals(log, options.now);
   const state: LocalState = {
     root: options.root ?? { dir: process.cwd() },
     ...(options.current ? { current: options.current } : {}),
-    jobs: new Jobs((view) =>
-      options.log?.(
-        `widedoor ui: scan ${view.id} ${view.status === 'done' ? 'finished' : view.status}`,
+    // A failed job's cause (it may name local paths) goes to the log, not to the page.
+    jobs: new Jobs((view, cause) =>
+      log(
+        `scan ${view.id} ${view.status === 'done' ? 'finished' : view.status}${cause !== undefined ? `: ${safeText(cause, 1000)}` : ''}`,
       ),
     ),
     uploads: await Uploads.create(options.maxHeldUploadBytes, options.uploadTimer),
@@ -579,6 +604,7 @@ export async function startLocalServer(options: LocalServerOptions): Promise<UiS
     token,
     code,
     port: () => port,
+    refusals,
     ...(options.onCodeReuse ? { onCodeReuse: options.onCodeReuse } : {}),
     ...(options.log ? { log: options.log } : {}),
     ...(options.now ? { now: options.now } : {}),
@@ -640,6 +666,8 @@ export async function startLocalServer(options: LocalServerOptions): Promise<UiS
       ]);
       clearTimeout(timer);
       await state.uploads.close();
+      // Refusals counted since the last line still reach the log.
+      refusals.flush();
     },
   };
 }

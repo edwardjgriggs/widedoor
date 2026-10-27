@@ -19,7 +19,13 @@ const MAX_LISTED = 20;
 /** Prints the console summary. Every scanned string goes through safeText. */
 export function printSummary(
   report: ScanReport,
-  run: { written: readonly string[]; decision: ExitDecision; failOn: FailOn },
+  run: {
+    written: readonly string[];
+    decision: ExitDecision;
+    failOn: FailOn;
+    /** --ignore-overrides: the overridden fails count toward the exit code. */
+    ignoreOverrides?: boolean;
+  },
   io: SummaryIo,
 ): void {
   const s = summarize(report);
@@ -42,7 +48,9 @@ export function printSummary(
   lines.push(`Needs review by impact: ${impacts(s.needsReviewByImpact)}.`);
   if (s.overridden > 0)
     lines.push(
-      `Set aside by a reviewer: ${plural(s.overridden, 'automated fail', 'automated fails')} (overridden as false positives; not counted as fails).`,
+      run.ignoreOverrides
+        ? `Set aside by a reviewer: ${plural(s.overridden, 'automated fail', 'automated fails')} (listed as overridden in the report, but counted toward the exit code: --ignore-overrides).`
+        : `Set aside by a reviewer: ${plural(s.overridden, 'automated fail', 'automated fails')} (overridden as false positives; not counted as fails).`,
     );
   // Says which Supports rest on the errata basis, so 4.1.1 never reads as tested.
   for (const c of s.criteria) lines.push(`Criteria, ${safeText(levelsText(c), 1000)}`);
@@ -92,6 +100,11 @@ export function printSummary(
 
   lines.push('Reports:');
   for (const file of run.written) lines.push(`  ${safeText(file, 1000)}`);
+  const counted = run.decision.overridesCounted ?? 0;
+  if (counted > 0)
+    lines.push(
+      `${plural(counted, 'failed check', 'failed checks')} counted that a reviewer overrode (--ignore-overrides).`,
+    );
   lines.push(`Exit ${run.decision.code}: ${run.decision.reason}.`);
   for (const line of lines) io.out(line);
 }

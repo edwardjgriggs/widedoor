@@ -80,7 +80,16 @@ export async function runScan(
       },
       gate,
     );
-    printSummary(report, { written, decision, failOn: plan.failOn }, io);
+    printSummary(
+      report,
+      {
+        written,
+        decision,
+        failOn: plan.failOn,
+        ...(gate.ignoreOverrides ? { ignoreOverrides: true } : {}),
+      },
+      io,
+    );
     return decision.code;
   } finally {
     dispose();

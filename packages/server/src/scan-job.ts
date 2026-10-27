@@ -1,10 +1,12 @@
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
-import { basename, isAbsolute, join, relative, sep } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ConfigError, loadReviews, safeText } from '@widedoor/core';
-import { buildPlan, loadConfig, type LoadedConfig, type ScanPlan } from './config.js';
+import { buildPlan, isHttpUrl, loadConfig, type LoadedConfig, type ScanPlan } from './config.js';
 import { performScan as defaultPerformScan } from './engine.js';
 import type { JobContext, JobEnd } from './jobs.js';
+import { rootRelative, withoutPaths } from './paths.js';
 import { reportBodyOf, type CurrentReport } from './report-file.js';
 import type { ScanBody } from './requests.js';
 import { CONFIG_FILE, DEFAULT_CONCURRENCY, UsageError } from './settings.js';
@@ -33,14 +35,6 @@ export interface LocalRoot {
   dir: string;
   /** The config file --config named; else widedoor.config.yaml in dir, when present. */
   configFile?: string;
-}
-
-/** A file as the page names it: relative to the root when inside it, else its name only (never an absolute path). */
-export function rootRelative(root: string, file: string): string {
-  const rel = relative(root, file);
-  return rel === '' || rel.startsWith('..') || isAbsolute(rel)
-    ? basename(file)
-    : rel.split(sep).join('/');
 }
 
 /** The root's config, or undefined when it has none. Throws ConfigError. */
@@ -112,6 +106,12 @@ export async function runScanJob(
 ): Promise<JobEnd> {
   const { pdfs } = planned;
   const performScan = deps.performScan ?? defaultPerformScan;
+  // What the page sees of the job: staged PDFs and engine errors name no absolute path.
+  const forPage = (text: string) =>
+    withoutPaths(text, planned.rootDir, {
+      folders: [deps.uploads.dir, tmpdir()],
+      home: homedir(),
+    });
   // In use: they must not expire while the scan reads them.
   deps.uploads.claim(pdfs.map((p) => p.id));
   const work = await mkdtemp(join(deps.uploads.dir, 'scan-'));
@@ -134,21 +134,34 @@ export async function runScanJob(
     } catch (e) {
       if (!(e instanceof ConfigError)) throw e;
       // As widedoor scan says it: the review file and what is wrong with it.
+      const problems = e.problems.join('; ');
       return {
         status: 'failed',
         error: safeText(
-          `${rootRelative(planned.rootDir, e.file)} is not usable: ${e.problems.join('; ')}`,
+          forPage(`${rootRelative(planned.rootDir, e.file)} is not usable: ${problems}`),
           1000,
         ),
+        cause: safeText(`${e.file} is not usable: ${problems}`, 1000),
       };
     }
     const outcome = await performScan(
-      { plan, reviews, evidenceDir: evidence },
-      { signal: context.signal, progress: (p) => context.progress(p) },
+      { plan, reviews, evidenceDir: evidence, hideAllPaths: true },
+      {
+        signal: context.signal,
+        // A URL as it is; a PDF the scan read from disk by its name.
+        progress: ({ current, ...p }) =>
+          context.progress({
+            ...p,
+            ...(current !== undefined
+              ? { current: isHttpUrl(current) ? current : forPage(current) }
+              : {}),
+          }),
+      },
     );
     if (outcome.kind === 'cancelled' || context.signal.aborted) return { status: 'cancelled' };
     finished = true;
-    if (outcome.kind === 'error') return { status: 'failed', error: outcome.message };
+    if (outcome.kind === 'error')
+      return { status: 'failed', error: forPage(outcome.message), cause: outcome.message };
     const { report, inputs } = outcome;
     // The screenshots stay in the work folder while the report is current.
     deps.setCurrent({

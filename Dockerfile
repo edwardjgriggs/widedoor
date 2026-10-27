@@ -62,7 +62,7 @@ RUN jlink \
 FROM verapdf/cli:v1.30.3@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c AS verapdf
 
 FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS runtime
-ARG WIDEDOOR_VERSION=0.0.0
+ARG WIDEDOOR_VERSION=0.1.0
 # The licenses label covers what the image bundles; THIRD-PARTY-NOTICES.txt in
 # the image says where each component's license and source are.
 LABEL org.opencontainers.image.title="widedoor" \

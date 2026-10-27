@@ -1,6 +1,6 @@
 {
   "name": "@widedoor/web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -8,7 +8,7 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "@axe-core/playwright": "4.14.0",
-    "@widedoor/core": "0.0.0",
+    "@widedoor/core": "0.1.0",
     "axe-core": "4.14.0",
     "parse5": "8.0.1",
     "playwright": "1.64.0"

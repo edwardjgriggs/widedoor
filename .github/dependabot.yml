@@ -9,6 +9,10 @@ updates:
         update-types:
           - minor
           - patch
+    # A TypeScript major needs its own migration (7.0 failed CI), not a weekly bump.
+    ignore:
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   # The composite action in packages/action pins its own actions.
   - package-ecosystem: github-actions
@@ -31,3 +35,8 @@ updates:
       interval: weekly
     ignore:
       - dependency-name: verapdf/cli
+      # Node follows the supported LTS line (24); veraPDF runs on a JDK 11 base.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
+      - dependency-name: eclipse-temurin
+        update-types: ['version-update:semver-major']

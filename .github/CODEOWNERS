@@ -1,0 +1,8 @@
+# Changes to what the CI gate trusts need the maintainer's review: the workflows,
+# the scan config, the manual review records (overrides can set fails aside) and the
+# Action itself.
+* @edwardjgriggs
+/.github/ @edwardjgriggs
+/widedoor.config.yaml @edwardjgriggs
+/widedoor-review/ @edwardjgriggs
+/packages/action/ @edwardjgriggs

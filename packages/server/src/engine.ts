@@ -1,4 +1,6 @@
 import { rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import {
   firstLine,
   getProfile,
@@ -30,6 +32,7 @@ import {
   pdfUrlsOf,
   sortFetchFailures,
 } from './pdf-urls.js';
+import { withoutPaths, type PathOptions } from './paths.js';
 import { screenScanReviews } from './scan-reviews.js';
 
 /*
@@ -47,6 +50,11 @@ export interface ScanRequest {
   reviews: readonly Finding[];
   /** Where screenshots are written: an existing folder (mode 0700 for a restricted scan). */
   evidenceDir: string;
+  /**
+   * widedoor ui: report text names every absolute path outside the root by
+   * its file name (home as ~). Otherwise (the CLI) only temp paths are.
+   */
+  hideAllPaths?: boolean;
 }
 
 /** Signed-in pages put the user's data in screenshots and reports: those are kept private (mode 0600 and 0700). */
@@ -152,6 +160,45 @@ function hideStorageState(web: WebScanResult, path: string): WebScanResult {
     pages: web.pages.map((p) =>
       p.error ? { ...p, error: { ...p.error, message: hide(p.error.message) } } : p,
     ),
+  };
+}
+
+/**
+ * The run's error and warning text as the report keeps it (every export
+ * carries it, and widedoor ui shows it): a file inside the root named
+ * relative to it, a temp copy (an uploaded PDF's stage, a fetched PDF) by
+ * its name, and any other path as options say (withoutPaths). Asset uris
+ * are left as they are: a PDF the user named outside the root keeps its path.
+ */
+export function withoutLocalPaths(
+  inputs: ScanInputs,
+  root: string,
+  options: PathOptions,
+): ScanInputs {
+  const hide = (text: string) => withoutPaths(text, root, options);
+  const { web, pdf } = inputs;
+  return {
+    ...inputs,
+    ...(web
+      ? {
+          web: {
+            ...web,
+            errors: web.errors.map((e) => ({ ...e, message: hide(e.message) })),
+            warnings: web.warnings.map(hide),
+            ...(web.scopeGaps ? { scopeGaps: web.scopeGaps.map(hide) } : {}),
+          },
+        }
+      : {}),
+    ...(pdf
+      ? {
+          pdf: {
+            ...pdf,
+            errors: pdf.errors.map((e) => ({ ...e, message: hide(e.message) })),
+            warnings: pdf.warnings.map(hide),
+            ...(pdf.scopeGaps ? { scopeGaps: pdf.scopeGaps.map(hide) } : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -335,17 +382,36 @@ export async function performScan(
     }
     if (signal?.aborted) return { kind: 'cancelled' };
 
-    const inputs: ScanInputs = {
-      profile: plan.profile,
-      pdfDocumentType: plan.pdfDocumentType,
-      startedAt,
-      finishedAt: new Date(),
-      scope: scopeOf(plan),
-      ...(web ? { web } : {}),
-      ...(pdf
-        ? { pdf: { ...pdf, errors: [...pdf.errors, ...fetchErrors], scopeGaps: pdfGaps } }
-        : {}),
-    };
+    const inputs: ScanInputs = withoutLocalPaths(
+      {
+        profile: plan.profile,
+        pdfDocumentType: plan.pdfDocumentType,
+        startedAt,
+        finishedAt: new Date(),
+        scope: scopeOf(plan),
+        ...(web ? { web } : {}),
+        ...(pdf
+          ? { pdf: { ...pdf, errors: [...pdf.errors, ...fetchErrors], scopeGaps: pdfGaps } }
+          : {}),
+      },
+      plan.reviewDir,
+      request.hideAllPaths
+        ? {
+            // A PDF folder outside the root is a stage (widedoor ui copies uploads into one).
+            folders: [
+              tmpdir(),
+              ...(plan.pdf?.baseDir !== undefined &&
+              resolve(plan.pdf.baseDir) !== resolve(plan.reviewDir) &&
+              !isInside(plan.reviewDir, plan.pdf.baseDir)
+                ? [plan.pdf.baseDir]
+                : []),
+            ],
+            home: homedir(),
+            others: 'name',
+          }
+        : // The CLI's user typed the other paths; only temp copies are named by their name.
+          { folders: [tmpdir()], others: 'keep' },
+    );
     let report: ScanReport;
     try {
       const screened = buildReport(inputs, reviews);

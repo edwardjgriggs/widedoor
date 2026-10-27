@@ -49,6 +49,9 @@ outputs:
   report-dir:
     description: Absolute path of the report folder (report.html, report.json, report.sarif, evidence/).
     value: ${{ steps.scan.outputs.report-dir }}
+  overrides-ignored:
+    description: true when review overrides did not count toward the exit code (review-overrides off, or auto on a run from a fork), else false. Empty when an input was refused.
+    value: ${{ steps.scan.outputs.overrides-ignored }}
 
 runs:
   using: composite

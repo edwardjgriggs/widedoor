@@ -23,6 +23,8 @@ const RANK: Record<Impact, number> = { minor: 1, moderate: 2, serious: 3, critic
 export interface ExitDecision {
   code: 0 | 1 | 2;
   reason: string;
+  /** Counted fails a review record overrides, counted only because the run ignores overrides (set when over 0). */
+  overridesCounted?: number;
 }
 
 /** Whether a fail record trips the threshold. A fail with no impact counts, so an unrated failure never passes CI silently. */
@@ -90,10 +92,17 @@ export function exitDecision(
   );
   if (failOn === 'none')
     return { code: EXIT_OK, reason: 'the fail threshold is off (--fail-on none)' };
-  if (fails.length > 0)
+  if (fails.length > 0) {
+    const overridden =
+      options.ignoreOverrides && report.rollup
+        ? overriddenFails({ rollup: report.rollup })
+        : NO_OVERRIDES;
+    const overridesCounted = fails.filter(overridden).length;
     return {
       code: EXIT_FAIL,
       reason: `${plural(fails.length, 'failed check', 'failed checks')} at or above ${failOn}${options.ignoreOverrides ? ' (review overrides ignored)' : ''}`,
+      ...(overridesCounted > 0 ? { overridesCounted } : {}),
     };
+  }
   return { code: EXIT_OK, reason: `no failed check at or above ${failOn}` };
 }

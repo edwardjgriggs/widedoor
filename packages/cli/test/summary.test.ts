@@ -90,4 +90,44 @@ describe('printSummary with manual reviews', () => {
     );
     expect(lines.join('\n')).not.toContain('\u001b');
   });
+
+  it('has no line for overrides counted when the run takes the overrides', () => {
+    expect(lines.join('\n')).not.toContain('--ignore-overrides');
+  });
+});
+
+describe('printSummary with --ignore-overrides', () => {
+  const summary = (failOn: 'serious' | 'none') => {
+    const decision = exitDecision(report, failOn, undefined, { ignoreOverrides: true });
+    const lines: string[] = [];
+    printSummary(
+      report,
+      { written: [], decision, failOn, ignoreOverrides: true },
+      { out: (l) => lines.push(l) },
+    );
+    return { decision, lines };
+  };
+
+  it('says how many counted failed checks a reviewer overrode, before the exit line', () => {
+    const { decision, lines } = summary('serious');
+    expect(decision.code).toBe(1);
+    expect(lines.slice(-2)).toEqual([
+      '1 failed check counted that a reviewer overrode (--ignore-overrides).',
+      'Exit 1: 1 failed check at or above serious (review overrides ignored).',
+    ]);
+  });
+
+  it('says the overridden fails count toward the exit code, not that they do not count', () => {
+    const { lines } = summary('serious');
+    expect(lines).toContain(
+      'Set aside by a reviewer: 1 automated fail (listed as overridden in the report, but counted toward the exit code: --ignore-overrides).',
+    );
+    expect(lines.join('\n')).not.toContain('not counted as fails');
+  });
+
+  it('says nothing when no overridden fail counts', () => {
+    const { decision, lines } = summary('none');
+    expect(decision.code).toBe(0);
+    expect(lines.join('\n')).not.toContain('counted that a reviewer overrode');
+  });
 });

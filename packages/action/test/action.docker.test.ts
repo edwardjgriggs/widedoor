@@ -105,6 +105,7 @@ describe('the action entry against the corpus', () => {
         'exit-code': '1',
         'report-dir': dir,
         'sarif-file': join(dir, 'report.sarif'),
+        'overrides-ignored': 'false',
       });
       expect(existsSync(join(dir, '.widedoor-report'))).toBe(true);
 

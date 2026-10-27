@@ -35,6 +35,7 @@ import {
   startLocalServer,
   type UiServer,
 } from '../src/app.ts';
+import { JOB_THREW } from '../src/jobs.ts';
 import { reportBodyOf } from '../src/report-file.ts';
 import type { RecordSummary } from '../src/reviews.ts';
 import {
@@ -1209,7 +1210,7 @@ describe('the held upload cap under parallel uploads', () => {
   });
 
   it(`answers 429 to a fifth upload while ${MAX_UPLOADS_IN_FLIGHT} are being read`, async () => {
-    const { server } = await setup();
+    const { server, logs } = await setup();
     const size = 64 * 1024;
     const body = pdfOf(size);
     // Uploads whose bodies arrive only when the test says so.
@@ -1247,6 +1248,8 @@ describe('the held upload cap under parallel uploads', () => {
     expect(fifth.text).toBe(
       `at most ${MAX_UPLOADS_IN_FLIGHT} uploads at once; send this one when another finishes`,
     );
+    // Counted as a rate refusal in the refused request log.
+    expect(logs).toContain('widedoor ui: refused 1 request (1 rate (429))');
     for (const o of open) o.finish();
     expect(await Promise.all(open.map((o) => o.reply))).toEqual(
       Array(MAX_UPLOADS_IN_FLIGHT).fill(201),
@@ -1511,6 +1514,176 @@ describe('the wrong access code log', () => {
       `widedoor ui: refused a wrong access code (3 more wrong codes since the last line)${tail}`,
       `widedoor ui: refused a wrong access code (1 more wrong code since the last line)${tail}`,
       `widedoor ui: refused a wrong access code${tail}`,
+    ]);
+  });
+});
+
+/** No drive letter, UNC path or POSIX absolute path, and none of the test folders. */
+const expectNoAbsolutePath = (text: string) => {
+  expect(text).not.toMatch(/[A-Za-z]:[\\/]/);
+  expect(text).not.toMatch(/\\\\/);
+  expect(text).not.toMatch(/(^|[\s'"(=])\/[^\s/]/);
+  expect(text).not.toContain(tmp);
+  expect(text).not.toContain(tmpdir());
+};
+
+describe('no absolute path reaches the page', () => {
+  it('names a missing image upload by its file name in the 400 of POST /api/reviews', async () => {
+    const { server } = await setup({ current: true });
+    const item = await openItem(server, '2.1.1');
+    const { id: image } = json(await upload(server, 'image', PNG));
+    // The upload's file goes missing between the upload and the review (an antivirus, a cleaner).
+    const dir = readdirSync(tmpdir())
+      .filter((d) => d.startsWith('widedoor-uploads-'))
+      .map((d) => join(tmpdir(), d))
+      .find((d) => existsSync(join(d, `${image}.png`)));
+    rmSync(join(dir as string, `${image}.png`));
+    const r = await call(server, 'POST', '/api/reviews', {
+      body: { item: item.id, outcome: 'pass', reviewer: 'Ann', attachments: [image] },
+    });
+    expect(r.status).toBe(400);
+    expect(r.text).toBe(`--attach "${image}.png": no such file`);
+    expectNoAbsolutePath(r.text);
+  });
+
+  it('names files in a job error root-relative, or by name outside the root; the log has the cause', async () => {
+    const { server, root, engine, logs } = await setup();
+    const inRoot = join(root, 'docs', 'a.pdf');
+    const outside = join(tmp, 'elsewhere', 'b.pdf');
+    const message = `the PDF scan could not run: ENOENT: no such file, open '${inRoot}'; '${outside}'; /opt/verapdf/bin/verapdf`;
+    engine.run = async () => ({ kind: 'error', message });
+    const { id } = json(await call(server, 'POST', '/api/scans', { body: { urls: [A.uri] } }));
+    const job = await settle(server, id);
+    expect(job.status).toBe('failed');
+    expect(job.error).toBe(
+      "the PDF scan could not run: ENOENT: no such file, open 'docs/a.pdf'; 'b.pdf'; verapdf",
+    );
+    expectNoAbsolutePath(job.error as string);
+    expect(logs).toContain(`widedoor ui: scan ${id} failed: ${message}`);
+  });
+
+  it('answers a fixed sentence for a job that threw, and logs the cause', async () => {
+    const { server, root, engine, logs } = await setup();
+    const file = join(root, 'widedoor-review', 'web.yaml');
+    engine.run = async () => {
+      throw new Error(`ENOENT: no such file or directory, open '${file}'`);
+    };
+    const { id } = json(await call(server, 'POST', '/api/scans', { body: { urls: [A.uri] } }));
+    const job = await settle(server, id);
+    expect(job).toMatchObject({ status: 'failed', error: JOB_THREW });
+    expect(logs).toContain(
+      `widedoor ui: scan ${id} failed: the scan failed: ENOENT: no such file or directory, open '${file}'`,
+    );
+  });
+
+  it('shows a PDF the scan reads from disk by its name in the progress', async () => {
+    const { server, engine } = await setup();
+    let current = '';
+    engine.run = (req, hooks) =>
+      new Promise((done) => {
+        current = join(req.evidenceDir, '..', 'pdf', 'report one.pdf');
+        hooks.progress?.({ done: 0, known: 1, current });
+        hooks.signal?.addEventListener('abort', () => done({ kind: 'cancelled' }), { once: true });
+      });
+    const { id } = json(await call(server, 'POST', '/api/scans', { body: { urls: [A.uri] } }));
+    let job: JobReply | undefined;
+    for (let i = 0; i < 500 && job?.progress.current === undefined; i++) {
+      job = json(await call(server, 'GET', `/api/scans/${id}`)) as JobReply;
+      await new Promise((done) => setTimeout(done, 10));
+    }
+    expect(current).not.toBe('');
+    expect(job?.progress.current).toBe('report one.pdf');
+    await call(server, 'DELETE', `/api/scans/${id}`);
+    await settle(server, id);
+  });
+
+  it('names a review file lock root-relative in a 422', async () => {
+    const { server, root } = await setup({ current: true });
+    const item = await openItem(server, '2.1.1');
+    const file = `web-${createHash('sha256').update(A.uri).digest('hex').slice(0, 16)}.yaml`;
+    // A folder at the lock name: review record refuses it with a ConfigError naming the lock.
+    mkdirSync(join(root, REVIEW_DIR, `${file}.lock`), { recursive: true });
+    const r = await call(server, 'POST', '/api/reviews', {
+      body: { item: item.id, outcome: 'pass', reviewer: 'Ann' },
+    });
+    expect(r.status).toBe(422);
+    expect(r.text.startsWith(`widedoor-review/${file}.lock is not usable: `)).toBe(true);
+    expectNoAbsolutePath(r.text);
+  });
+});
+
+describe('the refused request log', () => {
+  it('counts every refusal by kind and logs at most one line per 10 s', async () => {
+    let t = 0;
+    const { server, logs } = await setup({ now: () => t });
+    const refusals = () =>
+      logs.filter((l) => l.startsWith('widedoor ui: refused ') && !l.includes('access code'));
+    // At t=0 the first refusal logs at once.
+    expect(
+      (await call(server, 'GET', '/api/report', { headers: { [TOKEN_HEADER]: 'x' } })).status,
+    ).toBe(401);
+    expect(refusals()).toEqual(['widedoor ui: refused 1 request (1 token)']);
+    // Every other kind, within the same 10 s: counted, not logged.
+    t = 1_000;
+    expect((await call(server, 'GET', '/', { headers: { host: 'evil.example' } })).status).toBe(
+      403,
+    );
+    expect(
+      (
+        await call(server, 'POST', '/api/scans', {
+          headers: { origin: 'https://evil.example' },
+          body: {},
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await call(server, 'POST', '/api/scans', {
+          headers: { 'content-type': 'text/plain' },
+          body: '{}',
+        })
+      ).status,
+    ).toBe(415);
+    expect(
+      (await call(server, 'POST', '/api/scans', { body: { urls: ['x'.repeat(MIB)] } })).status,
+    ).toBe(413);
+    expect((await call(server, 'POST', '/api/scans', { body: { nope: 1 } })).status).toBe(400);
+    expect((await call(server, 'POST', '/api/reviews', { body: '{' })).status).toBe(400);
+    expect((await upload(server, 'pdf', Buffer.from('not a pdf'))).status).toBe(400);
+    expect(
+      (
+        await call(server, 'POST', '/api/uploads?kind=pdf', {
+          body: Buffer.from('x'),
+          headers: { 'content-type': 'text/plain' },
+        })
+      ).status,
+    ).toBe(415);
+    t = 9_999;
+    expect(refusals()).toHaveLength(1);
+    // The first refusal 10 s after the last line logs everything since it.
+    t = 10_000;
+    expect(
+      (await call(server, 'GET', '/api/report', { headers: { [TOKEN_HEADER]: undefined } })).status,
+    ).toBe(401);
+    expect(refusals()).toEqual([
+      'widedoor ui: refused 1 request (1 token)',
+      'widedoor ui: refused 9 requests since the last line (1 Host, 1 token, 1 Origin, 2 content type, 1 size, 3 schema)',
+    ]);
+    // What a request carried never reaches the log.
+    expect(logs.join('\n')).not.toMatch(/evil|nope/);
+  });
+
+  it('logs the refusals counted since the last line when the server stops', async () => {
+    let t = 0;
+    const { server, logs } = await setup({ now: () => t });
+    for (const at of [0, 1, 2]) {
+      t = at;
+      await call(server, 'GET', '/api/report', { headers: { [TOKEN_HEADER]: 'x' } });
+    }
+    await server.close();
+    expect(logs.filter((l) => l.includes('refused'))).toEqual([
+      'widedoor ui: refused 1 request (1 token)',
+      'widedoor ui: refused 2 requests since the last line (2 token)',
     ]);
   });
 });

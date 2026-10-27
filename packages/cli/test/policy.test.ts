@@ -196,6 +196,20 @@ describe('exitDecision', () => {
     ).toEqual({
       code: 1,
       reason: '1 failed check at or above critical (review overrides ignored)',
+      overridesCounted: 1,
     });
+    // Only the overridden fails the gate counts: a kept fail alone is not one.
+    expect(
+      exitDecision(
+        { ...report([kept]), rollup: rollup([unit([set.id], [])]) },
+        'serious',
+        { unscannedListed: 0 },
+        { ignoreOverrides: true },
+      ),
+    ).toEqual({ code: 1, reason: '1 failed check at or above serious (review overrides ignored)' });
+    // Below the threshold an overridden fail does not count, so it is not reported either.
+    expect(
+      exitDecision(overriddenReport, 'none', { unscannedListed: 0 }, { ignoreOverrides: true }),
+    ).toEqual({ code: 0, reason: 'the fail threshold is off (--fail-on none)' });
   });
 });

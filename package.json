@@ -1,6 +1,6 @@
 {
   "name": "widedoor",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Open source accessibility checker for websites and PDFs against Section 508 and WCAG 2.1 AA.",

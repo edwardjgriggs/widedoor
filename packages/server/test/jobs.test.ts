@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Jobs, type JobContext, type JobEnd } from '../src/jobs.ts';
+import { JOB_THREW, Jobs, type JobContext, type JobEnd } from '../src/jobs.ts';
 
 /*
  * Scan jobs: one at a time, random 128-bit ids, the five statuses, progress,
@@ -78,8 +78,9 @@ describe('Jobs', () => {
     expect(jobs.get('0'.repeat(32))).toBeUndefined();
   });
 
-  it('records a failure with its message, escaped, and a throw as failed', async () => {
-    const jobs = new Jobs();
+  it('records a failure with its message, and a throw as failed with its cause for the log only', async () => {
+    const causes: (string | undefined)[] = [];
+    const jobs = new Jobs((_, cause) => void causes.push(cause));
     const failed = jobs.start(async () => ({ status: 'failed', error: 'the scan could not run' }));
     await jobs.idle();
     expect(jobs.get(failed?.id ?? '')).toMatchObject({
@@ -87,12 +88,25 @@ describe('Jobs', () => {
       error: 'the scan could not run',
     });
     const thrown = jobs.start(async () => {
-      throw new Error('boom \u001b[31m\nsecond line');
+      throw new Error("ENOENT: no such file, open 'C:\\Users\\ann\\x.pdf' \u001b[31m\nsecond line");
     });
     await jobs.idle();
     const view = jobs.get(thrown?.id ?? '');
     expect(view?.status).toBe('failed');
-    expect(view?.error).toBe('the scan failed: boom \\x1b[31m');
+    // The cause may name local paths: the page gets a fixed sentence, the log the cause, escaped.
+    expect(view?.error).toBe(JOB_THREW);
+    expect(causes).toEqual([
+      'the scan could not run',
+      "the scan failed: ENOENT: no such file, open 'C:\\Users\\ann\\x.pdf' \\x1b[31m",
+    ]);
+    const withCause = jobs.start(async () => ({
+      status: 'failed',
+      error: 'x.pdf could not be read',
+      cause: 'C:\\Users\\ann\\x.pdf could not be read',
+    }));
+    await jobs.idle();
+    expect(jobs.get(withCause?.id ?? '')?.error).toBe('x.pdf could not be read');
+    expect(causes.at(-1)).toBe('C:\\Users\\ann\\x.pdf could not be read');
   });
 
   it('cancels a running job through its signal', async () => {

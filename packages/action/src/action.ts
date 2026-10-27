@@ -54,6 +54,8 @@ export interface Plan {
   uploadSarif: boolean;
   /** Why the scan ignores review overrides, when it does. */
   ignoreOverrides?: string;
+  /** The same, as the reason of the override_ignored log event. */
+  ignoredBecause?: 'fork' | 'off';
 }
 
 /**
@@ -186,10 +188,12 @@ export function plan(env: NodeJS.ProcessEnv, cwd: string): Plan {
     single('review-overrides', read('reviewOverrides')) || DEFAULT_REVIEW_OVERRIDES,
     REVIEW_OVERRIDES,
   );
+  const ignoredBecause =
+    overrides === 'off' ? 'off' : overrides === 'auto' && fromFork(env) ? 'fork' : undefined;
   const ignoreOverrides =
-    overrides === 'off'
+    ignoredBecause === 'off'
       ? 'review-overrides is off'
-      : overrides === 'auto' && fromFork(env)
+      : ignoredBecause === 'fork'
         ? 'this pull request comes from a fork (review-overrides: auto)'
         : undefined;
 
@@ -213,6 +217,7 @@ export function plan(env: NodeJS.ProcessEnv, cwd: string): Plan {
     reportDir: isAbsolute(out) ? resolve(out) : resolve(cwd, out),
     uploadSarif: upload === 'true',
     ...(ignoreOverrides ? { ignoreOverrides } : {}),
+    ...(ignoredBecause ? { ignoredBecause } : {}),
   };
 }
 
@@ -260,6 +265,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
   const token = env.GITHUB_ACTIONS === 'true' ? `widedoor-${randomUUID()}` : undefined;
   if (token) out(`::stop-commands::${token}\n`);
   let ignored: string | undefined;
+  let ignoredBecause: Plan['ignoredBecause'];
   try {
     let p: Plan;
     try {
@@ -271,6 +277,7 @@ export async function run(options: RunOptions = {}): Promise<number> {
       return EXIT_ERROR;
     }
     ignored = p.ignoreOverrides;
+    ignoredBecause = p.ignoredBecause;
     if (p.ignoreOverrides)
       err(
         `widedoor action: review overrides do not count toward the exit code: ${p.ignoreOverrides}
@@ -306,15 +313,19 @@ export async function run(options: RunOptions = {}): Promise<number> {
       'exit-code': String(code),
       'report-dir': p.reportDir,
       'sarif-file': sarif,
+      'overrides-ignored': p.ignoreOverrides ? 'true' : 'false',
     });
     return code;
   } finally {
     if (token) out(`::${token}::\n`);
     // After commands resume, so the checks UI shows it. The reason is fixed text.
-    if (ignored)
+    if (ignored) {
       out(
         `::notice title=widedoor::Review overrides did not count toward the exit code: ${ignored}\n`,
       );
+      // One fixed line a log search can match, whatever the notice says.
+      out(`widedoor event=override_ignored reason=${ignoredBecause}\n`);
+    }
   }
 }
 

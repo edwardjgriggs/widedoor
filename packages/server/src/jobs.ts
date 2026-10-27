@@ -39,10 +39,17 @@ export interface JobContext {
 /**
  * How a job ended. A job whose signal fired should end cancelled once it has
  * stopped; one past the point of no return (writing its reports) may still
- * end done. A job that throws after its signal fired ends cancelled.
+ * end done. A job that throws after its signal fired ends cancelled. A
+ * failed job's error is for the page (no absolute path); its cause, when
+ * set, is the full text for the terminal log.
  */
 export type JobEnd =
-  { status: 'done' } | { status: 'failed'; error: string } | { status: 'cancelled' };
+  | { status: 'done' }
+  | { status: 'failed'; error: string; cause?: string }
+  | { status: 'cancelled' };
+
+/** The error of a job that threw: the cause may name local paths, so it goes only to the log. */
+export const JOB_THREW = 'the scan failed. The widedoor ui terminal shows the cause.';
 
 interface Job {
   view: JobView;
@@ -55,8 +62,11 @@ const isOver = (status: JobStatus) => status !== 'queued' && status !== 'running
 export class Jobs {
   private last: Job | undefined;
 
-  /** onEnd is told each job's view once it has ended (done, failed or cancelled). */
-  constructor(private readonly onEnd?: (view: JobView) => void) {}
+  /**
+   * onEnd is told each job's view once it has ended (done, failed or
+   * cancelled), and for a failed job the full cause (escaped, one line).
+   */
+  constructor(private readonly onEnd?: (view: JobView, cause?: string) => void) {}
 
   /** Whether a job is queued or running. */
   get busy(): boolean {
@@ -79,7 +89,10 @@ export class Jobs {
       if (end.status === 'failed') view.error = end.error;
       view.finishedAt = new Date().toISOString();
       try {
-        this.onEnd?.(this.snapshot(view));
+        this.onEnd?.(
+          this.snapshot(view),
+          end.status === 'failed' ? (end.cause ?? end.error) : undefined,
+        );
       } catch {
         // A failing log sink must not end the job a second time or change how it ended.
       }
@@ -102,7 +115,11 @@ export class Jobs {
         finish(
           stop.signal.aborted
             ? { status: 'cancelled' }
-            : { status: 'failed', error: `the scan failed: ${safeText(firstLine(e), 1000)}` },
+            : {
+                status: 'failed',
+                error: JOB_THREW,
+                cause: `the scan failed: ${safeText(firstLine(e), 1000)}`,
+              },
         );
       }
     })();

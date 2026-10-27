@@ -362,6 +362,9 @@ describe('review overrides', () => {
     const off = plan(env({ ...urls, reviewOverrides: 'off' }), empty);
     expect(off.argv).toContain('--ignore-overrides');
     expect(off.ignoreOverrides).toBe('review-overrides is off');
+    expect(off.ignoredBecause).toBe('off');
+    expect(plan({ ...env(urls), ...fork }, empty).ignoredBecause).toBe('fork');
+    expect(plan(env(urls), empty).ignoredBecause).toBeUndefined();
     expect(() => plan(env({ ...urls, reviewOverrides: 'maybe' }), empty)).toThrow(
       /review-overrides must be one of auto, on, off/,
     );
@@ -465,6 +468,7 @@ describe('run', () => {
     expect(r.result).toBe(code);
     expect(r.outputs['exit-code']).toBe(String(code));
     expect(r.outputs['report-dir']).toBe(join(r.dir, 'widedoor-report'));
+    expect(r.outputs['overrides-ignored']).toBe('false');
     expect(r.child?.argv.at(-1)).toBe('https://example.com/$(id)');
     expect(r.child?.inputs).toEqual([]);
   });
@@ -589,8 +593,32 @@ describe('run', () => {
       'widedoor action: review overrides do not count toward the exit code: review-overrides is off',
     );
     expect(r.stdout).toContain(
-      '::notice title=widedoor::Review overrides did not count toward the exit code: review-overrides is off',
+      '::notice title=widedoor::Review overrides did not count toward the exit code: review-overrides is off\nwidedoor event=override_ignored reason=off\n',
     );
+    expect(r.stdout.match(/event=override_ignored/g)).toHaveLength(1);
+    expect(r.outputs['overrides-ignored']).toBe('true');
+  });
+
+  it('logs the fork reason when auto ignores the overrides of a fork', async () => {
+    const r = await runFake(
+      1,
+      { urls: 'https://example.com/' },
+      {
+        WIDEDOOR_EVENT_NAME: 'pull_request',
+        WIDEDOOR_HEAD_REPO: 'someone/site',
+        WIDEDOOR_BASE_REPO: 'owner/site',
+      },
+    );
+    expect(r.result).toBe(1);
+    expect(r.child?.argv).toContain('--ignore-overrides');
+    expect(r.stdout).toContain('widedoor event=override_ignored reason=fork\n');
+    expect(r.outputs['overrides-ignored']).toBe('true');
+  });
+
+  it('logs no override event when the overrides count', async () => {
+    const r = await runFake(0, { urls: 'https://example.com/', reviewOverrides: 'on' });
+    expect(r.stdout).not.toContain('event=override_ignored');
+    expect(r.outputs['overrides-ignored']).toBe('false');
   });
 
   it('exits 2 on a bad input without running the CLI', async () => {
@@ -703,7 +731,14 @@ describe('action.yml', () => {
     expect(action.inputs['upload-sarif'].default).toBe('true');
     expect(action.inputs['sarif-category'].default).toBe('widedoor');
     expect(action.inputs['review-overrides'].default).toBe(DEFAULT_REVIEW_OVERRIDES);
-    expect(Object.keys(action.outputs).sort()).toEqual(['exit-code', 'report-dir']);
+    expect(Object.keys(action.outputs).sort()).toEqual([
+      'exit-code',
+      'overrides-ignored',
+      'report-dir',
+    ]);
+    expect(action.outputs['overrides-ignored'].value).toBe(
+      '${{ steps.scan.outputs.overrides-ignored }}',
+    );
   });
 
   it('installs with scripts off and uploads SARIF after a failing scan but not after a cancel', () => {

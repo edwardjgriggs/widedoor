@@ -2,12 +2,12 @@
 
 All notable changes to Widedoor are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions will follow
-[Semantic Versioning](https://semver.org/) once releases begin.
+[Semantic Versioning](https://semver.org/) (0.x: any minor version may break interfaces).
 
-## Unreleased (0.1.0)
+## 0.1.0 (2026-10-26)
 
-Nothing is published yet: every package version is still `0.0.0`, there is no git tag, and no
-npm package or container image has been released.
+The first release, as source: the `v0.1.0` tag on GitHub, used from a clone and by the GitHub
+Action. No npm package or container image is published.
 
 ### Added
 
@@ -205,6 +205,24 @@ record` writes one result (pass, fail or not applicable, notes, overrides and PN
 - A review record for 4.1.1 is refused with the errata basis cited, and `errata.yaml` carries
   the corrected errata dates.
 
+#### Before the 0.1.0 release
+
+- Action output `overrides-ignored` and the log line
+  `widedoor event=override_ignored reason=<fork|off>`; the CLI summary counts failed checks a
+  reviewer overrode when `--ignore-overrides` is set.
+- `widedoor ui` logs counts of refused requests by kind, at most once per 10 seconds.
+- Security: `widedoor ui` no longer sends absolute local paths to the page in refusals, job
+  errors or scan progress (CWE-209); root-relative names or file names are sent instead, and
+  the full cause goes to the terminal.
+- Fixed: two processes that met a stale review-file lock at once could orphan a fresh lock and
+  stall the next writer for 30 seconds. Taking over a stale lock now goes through one claim
+  file per lock, and a fresh lock is never moved aside. The review-lock test that timed out
+  under load waits on the writers instead of a fixed sleep.
+- Report error and warning text (and so every export) names files relative to the root, or by
+  file name for uploads and temp files, never by absolute path. Asset URIs are unchanged.
+- With `--ignore-overrides`, the summary's "Set aside by a reviewer" line says those fails
+  still count toward the exit code.
+
 ### Changed
 
 - Phase 2, Task 2.4: v0.1 review files with free-form `source.ruleId` values (for example
@@ -246,6 +264,11 @@ record` writes one result (pass, fail or not applicable, notes, overrides and PN
 
 ### Known issues
 
-- A trivy scan of the image (2026-10-23) reports critical CVEs in Debian bookworm packages that
-  have no fixed version yet: libbrotli1, libglib2.0-0, libsqlite3-0 and zlib1g. Chromium needs
-  the first three. Publishing the image waits on a decision about them.
+- No container image is published with 0.1.0. A trivy scan of the image (2026-10-23) reports
+  critical CVEs in Debian bookworm packages that have no fixed version yet: libbrotli1,
+  libglib2.0-0, libsqlite3-0 and zlib1g (Chromium needs the first three), and publishing the
+  image also needs a source offer for the GPL components it bundles. The `Dockerfile` stays for
+  local builds; the CLI and the GitHub Action do not need the image.
+- The scanner does not pin DNS answers for the pages and PDFs it fetches, so a host that changes
+  its address mid-scan (DNS rebinding) is followed. Fine for scanning sites you choose on your
+  own machine; a hosted scanner (Phase 3) must pin them, in Chromium too.

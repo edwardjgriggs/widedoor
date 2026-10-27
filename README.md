@@ -4,10 +4,11 @@ Widedoor is an open source accessibility checker that lets a developer or a smal
 
 ## Status
 
-Pre-alpha and unreleased. What is built (web and PDF scans, the reports, manual reviews, the
-ACR formats, `widedoor diff`, the local viewer with its scan, checklist and export screens, the
-GitHub Action and the Docker image) is listed under Unreleased in [CHANGELOG.md](CHANGELOG.md).
-Nothing is published to npm or a container registry yet, and the interfaces will change.
+Version 0.1.0, the first release, published as source (the `v0.1.0` tag). What it does (web
+and PDF scans, the reports, manual reviews, the ACR formats, `widedoor diff`, the local viewer
+with its scan, checklist and export screens, the GitHub Action and a Dockerfile) is listed in
+[CHANGELOG.md](CHANGELOG.md). Nothing is published to npm or a container registry, and
+interfaces may still change in any 0.x release.
 
 ## Install
 
@@ -152,7 +153,8 @@ widedoor --help
   protected branch: a pull request can change both. Pass `--fail-on` explicitly and protect those
   paths (for example with CODEOWNERS). `--ignore-overrides` makes the exit code count automated
   fails that a review record overrides (the reports still show the overrides), for runs on
-  changes whose `widedoor-review/` files are not trusted.
+  changes whose `widedoor-review/` files are not trusted. The summary then says how many
+  counted failed checks a reviewer had overridden.
 - Manual review records in `widedoor-review/*.yaml` next to the config (or the current folder)
   are added to the report. Records for pages or files outside the run, of the wrong kind, with an
   override the run does not support, replaced by a newer record or for a criterion that is not a
@@ -219,12 +221,18 @@ widedoor --help
   date is after tomorrow, another record in the folder covers the same item, or it cites 4.1.1,
   which the errata satisfy (no review needed). Writers take a lock file (`<file>.lock`, taken
   over after 30 seconds or when dated in the future), so two writers to one file both land.
-- An interrupted write can leave `*.lock`, `*.stale` and `*.tmp` files under `widedoor-review/`.
+  A lock dated more than 5 seconds in the future counts as stale, so on a network share keep
+  the clocks of the machines that write reviews in sync (NTP). Keep `widedoor-review/` on a
+  file system with hard links (NTFS, ext4, APFS and the like): on FAT, exFAT or some network
+  shares, a writer paused for over 30 seconds while holding the lock can, rarely, have it taken
+  and a second writer let in.
+- An interrupted write can leave `*.lock`, `*.claim`, `*.stale` and `*.tmp` files under `widedoor-review/`.
   Keep them out of git in your repo's `.gitignore`:
 
   ```gitignore
   **/widedoor-review/**/*.lock
   **/widedoor-review/**/*.lock.*.stale
+  **/widedoor-review/**/*.lock.*.claim
   **/widedoor-review/**/.*.tmp
   ```
 
@@ -265,7 +273,11 @@ widedoor --help
 - The `widedoor ui` server has a local API for its page, under the same `127.0.0.1` binding,
   Host check and per-run token, with the server's own `Origin` required on every POST and
   DELETE and JSON request bodies only (uploads send the file itself). It is not a public API
-  and is never reachable from another machine:
+  and is never reachable from another machine. The terminal counts refused requests by kind
+  (Host, token, Origin, content type, size, schema, rate) in at most one line per 10 seconds,
+  plus one when the server stops. Error text sent to the page names files relative to the root
+  folder, or by file name, never by absolute path; a scan job that fails unexpectedly says so
+  on the page, and the terminal shows the cause:
   - `POST /api/scans` (`urls`, `pdfs` as upload ids, `profile`, `maxPages`) starts a scan job,
     one at a time, as `widedoor scan` would run it in the root: the request's targets replace
     the config's scope, and everything else (auth, `pdf.fetch`, `acr`, caps) comes from the
@@ -484,9 +496,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # PLACEHOLDER: replace OWNER and the SHA with a reviewed Widedoor commit.
+      # Pin the full commit SHA the v0.1.0 tag points to (see the release page), not the tag.
       - id: widedoor
-        uses: OWNER/widedoor/packages/action@0000000000000000000000000000000000000000
+        uses: edwardjgriggs/widedoor/packages/action@0000000000000000000000000000000000000000 # v0.1.0
         with:
           urls: |
             https://staging.example.com/
@@ -508,7 +520,10 @@ jobs:
 | `sarif-category`   | `widedoor`                  | Code scanning category, to keep several runs apart                                                                                                                          |
 | `review-overrides` | `auto`                      | Whether review records that override automated fails count toward the exit code: `auto` ignores them on pull requests from forks, `on` always counts them, `off` never does |
 
-Outputs: `exit-code` (the CLI's) and `report-dir` (absolute path of the report folder). To keep
+Outputs: `exit-code` (the CLI's), `report-dir` (absolute path of the report folder) and
+`overrides-ignored` (`true` when review overrides were not allowed to count toward the exit
+code on this run, whether or not one would have changed it; the log then also has
+`widedoor event=override_ignored reason=fork` or `reason=off`). To keep
 the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
 `path: ${{ steps.widedoor.outputs.report-dir }}` and `if: ${{ !cancelled() }}`: without that
 `if`, the step is skipped whenever the scan fails, which is when the report matters.

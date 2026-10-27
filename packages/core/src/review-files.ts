@@ -44,8 +44,8 @@ import { safeText } from './text.js';
  * pattern) before its first bytes are checked against its extension.
  * Node-only: index.ts, never browser.ts.
  *
- * Leftovers of an interrupted write all end in .lock, .stale or .tmp, so
- * three .gitignore lines cover them (README).
+ * Leftovers of an interrupted write all end in .lock, .stale, .claim or
+ * .tmp, so four .gitignore lines cover them (README).
  */
 
 /** Folder of manual review records, next to the config (or the current folder). */
@@ -70,6 +70,12 @@ const LOCK_FUTURE_MS = 5_000;
 const LOCK_WAIT_MS = 2 * LOCK_STALE_MS;
 /** Failed attempts to move a stale lock aside before giving up. */
 const LOCK_TAKEOVER_TRIES = 5;
+/**
+ * A takeover claim older than this was left by a taker that died
+ * mid-takeover (a claim lives for a few file operations). As long as a
+ * lock's, so a taker is never judged dead sooner than a writer is.
+ */
+const CLAIM_STALE_MS = LOCK_STALE_MS;
 
 export const MANUAL_OUTCOMES = ['pass', 'fail', 'not-applicable'] as const;
 export type ManualOutcome = (typeof MANUAL_OUTCOMES)[number];
@@ -873,20 +879,182 @@ async function renameInto(temp: string, target: string) {
 const lockRefused = (lock: string, why: string) =>
   new ConfigError(lock, [`${why}; remove it if no Widedoor is running`]);
 
+interface FileIdentity {
+  /** File id, modification time, size and (for a small file) its text: a later file at the name differs in one. */
+  id: string;
+  mtimeMs: number;
+  text: string;
+}
+
+/**
+ * What makes the file at path itself; 'missing' only when nothing is at
+ * the name (ENOENT), 'unreadable' when something is there that this
+ * process cannot stat or read (no permission, a Windows file held open
+ * without read sharing) or that is not a regular file.
+ */
+async function identityOf(path: string): Promise<FileIdentity | 'missing' | 'unreadable'> {
+  let info;
+  try {
+    info = await lstat(path);
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : 'unreadable';
+  }
+  if (!info.isFile()) return 'unreadable';
+  // A lock or claim holds a writer's token; a large file at the name was planted.
+  let text = '';
+  if (info.size <= 4096) {
+    try {
+      text = await readFile(path, 'utf8');
+    } catch (e) {
+      return (e as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : 'unreadable';
+    }
+  }
+  return { id: `${info.ino}:${info.mtimeMs}:${info.size}:${text}`, mtimeMs: info.mtimeMs, text };
+}
+
+const idOf = (identity: FileIdentity | 'missing' | 'unreadable') =>
+  typeof identity === 'string' ? undefined : identity.id;
+
+const isStale = (mtimeMs: number, staleMs: number) => {
+  const age = Date.now() - mtimeMs;
+  return age > staleMs || age < -LOCK_FUTURE_MS;
+};
+
+/**
+ * Renames path aside to <path>.<hex>.stale and removes it when it is still
+ * the file whose identity is id. When another file had replaced it, that
+ * file is put back (link never replaces a file a third writer made since).
+ *
+ * On a file system without hard links (FAT, exFAT, some SMB shares) the
+ * link fails, so a file that replaced the one meant is removed instead of
+ * put back: a fresh lock lost that way lets a second writer in. It needs a
+ * writer that came back after LOCK_STALE_MS, or a claim cleared while its
+ * taker was paused for as long (README).
+ */
+async function removeIfSame(
+  path: string,
+  id: string,
+): Promise<'removed' | 'changed' | 'gone' | 'refused'> {
+  const aside = `${path}.${randomBytes(6).toString('hex')}.stale`;
+  try {
+    await rename(path, aside);
+  } catch (e) {
+    // Gone already, or the system refuses (a sharing violation, EACCES).
+    return (e as NodeJS.ErrnoException).code === 'ENOENT' ? 'gone' : 'refused';
+  }
+  if (idOf(await identityOf(aside)) === id) {
+    await rm(aside, { force: true });
+    return 'removed';
+  }
+  await link(aside, path).catch(() => undefined);
+  await rm(aside, { force: true });
+  return 'changed';
+}
+
+/** Whether the claim still holds this taker's token (one paused past CLAIM_STALE_MS may have lost it). */
+const holdsClaim = async (claim: string, token: string) => {
+  const held = await identityOf(claim);
+  return typeof held !== 'string' && held.text === token;
+};
+
+/**
+ * Removes a stale lock, as one of any number of takers in any process.
+ * Takers of one stale lock agree on a claim file named from its identity:
+ * only the taker that creates the claim (wx) moves the lock, and only after
+ * reading it again under the claim. A taker that saw the stale lock long
+ * ago and claims it after it is gone reads another lock (or none) there and
+ * leaves it alone, so a fresh lock is never moved aside while its writer
+ * works (that writer would find no lock to remove and leave an orphan that
+ * stalls the next writer for LOCK_STALE_MS). Only a writer that comes back
+ * after LOCK_STALE_MS can still lose its lock, as the stale rule assumes.
+ *
+ * A claim is cleared by others once it is CLAIM_STALE_MS old (its taker
+ * died mid-takeover). A taker paused that long may have lost its claim, so
+ * it checks the claim still holds its token before it moves the lock, and
+ * removes the claim at the end only while it does. Two takers that clear
+ * one dead claim at once, with a third claiming between them, are told
+ * apart the same way: whoever's token the claim holds goes on, and the
+ * claim it holds is never removed by another. What is left is a pause of
+ * CLAIM_STALE_MS between that check and the move.
+ *
+ * 'taken': the stale lock is gone, try to create one; 'wait': look again
+ * later; 'unreadable' and 'claim-refused': look again later, and say so if
+ * the wait runs out; 'refused': the system would not move it.
+ */
+async function takeOverStaleLock(
+  lock: string,
+  token: string,
+): Promise<'taken' | 'wait' | 'unreadable' | 'claim-refused' | 'refused'> {
+  const seen = await identityOf(lock);
+  if (seen === 'missing') return 'taken';
+  // Unreadable: the deadline decides, with a ConfigError that says why.
+  if (seen === 'unreadable') return 'unreadable';
+  if (!isStale(seen.mtimeMs, LOCK_STALE_MS)) return 'wait';
+  const claim = `${lock}.${createHash('sha256').update(seen.id).digest('hex').slice(0, 16)}.claim`;
+  try {
+    const handle = await open(claim, 'wx', 0o644);
+    await handle.writeFile(token).finally(() => handle.close());
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    // Windows refuses a name deleted a moment ago (EPERM) while a handle on it closes.
+    if (code === 'EPERM' || code === 'EACCES') return 'claim-refused';
+    if (code !== 'EEXIST') return 'refused';
+    // Another taker holds it; one that died mid-takeover left it, and it is cleared once stale.
+    const held = await identityOf(claim);
+    if (typeof held !== 'string' && isStale(held.mtimeMs, CLAIM_STALE_MS))
+      await removeIfSame(claim, held.id);
+    return 'wait';
+  }
+  try {
+    if (!(await holdsClaim(claim, token))) return 'wait';
+    if (idOf(await identityOf(lock)) !== seen.id) return 'wait';
+    const removed = await removeIfSame(lock, seen.id);
+    return removed === 'refused' ? 'refused' : removed === 'changed' ? 'wait' : 'taken';
+  } finally {
+    // Only while it is still this taker's: another may hold it by now. Windows can
+    // refuse the move for a moment (an antivirus or indexer reading the new file):
+    // one more try, then the claim is left to go stale.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const mine = await identityOf(claim);
+      if (typeof mine === 'string' || mine.text !== token) break;
+      if ((await removeIfSame(claim, mine.id)) !== 'refused') break;
+      if (attempt === 0) await sleep(50);
+    }
+  }
+}
+
+/** The error when the wait for a lock runs out, saying why it waited (names root-relative). */
+function lockTimedOut(lock: string, blocked: 'unreadable' | 'claim-refused' | undefined) {
+  const name = `${REVIEW_DIR}/${basename(lock)}`;
+  if (blocked === 'unreadable')
+    return new ConfigError(lock, [
+      `${name} is stale but cannot be read (its permissions, or another program holding it open); fix that, or remove it if no Widedoor is running`,
+    ]);
+  if (blocked === 'claim-refused')
+    return new ConfigError(lock, [
+      `${REVIEW_DIR}/ cannot be written: the system refuses new files next to the stale lock ${name}; check the folder's permissions`,
+    ]);
+  return new ConfigError(lock, [
+    'another writer has held this lock for too long; remove it if no Widedoor is running',
+  ]);
+}
+
 /**
  * Runs fn while holding <file>.lock, created with wx so only one writer
  * holds it. A lock older than LOCK_STALE_MS (or dated in the future) was
- * left by a writer that died: it is renamed aside to <file>.lock.<hex>.stale
- * (only one waiter's rename succeeds) and taken over. A lock that cannot be
- * moved, a folder or link at the lock name, and a wait past LOCK_WAIT_MS
- * end with a ConfigError naming the lock. The lock is removed in finally,
- * unless another writer took it over.
+ * left by a writer that died: takeOverStaleLock removes it, and the waiters
+ * race to create the next one with wx. A lock that cannot be moved, a
+ * folder or link at the lock name, and a wait past LOCK_WAIT_MS end with a
+ * ConfigError naming the lock. The lock is removed in finally, unless
+ * another writer took it over.
  */
 async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   const lock = `${file}.lock`;
   const token = `${process.pid} ${randomBytes(8).toString('hex')}\n`;
   const deadline = Date.now() + LOCK_WAIT_MS;
   let failedTakeovers = 0;
+  // Why the last look waited when no writer was seen holding the lock.
+  let blocked: 'unreadable' | 'claim-refused' | undefined;
   for (;;) {
     const held = await lstat(lock).catch(() => undefined);
     if (held && !held.isFile())
@@ -901,31 +1069,14 @@ async function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
         if (code !== 'EEXIST')
           throw new ConfigError(lock, [`the lock file cannot be created (${code ?? 'error'})`]);
       }
-    } else {
-      const age = Date.now() - held.mtimeMs;
-      if (age > LOCK_STALE_MS || age < -LOCK_FUTURE_MS) {
-        const aside = `${lock}.${randomBytes(6).toString('hex')}.stale`;
-        const moved = await rename(lock, aside).then(
-          () => true,
-          () => false,
-        );
-        if (moved) {
-          const took = await lstat(aside).catch(() => undefined);
-          // Another waiter may have replaced the stale lock first: put its fresh lock back,
-          // unless a third writer holds the name by now (link never replaces a file).
-          if (took && took.mtimeMs !== held.mtimeMs) await link(aside, lock).catch(() => undefined);
-          await rm(aside, { force: true });
-          continue;
-        }
-        // Another waiter moved it first, or the system refuses (a sharing violation, EACCES).
-        if (++failedTakeovers >= LOCK_TAKEOVER_TRIES)
-          throw lockRefused(lock, 'a stale lock that cannot be moved aside');
-      }
-    }
-    if (Date.now() > deadline)
-      throw new ConfigError(lock, [
-        'another writer has held this lock for too long; remove it if no Widedoor is running',
-      ]);
+    } else if (isStale(held.mtimeMs, LOCK_STALE_MS)) {
+      const taken = await takeOverStaleLock(lock, token);
+      if (taken === 'taken') continue;
+      if (taken === 'refused' && ++failedTakeovers >= LOCK_TAKEOVER_TRIES)
+        throw lockRefused(lock, 'a stale lock that cannot be moved aside');
+      blocked = taken === 'unreadable' || taken === 'claim-refused' ? taken : undefined;
+    } else blocked = undefined;
+    if (Date.now() > deadline) throw lockTimedOut(lock, blocked);
     await sleep(10 + Math.random() * 40);
   }
   try {
