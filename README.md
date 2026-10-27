@@ -496,9 +496,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Pin the full commit SHA the v0.1.0 tag points to (see the release page), not the tag.
+      # Pin the full commit SHA of the release, not the tag.
       - id: widedoor
-        uses: edwardjgriggs/widedoor/packages/action@0000000000000000000000000000000000000000 # v0.1.0
+        uses: edwardjgriggs/widedoor/packages/action@46545073d45388ea98393799cbbf165bdb4b9ce6 # v0.1.0
         with:
           urls: |
             https://staging.example.com/
