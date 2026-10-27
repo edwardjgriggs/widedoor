@@ -77,7 +77,7 @@ them; the PDF adapter tests generate long documents at run time instead of commi
   scan error code in run metadata and no findings, so `expected` is empty. Only
   `pdf/malformed.pdf` uses it (`malformed-pdf`).
 - `confirmedBy`: the engine and version that confirmed the file, or `null`. PDFs are confirmed by
-  both engines: `veraPDF 1.30.3, Widedoor 0.0.0`.
+  both engines: `veraPDF 1.30.3, Widedoor 0.1.0`.
 - `provisional`: `true` when anything in the file is not machine-confirmed. The manifest item's
   `note` then says why.
 
