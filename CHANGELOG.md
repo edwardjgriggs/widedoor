@@ -4,6 +4,40 @@ All notable changes to Widedoor are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions will follow
 [Semantic Versioning](https://semver.org/) (0.x: any minor version may break interfaces).
 
+## Unreleased
+
+### Added
+
+#### Phase 3a: the hosted scanner (not deployed)
+
+- An egress policy for hosted scans (`packages/web/src/egress`): http and https on ports 80
+  and 443 only; private, loopback, link-local, CGNAT, multicast, reserved and cloud metadata
+  addresses refused over IPv4 and IPv6, IPv6 allowed only in `2000::/3`; DNS resolved
+  server-side and pinned per host for the scan; an egress proxy that checks every connection,
+  redirect and subresource; Chromium launched so it does no DNS of its own and sends nothing
+  around the proxy.
+- `npm run test:ssrf`: the SSRF suite, the hosted tier's deploy gate.
+- robots.txt for hosted crawls: the `Widedoor` group, or `*`.
+- The scan machine: Dockerfile target `scan`, whose entry (`docker/scan-entry.sh`) locks Fly's
+  machine API socket, loads a kernel firewall, runs the egress proxy as its own user and the
+  scan as another, with no token in the scan's environment.
+- The hosted API: Dockerfile target `hosted` (`packages/server/src/hosted/api-bin.ts`). One scan
+  machine per job through Fly's Machines API, in the API's region, from a scan image pinned by
+  digest, destroyed after; per-network rate limits and live job caps (1 running and 1 queued per
+  /32 or /64, 2 per /24 or /48), daily and concurrency caps; a report cap per tier (8 MiB open,
+  32 MiB verified); reports built by the API from the scan's validated JSON (scan machines send
+  no HTML) and kept for 1 hour; domain verification by DNS TXT, a well-known file or a meta
+  tag, for the verified tier. The first sweep after a start destroys every leftover scan
+  machine; every sweep counts machines the API did not create.
+- The hosted page (`packages/ui/hosted.html`): scan a URL or upload a PDF, verify a domain, and
+  read the report.
+- `fly.toml` for the API app and `fly.scan.toml` for the scan app's image, [docs/hosted.md](docs/hosted.md) (architecture, SSRF controls,
+  data handling, limits, known limitations) and [docs/hosted-runbook.md](docs/hosted-runbook.md)
+  (deploy, smoke checks, alerts, rotation and rollback).
+- Detection: the hosted API's `not_found` and `control_refused` log lines are capped at 20 a
+  minute (per client network, per control route), each with one count line after the minute;
+  each scan machine ends with an `egress_summary` line counting its refusals by reason.
+
 ## 0.1.0 (2026-10-26)
 
 The first release, as source: the `v0.1.0` tag on GitHub, used from a clone and by the GitHub
