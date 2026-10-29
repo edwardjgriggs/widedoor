@@ -1,6 +1,7 @@
 # Widedoor CLI image: Node 24, Playwright's Chromium (OS sandbox on) and
 # veraPDF 1.30.3 on a jlinked Temurin 11 runtime. Every base image is pinned by
-# tag and digest. Build: docker build -t widedoor:dev .
+# tag and digest. Build: docker build -t widedoor:dev . (the CLI; the hosted scan
+# machine and API are the targets scan and hosted, near the end).
 # Run web and PDF scans separately, hardened as below (README, Docker section).
 # WIDEDOOR is the path of the Widedoor clone that holds the seccomp profile.
 # Web pages (the seccomp profile lets Chromium start its sandbox):
@@ -61,7 +62,9 @@ RUN jlink \
 # veraPDF 1.30.3 itself, from the same pinned image the Docker runner uses (VERAPDF_IMAGE_REF).
 FROM verapdf/cli:v1.30.3@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa5b502665b9a78f9c AS verapdf
 
-FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS runtime
+# Everything the CLI, scan and hosted images share. It sets no user or entry point: the
+# targets below do, and the CLI target comes last so `docker build .` builds it.
+FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS base
 ARG WIDEDOOR_VERSION=0.1.0
 # The licenses label covers what the image bundles; THIRD-PARTY-NOTICES.txt in
 # the image says where each component's license and source are.
@@ -132,6 +135,36 @@ COPY --from=build /src/packages/cli/dist packages/cli/dist
 COPY --from=build /src/packages/ui/dist packages/ui/dist
 COPY LICENSE NOTICE docker/THIRD-PARTY-NOTICES.txt ./
 
+# The hosted scan machine (docker build --target scan). Its entry runs as root: it loads
+# the firewall, starts the egress proxy as uid 10002 and the agent, which runs each scan
+# as uid 10001 (docker/scan-entry.sh). iptables gives iptables-restore and
+# ip6tables-restore, procps gives the agent's reaper pkill. apt ran after the setuid and
+# setgid strip, so it runs again.
+FROM base AS scan
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends iptables procps \
+    && rm -rf /var/lib/apt/lists/* \
+    && test -x /usr/bin/setpriv \
+    && test -x /usr/bin/pkill \
+    && test -x /usr/sbin/iptables-restore \
+    && test -x /usr/sbin/ip6tables-restore \
+    && groupadd --gid 10002 egress \
+    && useradd --uid 10002 --gid 10002 --no-create-home --home-dir /nonexistent \
+       --shell /usr/sbin/nologin egress \
+    && find / -xdev -perm /6000 -type f -exec chmod a-s {} +
+COPY --chmod=0755 docker/scan-entry.sh /app/docker/scan-entry.sh
+# Timed-out DNS lookups hold libuv threads; more of them keep the proxy resolving.
+ENV UV_THREADPOOL_SIZE=32
+ENTRYPOINT ["/app/docker/scan-entry.sh"]
+
+# The hosted API (docker build --target hosted; packages/server/src/hosted/api-bin.ts).
+FROM base AS hosted
+USER 10001:10001
+ENTRYPOINT ["node", "/app/packages/server/dist/hosted/api-bin.js"]
+
+# The CLI, last so it stays the default target.
+FROM base AS cli
 USER 10001:10001
 WORKDIR /work
 ENTRYPOINT ["node", "/app/packages/cli/dist/bin.js"]

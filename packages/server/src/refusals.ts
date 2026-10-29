@@ -6,8 +6,20 @@
  * request, and never with anything the request carried.
  */
 
-/** The checks, in the order the server runs them (rate is the uploads-in-flight 429). */
-export const REFUSAL_KINDS = ['host', 'token', 'origin', 'type', 'size', 'schema', 'rate'] as const;
+/**
+ * The checks, in the order the server runs them (timeout is a body read past its deadline,
+ * rate is the uploads-in-flight 429).
+ */
+export const REFUSAL_KINDS = [
+  'host',
+  'token',
+  'origin',
+  'type',
+  'size',
+  'schema',
+  'timeout',
+  'rate',
+] as const;
 export type RefusalKind = (typeof REFUSAL_KINDS)[number];
 
 /** Refusals are logged at most once in this long; the next line counts the rest. */
@@ -21,6 +33,7 @@ const LABELS: Readonly<Record<RefusalKind, string>> = {
   type: 'content type',
   size: 'size',
   schema: 'schema',
+  timeout: 'timeout (408)',
   rate: 'rate (429)',
 };
 

@@ -1,0 +1,15 @@
+# The scan machines' app, widedoor-scan (docs/hosted.md, docs/hosted-runbook.md). It is
+# used only to build and push the scan image:
+#   fly deploy --config fly.scan.toml --build-only --push --image-label <label>
+# The API (fly.toml) creates every scan machine itself through the Machines API, by the
+# image's digest. This app serves nothing: no [http_service] and no [[services]], so Fly's
+# proxy never routes to a scan machine, and it needs no public IP (smoke check 6 checks
+# that `fly ips list -a widedoor-scan` is empty). Never run a plain `fly deploy` with it.
+
+app = "widedoor-scan"
+primary_region = "iad"
+
+[build]
+  # The Dockerfile's scan target: root entry docker/scan-entry.sh, which locks the machine
+  # down and drops to uid 10002 (egress proxy) and uid 10001 (the scan).
+  build-target = "scan"

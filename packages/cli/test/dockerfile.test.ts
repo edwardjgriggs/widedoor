@@ -13,7 +13,19 @@ import { ROOT } from './helpers.ts';
  */
 
 const dockerfile = readFileSync(join(ROOT, 'Dockerfile'), 'utf8');
-const froms = [...dockerfile.matchAll(/^FROM\s+(\S+)/gm)].map((m) => m[1] as string);
+const stages = [...dockerfile.matchAll(/^FROM\s+(\S+)(?:\s+AS\s+(\S+))?$/gm)].map((m) => ({
+  from: m[1] as string,
+  name: m[2],
+}));
+const stageNames = new Set(stages.map((s) => s.name));
+/** Base images: every FROM that does not build on an earlier stage. */
+const froms = stages.map((s) => s.from).filter((from) => !stageNames.has(from));
+/** The text of one stage, from its FROM line to the next. */
+const stage = (name: string): string => {
+  const start = dockerfile.search(new RegExp(`^FROM .* AS ${name}$`, 'm'));
+  const next = dockerfile.slice(start + 1).search(/^FROM /m);
+  return next < 0 ? dockerfile.slice(start) : dockerfile.slice(start, start + 1 + next);
+};
 
 describe('Dockerfile', () => {
   it('pins every base image by tag and digest', () => {
@@ -28,7 +40,26 @@ describe('Dockerfile', () => {
   it('marks the image as the isolation boundary and runs as a fixed non-root user', () => {
     expect(dockerfile).toMatch(new RegExp(`^\\s+${ISOLATED_HOST_ENV}=1$`, 'm'));
     const users = [...dockerfile.matchAll(/^USER\s+(\S+)/gm)].map((m) => m[1]);
-    expect(users).toEqual(['10001:10001']);
+    // The hosted API and the CLI; the scan target's entry runs as root and drops itself.
+    expect(users).toEqual(['10001:10001', '10001:10001']);
+    expect(stage('cli')).toMatch(/^USER 10001:10001$/m);
+    expect(stage('hosted')).toMatch(/^USER 10001:10001$/m);
+    expect(stage('scan')).not.toMatch(/^USER /m);
+  });
+
+  it('builds the CLI by default, and the scan and hosted targets on the shared base', () => {
+    expect(stages.at(-1)).toEqual({ from: 'base', name: 'cli' });
+    expect(stages.filter((s) => s.from === 'base').map((s) => s.name)).toEqual([
+      'scan',
+      'hosted',
+      'cli',
+    ]);
+    // Only the scan target gets the firewall tools and the reaper's pkill.
+    expect(stage('base')).not.toMatch(/apt-get install.*(iptables|procps)/);
+    expect(stage('scan')).toMatch(/apt-get install -y --no-install-recommends iptables procps/);
+    expect(stage('scan')).toContain('ENTRYPOINT ["/app/docker/scan-entry.sh"]');
+    // The test switches never reach an image.
+    expect(dockerfile).not.toMatch(/WIDEDOOR_(AGENT|EGRESS)_SAME_USER/);
   });
 
   it('never turns the Chromium sandbox off', () => {
@@ -86,7 +117,7 @@ describe('Dockerfile', () => {
 
   it('installs Chromium before any Widedoor build output, so a source edit reuses that layer', () => {
     const install = dockerfile.indexOf('playwright install');
-    const runtime = dockerfile.indexOf(' AS runtime');
+    const runtime = dockerfile.indexOf(' AS base');
     const firstApp = dockerfile.indexOf('COPY --from=build', runtime);
     expect(install).toBeGreaterThan(runtime);
     expect(firstApp).toBeGreaterThan(install);

@@ -104,12 +104,24 @@ reportCsp(STYLE);
 const skipNote = (s: ScanReport['skipped'][number]) =>
   s.reason === 'pdf-url'
     ? html`${TEXT.pdfUrlSkip}`
-    : html`Not scanned: it went to <span class="uri">${s.finalUri}</span> (${s.reason})`;
+    : s.reason === 'robots-unchecked'
+      ? html`${TEXT.robotsUncheckedSkip}`
+      : s.reason === 'robots-unreachable'
+        ? html`${TEXT.robotsUnreachableSkip}`
+        : s.reason === 'robots-disallowed'
+          ? html`${TEXT.robotsSkip}`
+          : html`Not scanned: it went to <span class="uri">${s.finalUri}</span> (${s.reason})`;
 
 const skipItem = (s: ScanReport['skipped'][number]) =>
   s.reason === 'pdf-url'
     ? html`<span class="uri">${s.uri}</span>${TEXT.pdfUrlItem}`
-    : html`<span class="uri">${s.uri}</span> went to <span class="uri">${s.finalUri}</span> (${s.reason})`;
+    : s.reason === 'robots-unchecked'
+      ? html`<span class="uri">${s.uri}</span>${TEXT.robotsUncheckedItem}`
+      : s.reason === 'robots-unreachable'
+        ? html`<span class="uri">${s.uri}</span>${TEXT.robotsUnreachableItem}`
+        : s.reason === 'robots-disallowed'
+          ? html`<span class="uri">${s.uri}</span>${TEXT.robotsItem}`
+          : html`<span class="uri">${s.uri}</span> went to <span class="uri">${s.finalUri}</span> (${s.reason})`;
 
 const moreSkipped = (n: number) => html`${moreSkippedText(n)}`;
 
@@ -216,9 +228,11 @@ function assets(ctx: Context): SafeHtml {
     const header =
       title === undefined
         ? html`<h3 id="${id}" class="uri">${uri}</h3>\n`
-        : html`<h3 id="${id}">${title === '' ? TEXT.emptyTitle : title}</h3>\n<p class="uri">${uri}</p>\n`;
+        : html`<h3 id="${id}">${title === '' ? TEXT.emptyTitle : title}</h3>\n<p class="uri" id="${id}-uri">${uri}</p>\n`;
     const lead = note ?? html`${assetCounts(found)}`;
-    return html`<section aria-labelledby="${id}">
+    // Named by title and URI: pages often share a title, and each landmark needs its own name.
+    const name = title === undefined ? id : `${id} ${id}-uri`;
+    return html`<section aria-labelledby="${name}">
 ${header}<p class="lead">${assetKindText(kind)}. ${lead}</p>
 ${body}</section>\n`;
   };

@@ -1,0 +1,69 @@
+# The hosted scanner's API app (docs/hosted.md, docs/hosted-runbook.md). Scan machines run
+# in a second app, widedoor-scan (fly.scan.toml builds its image; it has no service): the
+# API creates them through the Machines API. Nothing here is secret. FLY_API_TOKEN and
+# WIDEDOOR_SCAN_IMAGE are set with `fly secrets` as the runbook says, never in this file.
+
+app = "widedoor"
+primary_region = "iad"
+
+[build]
+  # The Dockerfile's hosted target: USER 10001, entry packages/server/dist/hosted/api-bin.js.
+  build-target = "hosted"
+
+[env]
+  # The app the API creates scan machines in. Its deploy token is scoped to it alone.
+  WIDEDOOR_SCAN_APP = "widedoor-scan"
+  # POST and DELETE must carry this as Origin, and its host is never scanned.
+  WIDEDOOR_PUBLIC_ORIGIN = "https://widedoor.fly.dev"
+  # REQUIRED: the API does not start without it (it logs
+  # api_config_error name=WIDEDOOR_CONTACT_URL). An https page that shows a way to reach
+  # the operator (runbook section 2). It is linked from /about-scanner and passed to every
+  # scan machine for its user agent. The API refuses http, a mailto: and its own
+  # /about-scanner (which would link to itself).
+  WIDEDOOR_CONTACT_URL = "https://github.com/edwardjgriggs/widedoor/issues"
+  # Memory (R50, final fix rounds 2 and 3): the VM has 2048 MiB (API_MEMORY_MB in
+  # limits.ts). Kept reports, queued PDFs and the raw result body being read are Buffers
+  # OUTSIDE the V8 heap, so the worst case adds up:
+  #   heap 896 + retained budget 512 + 4 uploads 200 + one raw verified result body 64
+  #   + downloads in flight (64 x 64 KiB) 4 + Node and OS 150 = about 1826.1 MiB <= 2048.
+  # 896 is API_HEAP_MB in limits.ts: at least 1.5 times MEASURED_PEAK_HEAP_MB (422 MiB), the
+  # peak heap of one near-cap verified result (32 MiB cap) in its two-byte shape
+  # (test/hosted-memory.measure.ts). A unit test reads this line and checks both rules.
+  NODE_OPTIONS = "--max-old-space-size=896"
+
+[http_service]
+  # The public listener (api-bin.ts PUBLIC_PORT). The control listener on 8081 binds the
+  # machine's 6PN address and has no service, so Fly's proxy never exposes it.
+  internal_port = 8080
+  force_https = true
+  # One machine, always on: jobs, reports and verifications live in its memory, so a
+  # stopped or second machine would lose them or answer for none of them.
+  auto_stop_machines = "off"
+  # Starts the machine again on the next request if it ever stops.
+  auto_start_machines = true
+  min_machines_running = 1
+  # No handlers line: the default http handler. Fly-Client-IP, the rate-limit key, is only
+  # set by Fly's proxy under it. Never serve 8080 as a raw tcp service.
+
+  [http_service.concurrency]
+    # Counted in requests, not connections: browsers poll a scan every 2 to 5 seconds and
+    # a verification every 3, over keep-alive connections. One machine takes 200 requests
+    # in flight at most (a few hundred people at once); past that Fly's proxy holds or
+    # refuses them instead of piling them on Node. With one machine there is nowhere to
+    # balance to, so soft_limit only marks the machine busy. These keys are not in the
+    # Fly facts this was checked against: the runbook makes them a smoke check.
+    type = "requests"
+    soft_limit = 150
+    hard_limit = 200
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  # R50: 2 GB for the 512 MiB report budget plus one result in flight.
+  size = "shared-cpu-1x"
+  memory = "2gb"

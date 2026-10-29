@@ -150,8 +150,12 @@ export function openAcrValidator() {
 }
 
 export function sarifValidator() {
+  // The CommonJS module under NodeNext, the class itself under the viewer's bundler resolution
+  // (packages/ui/test imports these helpers); at run time it is the module.
+  const Draft04 = ((AjvDraft04 as unknown as { default?: typeof Ajv }).default ??
+    (AjvDraft04 as unknown as typeof Ajv)) as typeof Ajv;
   // Same settings as the report package's SARIF test: strictRequired is off for the OASIS anyOf branches.
-  const ajv = new AjvDraft04.default({ strict: true, strictRequired: false, allErrors: true });
+  const ajv = new Draft04({ strict: true, strictRequired: false, allErrors: true });
   addFormats.default(ajv);
   return ajv.compile(
     JSON.parse(

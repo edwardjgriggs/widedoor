@@ -1,4 +1,8 @@
-/** The HTML report style sheet. The UI ships the same rules as a CSS file. */
+/**
+ * The HTML report style sheet. The UI ships the same rules as a CSS file. Below 48rem
+ * (320 CSS px, or 200% zoom of a usual window) tables wrap their cells so the page never
+ * scrolls sideways. The report's CSP hashes this text (reportCsp), so it follows any change.
+ */
 export const REPORT_STYLE = `
 :root { color-scheme: light; --ink: #1b1b1b; --muted: #4a4a4a; --line: #c9c9c9; --bg: #ffffff;
   --panel: #f4f4f2; --fail: #a4161a; --review: #7a4b00; --link: #0b4f9c; }
@@ -34,4 +38,8 @@ dt { font-weight: 700; margin-top: 0.75rem; }
 dd { margin-left: 0; }
 .disclaimer { border: 2px solid var(--ink); padding: 1rem; font-weight: 700; }
 a { color: var(--link); }
+@media (max-width: 48rem) {
+  table { table-layout: fixed; }
+  th, td { overflow-wrap: anywhere; padding: 0.3rem; }
+}
 `;
