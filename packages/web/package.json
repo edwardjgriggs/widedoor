@@ -6,11 +6,24 @@
   "license": "Apache-2.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./egress": {
+      "types": "./dist/egress/index.d.ts",
+      "default": "./dist/egress/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "dependencies": {
     "@axe-core/playwright": "4.14.0",
     "@widedoor/core": "0.1.0",
     "axe-core": "4.14.0",
     "parse5": "8.0.1",
-    "playwright": "1.64.0"
+    "playwright": "1.64.0",
+    "robots-parser": "3.0.1",
+    "undici": "7.30.1"
   }
 }

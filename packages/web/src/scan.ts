@@ -23,6 +23,7 @@ import {
   type AxeTarget,
   type NormalizedPass,
 } from './normalize.js';
+import type { PagePolicy, PageVerdict } from './robots.js';
 import { reviewHashFor } from './review-hash-run.js';
 import { DEFAULT_SITEMAP_LIMITS, loadSitemap, type SitemapLimits } from './sitemap.js';
 import { isPageUrl, normalizeUrl, originOf } from './url.js';
@@ -39,6 +40,8 @@ export const DEFAULT_MAX_PDF_LINKS = 200;
 
 /** Default page cap (spec config `web.crawl.maxPages`). */
 export const DEFAULT_MAX_PAGES = 50;
+/** Floor of the default WebScanOptions.maxPolicySkips. */
+export const MIN_MAX_POLICY_SKIPS = 20;
 
 export type ScanErrorCode =
   | 'unsupported-url'
@@ -63,7 +66,7 @@ export interface ScanError {
 export interface SkippedPage {
   url: string;
   finalUrl: string;
-  reason: 'redirect-off-origin';
+  reason: 'redirect-off-origin' | 'robots-disallowed' | 'robots-unreachable' | 'robots-unchecked';
 }
 
 /** A PDF in the web scope, for the caller to fetch (fetchPdf) and scan as a PDF. */
@@ -473,6 +476,22 @@ export interface WebScanOptions extends WebScannerOptions {
   signal?: AbortSignal;
   /** Told when a page starts and when it is done: pages done, pages known so far (at most maxPages), and the page started. */
   onProgress?: (progress: ScanProgress) => void;
+  /**
+   * Asked before each page is requested (listed, sitemap or crawled). A page
+   * it answers anything but 'scan' for is never requested: it is recorded in
+   * `skipped` and spends no page of the cap. After a page is scanned, its final
+   * URL is asked too; if that is refused the page, its findings and its assets
+   * are dropped (the request itself still happened: Chromium follows redirect
+   * hops without Playwright seeing them). Must not reject; if it does, the page
+   * is recorded as a scan error. Unset (local and CLI scans): every page is scanned.
+   */
+  pagePolicy?: PagePolicy;
+  /**
+   * Pages the policy may skip before the scan stops claiming pages and following
+   * links (a hostile site could list endless disallowed URLs). Default 4 times
+   * maxPages, at least 20, when pagePolicy is set; the stop is recorded as a scope gap.
+   */
+  maxPolicySkips?: number;
 }
 
 /** How far a scan is: assets done, assets known so far, and the one just started. */
@@ -488,7 +507,7 @@ export interface WebScanResult {
   assets: Asset[];
   findings: Finding[];
   errors: ScanError[];
-  /** Pages that redirected off-origin and were not scanned. */
+  /** Pages that redirected off-origin or that robots.txt disallows, and were not scanned. */
   skipped: SkippedPage[];
   /**
    * PDFs in scope (by URL, by link, or served as application/pdf to the
@@ -581,6 +600,7 @@ export async function scanWeb(
   };
   seeds.forEach(enqueue);
   const enqueueLinks = (links: readonly string[]) => {
+    if (policyStopped) return;
     let pdfs = 0;
     for (const link of links) {
       if (!follow(link)) continue;
@@ -593,7 +613,24 @@ export async function scanWeb(
     }
   };
 
-  const { signal, onProgress } = options;
+  const { signal, onProgress, pagePolicy } = options;
+  const maxPolicySkips = options.maxPolicySkips ?? Math.max(MIN_MAX_POLICY_SKIPS, 4 * maxPages);
+  const policySkipped: SkippedPage[] = [];
+  let policyStopped = false;
+  const skipByPolicy = (skip: SkippedPage) => {
+    policySkipped.push(skip);
+    if (policySkipped.length >= maxPolicySkips) policyStopped = true;
+  };
+  // A policy that rejects fails the page it was asked about, not the scan.
+  const askPolicy = async (u: string): Promise<{ verdict: PageVerdict } | { failure: unknown }> => {
+    try {
+      return { verdict: await (pagePolicy as PagePolicy)(u) };
+    } catch (e) {
+      return { failure: e };
+    }
+  };
+  const policyFailed = (u: string, e: unknown) =>
+    errors.push({ uri: u, code: 'scan-failed', message: `page policy failed: ${firstLine(e)}` });
   signal?.throwIfAborted();
   const scanner = await WebScanner.launch(options);
   // Closing the browser ends every page in flight; the loop starts no other.
@@ -613,6 +650,7 @@ export async function scanWeb(
     for (;;) {
       while (
         pending.size < concurrency &&
+        !policyStopped &&
         claimed < maxPages &&
         queue.length > 0 &&
         !signal?.aborted
@@ -620,11 +658,39 @@ export async function scanWeb(
         const url = queue.shift() as string;
         // Already scanned as another URL's redirect target: do not spend a page on it.
         if (assetUris.has(url)) continue;
+        // Asked before the page is claimed or requested; a skipped page costs no page of the cap.
+        if (pagePolicy) {
+          const asked = await askPolicy(url);
+          if (signal?.aborted) break;
+          if ('failure' in asked) {
+            policyFailed(url, asked.failure);
+            continue;
+          }
+          if (asked.verdict !== 'scan') {
+            skipByPolicy({ url, finalUrl: url, reason: asked.verdict });
+            continue;
+          }
+        }
         const order = claimed++;
         progress(url);
         const task: Promise<void> = scanner
           .scanPage(url, { allowOffOriginRedirect: crossOrigin })
-          .then((scan) => {
+          .then(async (scan) => {
+            // Chromium followed any redirect before we could ask: judge where the page ended up.
+            if (pagePolicy && scan.asset && scan.asset.uri !== url) {
+              const asked = await askPolicy(scan.asset.uri);
+              if ('failure' in asked) {
+                policyFailed(scan.asset.uri, asked.failure);
+                seen.add(scan.asset.uri);
+                return;
+              }
+              if (asked.verdict !== 'scan') {
+                seen.add(scan.asset.uri);
+                skipByPolicy({ url, finalUrl: scan.asset.uri, reason: asked.verdict });
+                progress();
+                return;
+              }
+            }
             pages.push({ order, scan });
             // Already a page of the scan, so no PDF cap applies.
             if (scan.servedPdf) pdfs.push({ url, listed: listed.has(url) });
@@ -671,6 +737,11 @@ export async function scanWeb(
     findings.push(...scan.findings);
     result.push(scan);
   }
+  skipped.push(...policySkipped);
+  if (policyStopped)
+    scopeGaps.push(
+      `the scan stopped after ${maxPolicySkips} pages were skipped by the page policy (robots.txt); the rest were not checked`,
+    );
   if (pdfOverPage > 0)
     scopeGaps.push(
       `${pdfOverPage} PDF link(s) were not scanned: at most ${maxPdfPerPage} are taken from one page`,
@@ -680,7 +751,8 @@ export async function scanWeb(
       `${pdfOverRun} PDF link(s) were not scanned: at most ${maxPdfLinks} are scanned per run`,
     );
   const unscannedListed = new Set(queue.filter((u) => listed.has(u))).size;
-  if (unscannedListed > 0)
+  // When the policy stopped the scan, its own scope gap says why; the count still feeds the exit code.
+  if (unscannedListed > 0 && !policyStopped)
     scopeGaps.push(
       `${unscannedListed} listed page(s) were not scanned: at most ${maxPages} pages are scanned per run`,
     );

@@ -1,5 +1,5 @@
 import { gunzipSync } from 'node:zlib';
-import { createFetcher, type Fetcher } from './fetch.js';
+import { createFetcher, EgressRefusedError, readCapped, type Fetcher } from './fetch.js';
 import { normalizeUrl, originOf } from './url.js';
 
 /*
@@ -192,7 +192,15 @@ async function fetchCapped(
   url: string,
   limits: SitemapLimits,
 ): Promise<Uint8Array> {
-  const { response } = await fetcher(url, { signal: AbortSignal.timeout(limits.timeoutMs) });
+  let response: Response;
+  try {
+    ({ response } = await fetcher(url, { signal: AbortSignal.timeout(limits.timeoutMs) }));
+  } catch (e) {
+    // A refused hop (a redirect to a private host, say) is a sitemap failure, not a crash.
+    if (e instanceof EgressRefusedError)
+      throw new SitemapError(`sitemap ${url} was refused: ${e.message}`);
+    throw e;
+  }
   if (!response.ok) {
     await response.body?.cancel();
     throw new SitemapError(`sitemap ${url} returned HTTP ${response.status}`);
@@ -202,25 +210,14 @@ async function fetchCapped(
     await response.body?.cancel();
     throw new SitemapError(`sitemap ${url} is larger than ${limits.maxBytes} bytes`);
   }
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  let cap = limits.maxBytes;
-  const reader = response.body?.getReader();
-  if (!reader) return new Uint8Array();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (total === 0 && isGzip(value)) cap = limits.maxCompressedBytes;
-    total += value.byteLength;
-    if (total > cap) {
-      await reader.cancel();
-      throw new SitemapError(
-        `${cap === limits.maxBytes ? 'sitemap' : 'gzip sitemap'} ${url} is larger than ${cap} bytes`,
-      );
-    }
-    chunks.push(value);
-  }
-  return Buffer.concat(chunks);
+  const { bytes, over, cap } = await readCapped(response, (first) =>
+    isGzip(first) ? limits.maxCompressedBytes : limits.maxBytes,
+  );
+  if (over)
+    throw new SitemapError(
+      `${cap === limits.maxBytes ? 'sitemap' : 'gzip sitemap'} ${url} is larger than ${cap} bytes`,
+    );
+  return bytes;
 }
 
 /**

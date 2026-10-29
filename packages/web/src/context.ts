@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -56,6 +57,8 @@ export interface HardeningOptions {
    * and screenshots of signed-in pages hold the user's data.
    */
   storageState?: string;
+  /** Context user agent. The hosted scanner sets one that names Widedoor and a contact URL. */
+  userAgent?: string;
 }
 
 export interface LaunchOptions {
@@ -65,6 +68,11 @@ export interface LaunchOptions {
    * start; the scan records a warning.
    */
   unsafeNoSandbox?: boolean;
+  /**
+   * Egress proxy for all browser traffic (hosted scans). Also switches off the browser
+   * features that could reach the network around it.
+   */
+  proxy?: { server: string };
 }
 
 export class SandboxUnavailableError extends Error {
@@ -81,9 +89,44 @@ export class SandboxUnavailableError extends Error {
   }
 }
 
+/**
+ * The proxy host for `--host-resolver-rules`, brackets removed (Chromium matches the bare
+ * address; `EXCLUDE [::1]` matches nothing). A name would need resolving, and every name is
+ * made NOTFOUND, so only an IP literal can work.
+ */
+function proxyHost(server: string): string {
+  let host: string;
+  try {
+    host = new URL(server).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    throw new Error('the egress proxy server must be a URL such as http://127.0.0.1:3128');
+  }
+  if (isIP(host) === 0)
+    throw new Error('the egress proxy server must use an IP address, not a name');
+  return host;
+}
+
+/**
+ * With a proxy: `<-loopback>` empties Chromium's implicit bypass, which would otherwise let
+ * a page reach 127.0.0.1 directly; loopback then goes through the proxy and is refused.
+ * QUIC, WebRTC UDP and DNS over HTTPS are paths that skip an HTTP proxy. The resolver rules
+ * make every host name NOTFOUND inside Chromium (except the proxy IP), so dns-prefetch,
+ * preconnect and DoH probes cannot reach the container resolver; the proxy resolves names.
+ */
 export const chromiumLaunchOptions = (options: LaunchOptions = {}) => ({
   headless: true,
   chromiumSandbox: options.unsafeNoSandbox !== true,
+  ...(options.proxy !== undefined
+    ? {
+        proxy: { server: options.proxy.server, bypass: '<-loopback>' },
+        args: [
+          '--disable-quic',
+          '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+          '--disable-features=DnsOverHttps',
+          `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE ${proxyHost(options.proxy.server)}`,
+        ],
+      }
+    : {}),
 });
 
 /** Launches Chromium with its sandbox on, failing closed when the sandbox cannot start. */
@@ -134,6 +177,7 @@ export async function createHardenedContext(
     viewport: { ...DESKTOP_VIEWPORT },
     acceptDownloads: false,
     serviceWorkers: 'block',
+    ...(options.userAgent !== undefined ? { userAgent: options.userAgent } : {}),
     ...(options.storageState !== undefined ? { storageState: options.storageState } : {}),
   });
   const fileRoot = options.fileRoot === undefined ? undefined : resolve(options.fileRoot);
