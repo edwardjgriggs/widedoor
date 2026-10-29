@@ -277,6 +277,12 @@ function FindingItem({
 const skipNote = (s: Skipped) =>
   s.reason === 'pdf-url' ? (
     TEXT.pdfUrlSkip
+  ) : s.reason === 'robots-unchecked' ? (
+    TEXT.robotsUncheckedSkip
+  ) : s.reason === 'robots-unreachable' ? (
+    TEXT.robotsUnreachableSkip
+  ) : s.reason === 'robots-disallowed' ? (
+    TEXT.robotsSkip
   ) : (
     <>
       Not scanned: it went to <Uri value={s.finalUri} /> ({t(s.reason)})
@@ -288,6 +294,21 @@ const skipItem = (s: Skipped) =>
     <>
       <Uri value={s.uri} />
       {TEXT.pdfUrlItem}
+    </>
+  ) : s.reason === 'robots-unchecked' ? (
+    <>
+      <Uri value={s.uri} />
+      {TEXT.robotsUncheckedItem}
+    </>
+  ) : s.reason === 'robots-unreachable' ? (
+    <>
+      <Uri value={s.uri} />
+      {TEXT.robotsUnreachableItem}
+    </>
+  ) : s.reason === 'robots-disallowed' ? (
+    <>
+      <Uri value={s.uri} />
+      {TEXT.robotsItem}
     </>
   ) : (
     <>
@@ -327,8 +348,9 @@ function Assets({
       );
     const id = `asset-${i + 1}`;
     const title = titles.get(uri);
+    // Named by title and URI: pages often share a title, and each landmark needs its own name.
     return (
-      <section key={id} aria-labelledby={id}>
+      <section key={id} aria-labelledby={title === undefined ? id : `${id} ${id}-uri`}>
         {title === undefined ? (
           <h3 id={id} className="uri">
             {t(uri)}
@@ -336,7 +358,9 @@ function Assets({
         ) : (
           <>
             <h3 id={id}>{title === '' ? TEXT.emptyTitle : t(title)}</h3>
-            <p className="uri">{t(uri)}</p>
+            <p className="uri" id={`${id}-uri`}>
+              {t(uri)}
+            </p>
           </>
         )}
         <p className="lead">
