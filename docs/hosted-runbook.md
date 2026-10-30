@@ -318,10 +318,14 @@ Success: an empty list. If it lists any address, release it _(`fly ips release`,
 
 From check 2's scan, in `fly logs -a widedoor-scan`:
 
-- **iptables loads.** The entry stops with `entry_failed step=firewall_rules`, `step=iptables`
-  or `step=ip6tables` if the rules cannot be built or loaded (Debian's `iptables` uses the
-  kernel's nftables; Fly announced nftables support in its forum, not its docs). A scan that
-  reached done got past them.
+- **The nftables ruleset loads.** The entry stops with `entry_failed step=firewall_rules` if the
+  rules cannot be built, `step=nftables` if `nft -f` cannot load them, and
+  `step=nftables_verify` if `nft list table inet widedoor` fails or does not show `policy drop`
+  on the input, forward and output chains. A scan that reached done got past them. The rules
+  are native nftables (`meta skuid`, `ct original`) because Fly's kernel (`6.12.114-fly`) has no
+  xt owner match: on 2026-10-29 every iptables `-m owner` rule failed to load
+  (`Extension owner revision 0 not supported`) and the entry stopped at `step=iptables`,
+  before any scan ran.
 - **The `/.fly/api` lock holds.** If the socket exists and cannot be locked to root (socket
   0600, folder 0700), the entry stops with `entry_failed step=fly_api`.
 - **IPv6 over the 6PN works under the firewall.** The agent reached the API's control listener,
@@ -365,7 +369,8 @@ The console stays connected: the firewall lets established connections through. 
   loaded, and root reached the control listener over IPv6 (the API answers 404 for an unknown
   job, and logs `control_refused route=input reason=unauthorized`).
   `agent_input_unavailable` with no status means it could not reach it: a failure.
-- `iptables -S` and `ip6tables -S`: the rules are loaded (policy DROP on every chain).
+- `nft list ruleset`: `table inet widedoor` is loaded, with `policy drop` on its input, forward
+  and output chains (the scan image has no iptables).
 - `stat -c '%U %a' /.fly /.fly/api`: `root 700` and `root 600`, if they exist.
 - `awk '$8 ~ /^@/' /proc/net/unix`: abstract sockets. Any listed is reachable by uid 10001, since
   abstract sockets have no file permissions and the firewall does not cover them. None is a

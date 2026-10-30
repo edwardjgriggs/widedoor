@@ -5,7 +5,8 @@
 #   1. Refuse to run as anyone but root.
 #   2. Lock Fly's machine API socket (/.fly/api) to root, if the machine has one.
 #   3. Write the firewall rules (firewall-bin.js resolves the control host while it still
-#      can) and load them whole with iptables-restore and ip6tables-restore.
+#      can), load them whole with `nft -f` (one transaction), and check that the table and
+#      its three drop policies are in the kernel.
 #   4. Start the egress proxy as uid 10002 with an empty environment (never the job
 #      token), its output read by egress-reader-bin.js, and wait for its ready line.
 #   5. Run the agent as a child with the proxy URL; it runs each scan as uid 10001.
@@ -109,8 +110,14 @@ unset WIDEDOOR_AGENT_SAME_USER WIDEDOOR_EGRESS_SAME_USER
 dir=$(mktemp -d) || fail tmp
 env -i PATH="$PATH" WIDEDOOR_CONTROL_URL="${WIDEDOOR_CONTROL_URL:-}" \
   "$NODE" "$HOSTED/firewall-bin.js" "$dir" || fail firewall_rules
-/usr/sbin/iptables-restore <"$dir/rules.v4" || fail iptables
-/usr/sbin/ip6tables-restore <"$dir/rules.v6" || fail ip6tables
+/usr/sbin/nft -f "$dir/rules.nft" || fail nftables
+listed=$(/usr/sbin/nft list table inet widedoor) || fail nftables_verify
+for hook in input forward output; do
+  case "$listed" in
+    *"type filter hook $hook priority filter; policy drop;"*) ;;
+    *) fail nftables_verify ;;
+  esac
+done
 
 # 4. The egress proxy. Its stdout and stderr both go to the reader through a FIFO in the
 # root-only folder, so a compromised proxy can write nothing to the log the reader does

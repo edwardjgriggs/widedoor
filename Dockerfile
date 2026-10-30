@@ -137,18 +137,19 @@ COPY LICENSE NOTICE docker/THIRD-PARTY-NOTICES.txt ./
 
 # The hosted scan machine (docker build --target scan). Its entry runs as root: it loads
 # the firewall, starts the egress proxy as uid 10002 and the agent, which runs each scan
-# as uid 10001 (docker/scan-entry.sh). iptables gives iptables-restore and
-# ip6tables-restore, procps gives the agent's reaper pkill. apt ran after the setuid and
-# setgid strip, so it runs again.
+# as uid 10001 (docker/scan-entry.sh). nftables gives nft, which loads the firewall as
+# native nftables (Fly's kernel has no xt owner match, so iptables' -m owner cannot load
+# there), root only (0700); procps gives the agent's reaper pkill. apt ran after the setuid and setgid
+# strip, so it runs again.
 FROM base AS scan
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
-    && apt-get install -y --no-install-recommends iptables procps \
+    && apt-get install -y --no-install-recommends nftables procps \
     && rm -rf /var/lib/apt/lists/* \
     && test -x /usr/bin/setpriv \
     && test -x /usr/bin/pkill \
-    && test -x /usr/sbin/iptables-restore \
-    && test -x /usr/sbin/ip6tables-restore \
+    && test -x /usr/sbin/nft \
+    && chmod 0700 /usr/sbin/nft \
     && groupadd --gid 10002 egress \
     && useradd --uid 10002 --gid 10002 --no-create-home --home-dir /nonexistent \
        --shell /usr/sbin/nologin egress \

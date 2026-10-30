@@ -38,6 +38,15 @@ All notable changes to Widedoor are listed here. The format follows
   minute (per client network, per control route), each with one count line after the minute;
   each scan machine ends with an `egress_summary` line counting its refusals by reason.
 
+### Fixed
+
+- Hotfix: the scan machine's firewall is now one native nftables ruleset (`table inet widedoor`,
+  `meta skuid` and `ct original`), loaded with `nft -f`, with the same policy as before. Fly's
+  kernel lacks the xt owner match, so the iptables `-m owner` rules failed to load there and no
+  hosted scan could run (seen 2026-10-29; the entry failed closed). The scan image ships
+  `nftables` instead of `iptables`, and the entry's firewall steps (`entry_failed step=...`)
+  are now `nftables` (load) and `nftables_verify` (the table and its drop policies).
+
 ## 0.1.0 (2026-10-26)
 
 The first release, as source: the `v0.1.0` tag on GitHub, used from a clone and by the GitHub

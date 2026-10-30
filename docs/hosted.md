@@ -30,21 +30,23 @@ cannot join a network later.
   never destroys those.
 - **The scan machine's entry** (`docker/scan-entry.sh`) runs as root and fails closed. It locks
   Fly's machine API socket (`/.fly/api`) to root, loads the kernel firewall whole with
-  `iptables-restore` and `ip6tables-restore`, starts the egress proxy as uid 10002 with an empty
-  environment, and runs the agent. The agent holds the job token, fetches the job, and runs the
-  scan as uid 10001 with no token in its environment. After the scan it kills anything left
-  running as uid 10001.
+  `nft -f` (one native nftables ruleset, one transaction) and checks that its drop policies are
+  in the kernel, starts the egress proxy as uid 10002 with an empty environment, and runs the
+  agent. The agent holds the job token, fetches the job, and runs the scan as uid 10001 with no
+  token in its environment. After the scan it kills anything left running as uid 10001.
 - **The egress proxy** (`packages/web/src/egress/proxy.ts`) listens on `127.0.0.1:18080`. Every
   request the scan makes (Chromium's page loads and subresources, robots.txt, sitemaps, PDF
   fetches) goes through it. It resolves each host itself, checks every address against the
   policy below, pins the first good answer for the rest of the scan, and connects to that pinned
   address. CONNECT tunnels go to port 443 only. Refusals get one generic body; the host and the
   reason go only to the log.
-- **The firewall** (`packages/server/src/hosted/firewall.ts`). Every chain drops by default. The
-  scan user reaches only the proxy's port on loopback. The proxy's user reaches DNS at the
-  resolvers and ports 80 and 443 on public addresses, never a blocked range and never the
-  control API. Root reaches the control API and DNS. So even a compromised browser has one way
-  out: the proxy.
+- **The firewall** (`packages/server/src/hosted/firewall.ts`), one `table inet widedoor` for both
+  families. It is native nftables (`meta skuid`, `ct original`) because Fly's kernel has no xt
+  owner match: iptables' `-m owner` rules failed to load there (seen 2026-10-29). Every chain
+  drops by default. The scan user reaches only the proxy's port on loopback. The proxy's user
+  reaches DNS at the resolvers and ports 80 and 443 on public addresses, never a blocked range
+  and never the control API. Root reaches the control API and DNS. So even a compromised
+  browser has one way out: the proxy.
 - **Verify jobs.** A domain verification's DNS TXT check runs on the API (DNS only). Its
   well-known file and meta tag checks run as a verify job: a scan machine like any other, the
   same caps, through the same proxy and firewall, with a 2 minute cap.
