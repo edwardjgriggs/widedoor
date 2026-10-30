@@ -18,7 +18,7 @@ import {
   OutputError,
   prepareOut,
   writeReport,
-  writeSidecar,
+  writeSidecars,
 } from '../src/output.ts';
 
 /*
@@ -91,6 +91,9 @@ describe('prepareOut: ownership marker', () => {
       'report.json',
       'report.sarif',
       '.report.json.0123456789ab.tmp',
+      // Two dots in the format's extension (3b.7 fix round 1 item 5).
+      '.report.vpat.docx.0123456789ab.tmp',
+      '.report.junit.xml.abcdef012345.tmp',
     ])
       writeFileSync(join(out, name), 'old');
     writeFileSync(join(out, 'evidence', 'wd_0123456789abcdef.png'), 'old');
@@ -216,37 +219,76 @@ describe('writeReport', () => {
   });
 });
 
-// Task 3b.7 item 5a: the AI suggestions sidecars.
-describe('writeSidecar', () => {
-  it('writes through a temp file and a rename, leaves no temp file and keeps the report', async () => {
+// Task 3b.7 item 5a and fix round 1 item 6: the AI suggestions sidecars, written as a pair.
+const pair = (tag: string) => ({
+  'ai-suggestions.json': `{"run":"${tag}"}`,
+  'ai-suggestions.html': `<p>${tag}</p>`,
+});
+
+describe('writeSidecars', () => {
+  it('writes both through temp files and renames, leaves no temp file and keeps the report', async () => {
     const { dir, out } = fresh();
     await prepareOut(out, false, [dir]);
     await writeReport(out, 'json', '{"report":1}', false);
-    await writeSidecar(out, 'ai-suggestions.json', '{"a":1}', false, [dir]);
-    await writeSidecar(out, 'ai-suggestions.json', '{"a":2}', false, [dir]);
-    expect(readFileSync(join(out, 'ai-suggestions.json'), 'utf8')).toBe('{"a":2}');
+    await writeSidecars(out, pair('1'), false, [dir]);
+    await writeSidecars(out, pair('2'), false, [dir]);
+    expect(readFileSync(join(out, 'ai-suggestions.json'), 'utf8')).toBe('{"run":"2"}');
+    expect(readFileSync(join(out, 'ai-suggestions.html'), 'utf8')).toBe('<p>2</p>');
     expect(readFileSync(join(out, 'report.json'), 'utf8')).toBe('{"report":1}');
     expect(readdirSync(out).sort()).toEqual(
-      [MARKER, 'ai-suggestions.json', 'evidence', 'report.json'].sort(),
+      [MARKER, ...AI_SIDECARS, 'evidence', 'report.json'].sort(),
     );
   });
 
-  it('creates a missing folder, and refuses a link at the name with the target untouched', async () => {
+  it('never pairs a new JSON with an old HTML when the write stops between them', async () => {
+    const { dir, out } = fresh();
+    await prepareOut(out, false, [dir]);
+    await writeSidecars(out, pair('old'), false, [dir]);
+    const files = {
+      'ai-suggestions.json': '{"run":"new"}',
+      get 'ai-suggestions.html'(): string {
+        throw new Error('stopped');
+      },
+    };
+    await expect(writeSidecars(out, files, false, [dir])).rejects.toThrow('stopped');
+    expect(readFileSync(join(out, 'ai-suggestions.json'), 'utf8')).toBe('{"run":"new"}');
+    expect(existsSync(join(out, 'ai-suggestions.html'))).toBe(false);
+  });
+
+  it('sweeps stale sidecar temps, and leaves a report temp to prepareOut', async () => {
+    const { dir, out } = fresh();
+    await prepareOut(out, false, [dir]);
+    for (const name of [
+      '.ai-suggestions.json.0123456789ab.tmp',
+      '.ai-suggestions.html.abcdef012345.tmp',
+    ])
+      writeFileSync(join(out, name), 'half');
+    writeFileSync(join(out, '.report.json.0123456789ab.tmp'), 'half');
+    await writeSidecars(out, pair('1'), false, [dir]);
+    expect(readdirSync(out).sort()).toEqual(
+      [MARKER, '.report.json.0123456789ab.tmp', ...AI_SIDECARS, 'evidence'].sort(),
+    );
+  });
+
+  it('creates a missing folder, and refuses a link at either name with the target untouched', async () => {
     const t = fresh();
-    await writeSidecar(join(t.dir, 'new'), 'ai-suggestions.html', '<p>x</p>', false, [t.dir]);
-    expect(existsSync(join(t.dir, 'new', 'ai-suggestions.html'))).toBe(true);
-    await prepareOut(t.out, false, [t.dir]);
-    linkToFile(join(t.victim, 'keep.txt'), t.victim, join(t.out, 'ai-suggestions.json'));
-    await expect(
-      writeSidecar(t.out, 'ai-suggestions.json', 'pwned', false, [t.dir]),
-    ).rejects.toThrow(/symbolic link/);
-    untouched(t.victim);
+    await writeSidecars(join(t.dir, 'new'), pair('1'), false, [t.dir]);
+    expect(readdirSync(join(t.dir, 'new')).sort()).toEqual([...AI_SIDECARS].sort());
+    for (const name of AI_SIDECARS) {
+      const out = join(t.dir, `linked-${name}`);
+      await prepareOut(out, false, [t.dir]);
+      linkToFile(join(t.victim, 'keep.txt'), t.victim, join(out, name));
+      await expect(writeSidecars(out, pair('pwned'), false, [t.dir])).rejects.toThrow(
+        /symbolic link/,
+      );
+      untouched(t.victim);
+    }
   });
 
   it('prepareOut clears sidecars and their stale temp files from an earlier run', async () => {
     const { dir, out } = fresh();
     await prepareOut(out, false, [dir]);
-    for (const name of AI_SIDECARS) await writeSidecar(out, name, 'old', false, [dir]);
+    await writeSidecars(out, pair('old'), false, [dir]);
     writeFileSync(join(out, '.ai-suggestions.json.0123456789ab.tmp'), 'half');
     await prepareOut(out, false, [dir]);
     expect(readdirSync(out).sort()).toEqual([MARKER, 'evidence'].sort());

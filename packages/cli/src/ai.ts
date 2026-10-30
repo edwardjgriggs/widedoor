@@ -4,9 +4,11 @@ import type { ScanReport } from '@widedoor/report';
 import {
   AI_SIDECARS,
   UsageError,
-  writeSidecar,
+  writeSidecars,
   type AiConfig,
   type AiSidecar,
+  type AiSuggestionsDoc,
+  type LocalAi,
 } from '@widedoor/server';
 // Types only: erased at build, so loading this module never loads @widedoor/ai (ruling 6).
 import type * as Ai from '@widedoor/ai';
@@ -28,10 +30,14 @@ export type LoadAi = () => Promise<AiModule>;
 /** The only import of @widedoor/ai in the CLI. */
 export const loadAi: LoadAi = () => import('@widedoor/ai');
 
-/** Test seams: the module loader, and a provider in place of the real ones. */
+/** Subscribes to stop signals (Ctrl+C); returns the unsubscribe. The shape of @widedoor/server's onStop. */
+export type StopSubscribe = (onSignal: (signal: string) => void, cleanup: () => void) => () => void;
+
+/** Test seams: the module loader, a provider in place of the real ones, and the stop signals. */
 export interface AiHooks {
   loadAi?: LoadAi;
   provider?: (settings: AiSettings, ai: AiModule) => Ai.FixProvider;
+  onStop?: StopSubscribe;
 }
 
 export const KEY_VARIABLES: Record<AiProviderId, string> = {
@@ -104,7 +110,8 @@ const firstLine = (e: unknown) => String((e as Error)?.message ?? e).split('\n')
  * out.dir, or for a dry run prints exactly what would be sent. Returns the
  * files written. Throws UsageError for a missing key and AiWriteError when
  * a file cannot be written; a provider failure never throws (it is recorded
- * in the document).
+ * in the document). An aborted signal stops new requests; the document is
+ * still written, its unsent groups marked as such.
  */
 export async function runAiSuggestions(
   report: ScanReport,
@@ -112,6 +119,7 @@ export async function runAiSuggestions(
   out: { dir: string; restricted: boolean; roots: readonly string[] },
   io: Io,
   hooks: AiHooks = {},
+  signal?: AbortSignal,
 ): Promise<string[]> {
   const ai = await (hooks.loadAi ?? loadAi)();
   const limits = ai.AiLimitsSchema.parse(settings.limits);
@@ -144,6 +152,7 @@ export async function runAiSuggestions(
     report,
     provider,
     limits,
+    ...(signal ? { signal } : {}),
     // Fixed-shape lines only; the stop line says why a run ended early.
     log: (line) => {
       if (line.startsWith('ai_stop ')) io.err(`widedoor: ${line}`);
@@ -153,18 +162,89 @@ export async function runAiSuggestions(
     'ai-suggestions.json': `${JSON.stringify(doc, null, 2)}\n`,
     'ai-suggestions.html': ai.renderAiSuggestionsHtml(doc),
   };
-  const written: string[] = [];
-  for (const name of AI_SIDECARS) {
-    try {
-      await writeSidecar(out.dir, name, files[name], out.restricted, out.roots);
-    } catch (e) {
-      throw new AiWriteError(scrub(firstLine(e), key));
-    }
-    written.push(join(out.dir, name));
+  try {
+    await writeSidecars(out.dir, files, out.restricted, out.roots);
+  } catch (e) {
+    throw new AiWriteError(scrub(firstLine(e), key));
   }
+  const written = AI_SIDECARS.map((name) => join(out.dir, name));
   const ok = doc.entries.filter((e) => e.status === 'ok').length;
   io.out(
     `AI fix suggestions: ${ok} of ${doc.entries.length} groups got a suggestion (AI-generated: review before use).`,
   );
   return written;
+}
+
+/** The report with only the findings named (all of them when ids is undefined); buildGroups reads only findings and the roll-up. */
+const withFindings = (report: ScanReport, ids: readonly string[] | undefined): ScanReport => {
+  if (ids === undefined) return report;
+  const keep = new Set(ids);
+  return { ...report, findings: report.findings.filter((f) => keep.has(f.id)) };
+};
+
+/**
+ * widedoor ui's AI capability for the local server, or why there is none.
+ * Loads @widedoor/ai only when ai.enabled is set and the provider's key is
+ * there; the server gets an object that suggests, previews and renders, and
+ * never the key (ruling 1). The provider seam is for tests only: no flag,
+ * variable or config key can reach it.
+ */
+export async function localAi(
+  config: AiConfig | undefined,
+  hooks: AiHooks = {},
+): Promise<{ ai: LocalAi } | { unavailable: string }> {
+  let settings: AiSettings | undefined;
+  try {
+    settings = aiSettings({ fixes: false, dryRun: false }, config);
+  } catch (e) {
+    return { unavailable: firstLine(e) };
+  }
+  if (!settings)
+    return { unavailable: 'AI fix suggestions are off: set ai.enabled in widedoor.config.yaml.' };
+  const key = readProviderKey(settings.provider);
+  if (key === undefined && !hooks.provider)
+    return {
+      unavailable: `AI fix suggestions need ${KEY_VARIABLES[settings.provider]} in the environment of widedoor ui.`,
+    };
+  const ai = await (hooks.loadAi ?? loadAi)();
+  const limits = ai.AiLimitsSchema.parse(settings.limits);
+  const chosen = settings;
+  let provider: Ai.FixProvider;
+  if (hooks.provider) provider = hooks.provider(chosen, ai);
+  else if (chosen.provider === 'anthropic')
+    provider = ai.createAnthropicProvider({
+      apiKey: key ?? '',
+      ...(chosen.model !== undefined ? { model: chosen.model } : {}),
+    });
+  else provider = ai.createOpenAiProvider({ apiKey: key ?? '', model: chosen.model ?? '' });
+  return {
+    ai: {
+      provider: chosen.provider,
+      model: provider.model,
+      maxGroups: limits.maxGroups,
+      // The groups come from the findings named; the document still describes the whole report.
+      suggest: async (report, { findingIds, signal }) => {
+        const doc = await ai.suggestFixes({
+          report: withFindings(report, findingIds),
+          provider,
+          limits,
+          signal,
+        });
+        return {
+          ...doc,
+          report: { startedAt: report.startedAt, findings: report.findings.length },
+        };
+      },
+      preview: (report, { findingIds }) => {
+        const p = ai.previewFixes(withFindings(report, findingIds), limits);
+        return {
+          system: p.system,
+          messages: p.messages,
+          estimatedInputTokens: p.estimatedInputTokens,
+          skipped: p.skipped,
+        };
+      },
+      renderHtml: (doc: AiSuggestionsDoc) => ai.renderAiSuggestionsHtml(doc),
+    },
+  };
 }

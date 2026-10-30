@@ -156,4 +156,69 @@ describe('scans and @widedoor/ai', () => {
     },
     TIMEOUT,
   );
+
+  // 3b.7 fix round 1 item 1: Ctrl+C during the AI step.
+  it(
+    'a stop signal during the suggestions aborts them, still writes the document and keeps the scan exit code',
+    async () => {
+      const saved = process.env.ANTHROPIC_API_KEY;
+      process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+      const out = join(tmp, 'ai-stopped');
+      const lines: string[] = [];
+      const io: Io = { out: (l) => void lines.push(l), err: (l) => void lines.push(l), cwd: tmp };
+      // The stop-signal seam: the test fires what Ctrl+C would.
+      let fire: (signal: string) => void = () => undefined;
+      const provider = createFakeProvider(() => {
+        fire('SIGINT');
+        return {
+          status: 'ok',
+          text: JSON.stringify({
+            kind: 'web-patch',
+            summary: 's',
+            patch: '<img alt="x">',
+            notes: null,
+          }),
+          modelAnswered: 'claude-opus-5-5',
+          usage: { inputTokens: 10, outputTokens: 5 },
+        };
+      });
+      let code: number;
+      try {
+        code = await main(
+          ['scan', `${site.origin}/alt-fail.html`, '--out', out, '--ai-fixes', ...sandbox],
+          io,
+          {
+            ai: {
+              provider: () => provider,
+              onStop: (onSignal) => {
+                fire = onSignal;
+                return () => undefined;
+              },
+            },
+          },
+        );
+      } finally {
+        if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
+        else process.env.ANTHROPIC_API_KEY = saved;
+      }
+      // The scan's own code (a fail), not the stop's 2, and no process.exit.
+      expect(code).toBe(1);
+      expect(provider.calls).toHaveLength(1);
+      expect(lines.join('\n')).toContain(
+        'widedoor: interrupted (SIGINT); finishing the suggestions document.',
+      );
+      expect(lines.join('\n')).not.toContain('No report was written');
+      expect(readdirSync(out)).toEqual(
+        expect.arrayContaining(['report.json', 'ai-suggestions.json', 'ai-suggestions.html']),
+      );
+      const doc = JSON.parse(readFileSync(join(out, 'ai-suggestions.json'), 'utf8')) as {
+        entries: { status: string; reason?: string }[];
+      };
+      expect(doc.entries.length).toBeGreaterThan(0);
+      for (const e of doc.entries)
+        expect(e.reason === 'cancelled' || e.status === 'not-sent', JSON.stringify(e)).toBe(true);
+      expect(readdirSync(out).filter((n) => n.endsWith('.tmp'))).toEqual([]);
+    },
+    TIMEOUT,
+  );
 });

@@ -53,7 +53,7 @@ export async function main(
     }
     if (command.command === 'ui') {
       const { runUi } = await import('./ui.js');
-      return await runUi(command, io);
+      return await runUi(command, io, undefined, hooks.ai);
     }
     if (command.command === 'review') {
       const { runReview } = await import('./review-cmd.js');

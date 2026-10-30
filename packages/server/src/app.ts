@@ -16,6 +16,7 @@ import {
   safeText,
 } from '@widedoor/core';
 import { AttachmentLoader, buildAcr, type AcrMeta, type ScanReport } from '@widedoor/report';
+import type { AiAvailability, AiPreview, AiProviderId, AiSuggestionsDoc } from './ai-types.js';
 import { acrMeta } from './config.js';
 import { buildReport, type performScan } from './engine.js';
 import { Jobs } from './jobs.js';
@@ -33,6 +34,7 @@ import {
   RequestError,
   ReviewBodySchema,
   ScanBodySchema,
+  SuggestionsBodySchema,
   hasType,
   readBody,
   readJson,
@@ -111,6 +113,27 @@ const UPLOAD_TYPES: Readonly<Record<UploadKind, readonly string[]>> = {
 };
 const ANY_UPLOAD_TYPE = [...new Set(Object.values(UPLOAD_TYPES).flat())];
 
+/**
+ * AI fix suggestions, given to the local server by the CLI (widedoor ui)
+ * when ai.enabled and a provider key are set. The server never loads
+ * @widedoor/ai or sees a key: it only calls this object (D16, ruling 1).
+ */
+export interface LocalAi {
+  provider: AiProviderId;
+  model: string;
+  /** The most finding ids one request may name (ai.maxGroups). */
+  maxGroups: number;
+  /** Suggests fixes for the report's fails, or only for findingIds; aborted through signal. */
+  suggest(
+    report: ScanReport,
+    options: { findingIds?: readonly string[]; signal: AbortSignal },
+  ): Promise<AiSuggestionsDoc>;
+  /** What suggest would send, without sending anything. */
+  preview(report: ScanReport, options: { findingIds?: readonly string[] }): AiPreview;
+  /** ai-suggestions.html for a document suggest returned. */
+  renderHtml(doc: AiSuggestionsDoc): string;
+}
+
 /** What the server works on; scan jobs and reviews change it. */
 export interface LocalState {
   root: LocalRoot;
@@ -121,7 +144,18 @@ export interface LocalState {
   env: NodeJS.ProcessEnv;
   /** For tests; the real engine otherwise. */
   performScan?: typeof performScan;
+  /** AI fix suggestions, when the CLI turned them on. */
+  ai?: LocalAi;
+  /** Why AI fix suggestions are off, for GET /api/ai. */
+  aiUnavailable?: string;
+  /** The suggestion run in progress; a new scan or the server's close aborts it. */
+  aiRun?: AbortController | undefined;
+  /** The last suggestions, for the current scan's report; a new scan drops them. */
+  aiResult?: AiSuggestionsDoc | undefined;
 }
+
+/** Why AI is off when the CLI gave no reason. */
+export const AI_OFF = 'AI fix suggestions are off.';
 
 export interface LocalAppOptions {
   files: ReadonlyMap<string, StaticFile>;
@@ -310,6 +344,9 @@ export function createLocalApp(options: LocalAppOptions): Hono {
         setCurrent: (current) => {
           const replaced = state.current?.workDir;
           state.current = current;
+          // Suggestions belong to the report they were made for.
+          state.aiResult = undefined;
+          state.aiRun?.abort();
           currentJob = view?.id;
           if (replaced !== undefined && replaced !== current.workDir) void removeWorkDir(replaced);
         },
@@ -318,6 +355,8 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     );
     if (view === undefined)
       return refuse('a scan is already running; wait for it or cancel it', 409);
+    // A new scan stops a suggestion run for the report it will replace.
+    state.aiRun?.abort();
     const { plan, pdfs } = planned;
     log(
       `scan ${view.id} started (${plan.web?.urls.length ?? 0} URLs, ${pdfs.length} uploaded PDFs, ${plan.pdf?.urls.length ?? 0} PDF URLs)`,
@@ -503,6 +542,82 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     return json({ complete, incomplete, undecided });
   });
 
+  // AI fix suggestions: only when the CLI gave the server an AI capability (it holds the key).
+  app.get('/api/ai', () => {
+    const body: AiAvailability = state.ai
+      ? { available: true, provider: state.ai.provider, model: state.ai.model }
+      : { available: false, reason: state.aiUnavailable ?? AI_OFF };
+    return json(body);
+  });
+
+  app.post('/api/suggestions', async (c) => {
+    const ai = state.ai;
+    if (!ai) return text('Not found.', 404);
+    let body;
+    try {
+      body = await readJson(c.req.raw, SuggestionsBodySchema);
+    } catch (e) {
+      if (e instanceof RequestError) return refused(bodyRefusal(e.status), e.message, e.status);
+      throw e;
+    }
+    const current = state.current;
+    if (current === undefined) return refuse('there is no report yet; scan or open one first', 409);
+    const ids = body.findingIds;
+    if (ids !== undefined) {
+      if (ids.length > ai.maxGroups)
+        return refused('schema', `name at most ${ai.maxGroups} findings (ai.maxGroups)`, 400);
+      const known = new Set(current.report.findings.map((f) => f.id));
+      const unknown = ids.find((id) => !known.has(id));
+      if (unknown !== undefined)
+        return refused('schema', `the report has no finding ${unknown}`, 400);
+    }
+    const options = ids !== undefined ? { findingIds: ids } : {};
+    if (body.dryRun) {
+      const preview = ai.preview(current.report, options);
+      return json({ dryRun: true, provider: ai.provider, model: ai.model, ...preview });
+    }
+    if (state.aiRun) return refuse('AI suggestions are already running; wait for them', 409);
+    const run = new AbortController();
+    state.aiRun = run;
+    // A closed tab stops the requests still to be sent; the partial result is not kept.
+    const gone = () => run.abort();
+    c.req.raw.signal.addEventListener('abort', gone, { once: true });
+    try {
+      const doc = await ai.suggest(current.report, { ...options, signal: run.signal });
+      // Kept only for the report it was made for, and only when the run was not stopped.
+      if (!run.signal.aborted && state.current?.report.startedAt === current.report.startedAt)
+        state.aiResult = doc;
+      const ok = doc.entries.filter((e) => e.status === 'ok').length;
+      log(`AI suggestions: ${doc.entries.length} groups, ${ok} with a suggestion`);
+      return json(doc);
+    } finally {
+      c.req.raw.signal.removeEventListener('abort', gone);
+      if (state.aiRun === run) state.aiRun = undefined;
+    }
+  });
+
+  app.get('/api/export/ai-suggestions.json', () => {
+    if (!state.ai || !state.aiResult) return refuse('Not found: no AI suggestions yet.', 404);
+    log('export served (ai-suggestions.json)');
+    return new Response(`${JSON.stringify(state.aiResult, null, 2)}\n`, {
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'content-disposition': 'attachment; filename="ai-suggestions.json"',
+      },
+    });
+  });
+
+  app.get('/api/export/ai-suggestions.html', () => {
+    if (!state.ai || !state.aiResult) return refuse('Not found: no AI suggestions yet.', 404);
+    log('export served (ai-suggestions.html)');
+    return new Response(state.ai.renderHtml(state.aiResult), {
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'content-disposition': 'attachment; filename="ai-suggestions.html"',
+      },
+    });
+  });
+
   app.get('/api/export/:format', async (c) => {
     const format = c.req.param('format') as Format;
     if (!FORMATS.includes(format)) return refuse('Not found: no such export format.', 404);
@@ -575,6 +690,10 @@ export interface LocalServerOptions {
   uploadTimer?: UploadTimer;
   /** For tests; Date.now otherwise. */
   now?: () => number;
+  /** AI fix suggestions (the CLI builds this when ai.enabled and a key are set). */
+  ai?: LocalAi;
+  /** Why AI fix suggestions are off, shown by GET /api/ai. */
+  aiUnavailable?: string;
 }
 
 /** How long close waits for a cancelled scan to stop before it goes on. */
@@ -597,6 +716,8 @@ export async function startLocalServer(options: LocalServerOptions): Promise<UiS
     uploads: await Uploads.create(options.maxHeldUploadBytes, options.uploadTimer),
     env: options.env ?? process.env,
     ...(options.performScan ? { performScan: options.performScan } : {}),
+    ...(options.ai ? { ai: options.ai } : {}),
+    ...(options.aiUnavailable !== undefined ? { aiUnavailable: options.aiUnavailable } : {}),
   };
   let port = 0;
   const app = createLocalApp({
@@ -660,6 +781,7 @@ export async function startLocalServer(options: LocalServerOptions): Promise<UiS
         server.close(() => done());
       });
       state.jobs.abort();
+      state.aiRun?.abort();
       let timer: NodeJS.Timeout | undefined;
       await Promise.race([
         state.jobs.idle(),

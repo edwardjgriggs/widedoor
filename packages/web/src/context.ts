@@ -10,7 +10,7 @@ import {
   type Request,
   type Route,
 } from 'playwright';
-import type { Viewport } from '@widedoor/core';
+import { withoutProviderEnv, type Viewport } from '@widedoor/core';
 
 /** Desktop viewport for the main pass (spec: 1280x800). */
 export const DESKTOP_VIEWPORT: Readonly<Viewport> = { width: 1280, height: 800 };
@@ -113,9 +113,14 @@ function proxyHost(server: string): string {
  * make every host name NOTFOUND inside Chromium (except the proxy IP), so dns-prefetch,
  * preconnect and DoH probes cannot reach the container resolver; the proxy resolves names.
  */
-export const chromiumLaunchOptions = (options: LaunchOptions = {}) => ({
+export const chromiumLaunchOptions = (
+  options: LaunchOptions = {},
+  env: NodeJS.ProcessEnv = process.env,
+) => ({
   headless: true,
   chromiumSandbox: options.unsafeNoSandbox !== true,
+  // Provider keys stay in the CLI process: Chromium and its children never get one.
+  env: withoutProviderEnv(env),
   ...(options.proxy !== undefined
     ? {
         proxy: { server: options.proxy.server, bypass: '<-loopback>' },

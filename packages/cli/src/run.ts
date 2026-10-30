@@ -22,7 +22,10 @@ import type { Io } from './main.js';
  * stop signal cancels the scan through performScan's signal, which kills its
  * processes and removes its containers, and exits 2 with no report written.
  * With AI on, suggestions run after the reports are written and the summary
- * printed; whatever happens to them, the exit code is the scan's.
+ * printed; whatever happens to them, the exit code is the scan's. A stop
+ * signal then no longer exits: it aborts the suggestions, whose document is
+ * still written, and the scan's exit code is returned. A second one exits
+ * at once with that code.
  */
 export async function runScan(
   plan: ScanPlan,
@@ -32,9 +35,22 @@ export async function runScan(
   ai?: { settings: AiSettings; hooks: AiHooks },
 ): Promise<number> {
   const stop = new AbortController();
+  // Set once the reports are written and the AI step starts, with the scan's exit code.
+  let suggesting: { stop: AbortController; code: number } | undefined;
   let stopping = false;
-  const dispose = onStop(
+  const dispose = (ai?.hooks.onStop ?? onStop)(
     (signal) => {
+      if (suggesting) {
+        if (!suggesting.stop.signal.aborted) {
+          io.err(
+            `widedoor: interrupted (${signal}); finishing the suggestions document. The reports are written. Press Ctrl+C again to stop now.`,
+          );
+          suggesting.stop.abort();
+          return;
+        }
+        dispose();
+        process.exit(suggesting.code);
+      }
       if (stopping) return;
       stopping = true;
       io.err(`widedoor: interrupted (${signal}); stopping the scan. No report was written.`);
@@ -42,7 +58,10 @@ export async function runScan(
       stop.abort();
       process.exit(EXIT_ERROR);
     },
-    () => stop.abort(),
+    () => {
+      stop.abort();
+      suggesting?.stop.abort();
+    },
   );
   try {
     const restricted = isRestricted(plan);
@@ -95,6 +114,7 @@ export async function runScan(
       io,
     );
     if (ai) {
+      suggesting = { stop: new AbortController(), code: decision.code };
       try {
         const written = await runAiSuggestions(
           report,
@@ -102,6 +122,7 @@ export async function runScan(
           { dir: plan.out, restricted, roots: plan.outRoots },
           io,
           ai.hooks,
+          suggesting.stop.signal,
         );
         for (const file of written) io.out(`Wrote ${safeText(file, 1000)}`);
       } catch (e) {

@@ -1,10 +1,12 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -21,6 +23,7 @@ import {
 } from '@widedoor/ai';
 import { main, type Io, type MainHooks } from '../src/main.ts';
 import type { AiModule } from '../src/ai.ts';
+import { reportIsPrivate } from '../src/suggest-cmd.ts';
 import { ROOT } from './helpers.ts';
 
 /*
@@ -119,7 +122,11 @@ const answer = (summary: string): ProviderAnswer => ({
   usage: { inputTokens: 10, outputTokens: 5 },
 });
 
-/** main's seams: a fake provider, and a loader that counts loads of @widedoor/ai. */
+/**
+ * main's seams: a fake provider, a loader that counts loads of @widedoor/ai,
+ * and stop signals that never fire. The real onStop would add process signal
+ * handlers and, when removed, unref the IPC channel, which ends a test worker.
+ */
 function seams(script: (user: string) => ProviderAnswer = () => answer('Add alt text.')) {
   const provider = createFakeProvider(script, { model: 'claude-opus-5-5' });
   let loads = 0;
@@ -130,6 +137,7 @@ function seams(script: (user: string) => ProviderAnswer = () => answer('Add alt 
         loads++;
         return (await import('@widedoor/ai')) as AiModule;
       },
+      onStop: () => () => undefined,
     },
   };
   return { hooks, provider, loads: () => loads };
@@ -213,6 +221,20 @@ describe('scan with AI, before any scan starts', () => {
     ]) {
       const r = io(root);
       expect(await main(argv, r.io), argv.join(' ')).toBe(2);
+    }
+  });
+
+  // 3b.7 fix round 1 item 2: a key pasted as the model (CWE-532).
+  it('refuses a key-shaped --ai-model with the environment message, never echoing it', async () => {
+    for (const model of ['sk-proj-SECRETabc123', 'sk-ant-api03-SECRET-x1', 'sk-SECRET1']) {
+      for (const command of [['scan'], ['suggest', '--report', 'r.json']]) {
+        const r = io(root);
+        expect(await main([...command, '--ai-model', model], r.io), model).toBe(2);
+        expect(r.err.join('\n')).toContain(
+          'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file',
+        );
+        expect([...r.out, ...r.err].join('\n')).not.toContain('SECRET');
+      }
     }
   });
 });
@@ -335,6 +357,73 @@ describe('widedoor suggest', () => {
     expect(await main(['suggest', '--report', file], io(dir).io, s.hooks)).toBe(0);
     const doc = JSON.parse(readFileSync(join(dir, 'ai-suggestions.json'), 'utf8'));
     expect(doc.entries.every((e: { status: string }) => e.status === 'error')).toBe(true);
+  });
+
+  // 3b.7 fix round 1 item 1: Ctrl+C during suggest.
+  it('a stop signal aborts the requests, still writes both files and exits 0', async () => {
+    const { dir, file } = reportFolder();
+    // One request at a time, so the second group is never sent.
+    writeFileSync(join(dir, 'widedoor.config.yaml'), 'ai:\n  concurrency: 1\n');
+    process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+    let fire: (signal: string) => void = () => undefined;
+    const s = seams(() => {
+      fire('SIGINT');
+      return answer('Add alt text.');
+    });
+    const hooks: MainHooks = {
+      ai: {
+        ...s.hooks.ai,
+        onStop: (onSignal) => {
+          fire = onSignal;
+          return () => undefined;
+        },
+      },
+    };
+    const r = io(dir);
+    expect(await main(['suggest', '--report', file], r.io, hooks)).toBe(0);
+    expect(s.provider.calls).toHaveLength(1);
+    expect(r.err.join('\n')).toContain(
+      'widedoor: interrupted (SIGINT); finishing the suggestions document.',
+    );
+    const doc = JSON.parse(readFileSync(join(dir, 'ai-suggestions.json'), 'utf8')) as {
+      entries: { status: string; reason?: string }[];
+    };
+    expect(doc.entries.map((e) => [e.status, e.reason])).toEqual([
+      ['error', 'cancelled'],
+      ['not-sent', 'cancelled'],
+    ]);
+    expect(existsSync(join(dir, 'ai-suggestions.html'))).toBe(true);
+    expect(readdirSync(dir).filter((n) => n.endsWith('.tmp'))).toEqual([]);
+  });
+});
+
+// 3b.7 fix round 1 item 3: suggest keeps a private report's privacy (CWE-732).
+describe('reportIsPrivate', () => {
+  const mode = (m: number) => () => ({ mode: 0o100000 | m });
+  it('is true on POSIX for a report with no group or other bits', () => {
+    expect(reportIsPrivate('r.json', mode(0o600), 'linux')).toBe(true);
+    expect(reportIsPrivate('r.json', mode(0o400), 'darwin')).toBe(true);
+    expect(reportIsPrivate('r.json', mode(0o640), 'linux')).toBe(false);
+    expect(reportIsPrivate('r.json', mode(0o604), 'linux')).toBe(false);
+    expect(reportIsPrivate('r.json', mode(0o644), 'linux')).toBe(false);
+  });
+
+  it('is false on Windows, whose modes carry no such bits', () => {
+    expect(reportIsPrivate('r.json', mode(0o600), 'win32')).toBe(false);
+  });
+
+  it('makes suggest write private sidecars and folder on POSIX', async () => {
+    if (process.platform === 'win32') return;
+    const { dir, file } = reportFolder();
+    chmodSync(file, 0o600);
+    process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+    const out = join(dir, 'private-out');
+    expect(await main(['suggest', '--report', file, '--out', out], io(dir).io, seams().hooks)).toBe(
+      0,
+    );
+    expect(statSync(out).mode & 0o777).toBe(0o700);
+    for (const name of ['ai-suggestions.json', 'ai-suggestions.html'])
+      expect(statSync(join(out, name)).mode & 0o777).toBe(0o600);
   });
 });
 

@@ -28,8 +28,10 @@ const EXTENSION: Record<Format, string> = {
 export const MARKER = '.widedoor-report';
 const MARKER_TEXT =
   'This folder holds Widedoor reports. Each scan clears the report files and evidence/ here.\n';
-/** Temp files left by an interrupted write (see writeFileReplacing). */
-const STALE_TEMP = /^\.(?:report\.\w+|ai-suggestions\.(?:json|html))\.[0-9a-f]{12}\.tmp$/;
+/** Temp files left by an interrupted write (see writeFileReplacing); report.vpat.docx has two dots. */
+const STALE_TEMP = /^\.(?:report\.[\w.]+|ai-suggestions\.(?:json|html))\.[0-9a-f]{12}\.tmp$/;
+/** The same, for the sidecars only: writeSidecars sweeps these and leaves a report's alone. */
+const STALE_SIDECAR_TEMP = /^\.ai-suggestions\.(?:json|html)\.[0-9a-f]{12}\.tmp$/;
 
 /** The AI suggestions sidecar files (@widedoor/ai writes them through the CLI; the server never loads it). */
 export const AI_SIDECARS = ['ai-suggestions.json', 'ai-suggestions.html'] as const;
@@ -171,15 +173,16 @@ export async function writeReport(
 }
 
 /**
- * Writes one AI suggestions sidecar into a report folder without following
- * links and without clearing anything: the folder is created when missing
- * (its components checked against the roots, as prepareOut does), and an
- * existing report beside it is left as it is.
+ * Writes the two AI suggestions sidecars into a report folder without
+ * following links: the folder is created when missing (its components
+ * checked against the roots, as prepareOut does), and a report beside them
+ * is left as it is. Stale sidecar temps and both old sidecars are removed
+ * first, so an interrupted write leaves at most a new JSON without its HTML,
+ * never a new file beside an old one.
  */
-export async function writeSidecar(
+export async function writeSidecars(
   out: string,
-  name: AiSidecar,
-  data: string,
+  files: Record<AiSidecar, string>,
   restricted: boolean,
   roots: readonly string[],
 ) {
@@ -189,6 +192,11 @@ export async function writeSidecar(
     await checkComponents(out, roots);
     if (!(await checkFolder(out))) throw new OutputError(`${out} cannot be created`);
   }
-  await checkFileName(join(out, name));
-  await writeFileReplacing(out, name, data, restricted ? 0o600 : 0o644);
+  for (const name of AI_SIDECARS) await checkFileName(join(out, name));
+  for (const name of await readdir(out))
+    if (STALE_SIDECAR_TEMP.test(name) && (await statOf(join(out, name)))?.isFile())
+      await rm(join(out, name), { force: true });
+  for (const name of AI_SIDECARS) await rm(join(out, name), { force: true });
+  for (const name of AI_SIDECARS)
+    await writeFileReplacing(out, name, files[name], restricted ? 0o600 : 0o644);
 }

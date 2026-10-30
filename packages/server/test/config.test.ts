@@ -149,6 +149,28 @@ describe('loadConfig', () => {
       expect(problems(yaml('ai:', '  apiKey: sk-ant-SECRET')).join(' ')).not.toContain('SECRET');
     });
 
+    // 3b.7 fix round 1 item 2: a key pasted into ai.model (CWE-532).
+    it('refuses a key-shaped model with the environment message, never echoing it', () => {
+      const KEY_MESSAGE =
+        'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+      for (const model of [
+        'sk-proj-SECRETabc123def456',
+        'sk-ant-api03-SECRET-x1y2z3',
+        'sk-SECRET123',
+        'sk_live_SECRET',
+        'SECRETa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+        'my-token-SECRET',
+      ]) {
+        const found = problems(yaml('ai:', `  model: ${model}`)).join(' | ');
+        expect(found, model).toContain(KEY_MESSAGE);
+        expect(found, model).not.toContain('SECRET');
+      }
+      for (const model of ['claude-opus-5-5', 'gpt-5.5', 'claude-3-5-sonnet-20241022', 'o4-mini'])
+        expect(loadConfig(configFile(yaml('ai:', `  model: ${model}`))).config.ai?.model).toBe(
+          model,
+        );
+    });
+
     it('holds the model to its characters and the limits to their ranges', () => {
       for (const line of [
         '  model: "bad model"',

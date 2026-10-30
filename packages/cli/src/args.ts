@@ -7,12 +7,14 @@ import {
   type ManualOutcome,
 } from '@widedoor/core';
 import {
+  AI_KEY_IN_CONFIG,
   FAIL_ON,
   FORMATS,
   MAX_CONCURRENCY,
   MAX_MEMORY_MB,
   MIN_MEMORY_MB,
   UsageError,
+  keyShapedModel,
   type Format,
   type PlanArgs,
 } from '@widedoor/server';
@@ -381,6 +383,8 @@ function aiFlags(values: Values): Omit<AiFlags, 'fixes'> {
   if (typeof provider === 'string') flags.provider = oneOf('--ai-provider', provider, AI_PROVIDERS);
   const model = values['ai-model'];
   if (typeof model === 'string') {
+    // A pasted key: refused without echoing it, before any other check.
+    if (keyShapedModel(model)) throw new UsageError(AI_KEY_IN_CONFIG);
     if (!MODEL_ID.test(model))
       throw new UsageError('--ai-model must be 1 to 100 letters, digits, ".", "_", ":" or "-"');
     flags.model = model;

@@ -173,7 +173,11 @@ const hitsOf = (server: TestServer, path: string) =>
 
 describe('sandbox', () => {
   it('maps unsafeNoSandbox to the Chromium sandbox flag', () => {
-    expect(chromiumLaunchOptions()).toEqual({ headless: true, chromiumSandbox: true });
+    expect(chromiumLaunchOptions()).toEqual({
+      headless: true,
+      chromiumSandbox: true,
+      env: expect.any(Object),
+    });
     expect(chromiumLaunchOptions({ unsafeNoSandbox: true }).chromiumSandbox).toBe(false);
   });
 

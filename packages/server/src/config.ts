@@ -103,6 +103,15 @@ function keyShapedPaths(value: unknown, path: (string | number)[] = []): (string
   });
 }
 
+/**
+ * Whether a model id looks like a pasted key: an sk- or sk_ prefix, a
+ * credential word (the field-name test above), or a long run of letters and
+ * digits with no separator, which no model id has. Refused with
+ * AI_KEY_IN_CONFIG, which never echoes the value.
+ */
+export const keyShapedModel = (model: string) =>
+  /^sk[-_]/i.test(model) || KEY_SHAPED.test(model) || /[A-Za-z0-9]{32,}/.test(model);
+
 const aiLimit = (name: keyof typeof AI_LIMIT_RANGES) =>
   z.int().min(AI_LIMIT_RANGES[name].min).max(AI_LIMIT_RANGES[name].max).optional();
 
@@ -123,6 +132,7 @@ export const AiConfigSchema = z
       provider: z.enum(['anthropic', 'openai']).optional(),
       model: z
         .string()
+        .refine((m) => !keyShapedModel(m), { message: AI_KEY_IN_CONFIG, abort: true })
         .regex(/^[A-Za-z0-9._:-]{1,100}$/, 'must be 1 to 100 letters, digits, ".", "_", ":" or "-"')
         .optional(),
       maxGroups: aiLimit('maxGroups'),

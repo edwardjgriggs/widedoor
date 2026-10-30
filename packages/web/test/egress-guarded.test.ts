@@ -176,11 +176,34 @@ describe('createProxiedFetcher', () => {
 
 describe('chromiumLaunchOptions', () => {
   it('is unchanged without a proxy', () => {
-    expect(chromiumLaunchOptions()).toEqual({ headless: true, chromiumSandbox: true });
+    expect(chromiumLaunchOptions()).toEqual({
+      headless: true,
+      chromiumSandbox: true,
+      env: expect.any(Object),
+    });
     expect(chromiumLaunchOptions({ unsafeNoSandbox: true })).toEqual({
       headless: true,
       chromiumSandbox: false,
+      env: expect.any(Object),
     });
+  });
+
+  it('gives Chromium no AI provider setting from the parent environment (3b.7 fix 1)', () => {
+    const env = {
+      PATH: '/usr/bin',
+      ANTHROPIC_API_KEY: 'sk-ant-api03-FAKE-CHROMIUM-KEY',
+      OPENAI_API_KEY: 'sk-proj-FAKE-CHROMIUM-KEY',
+      Openai_Org_Id: 'org-x',
+      UNSET: undefined,
+    };
+    for (const options of [{}, { proxy: { server: 'http://127.0.0.1:3128' } }]) {
+      const launch = chromiumLaunchOptions(options, env);
+      expect(launch.env).toEqual({ PATH: '/usr/bin' });
+    }
+    // The default is this process's environment, filtered the same way.
+    expect(
+      Object.keys(chromiumLaunchOptions().env).filter((k) => /^(anthropic|openai)_/i.test(k)),
+    ).toEqual([]);
   });
 
   it('routes through the proxy, bypasses nothing and switches off the side channels', () => {

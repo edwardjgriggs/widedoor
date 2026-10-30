@@ -221,6 +221,11 @@ describe('viewer builds', () => {
       ['react MIT', 'react-dom MIT', 'scheduler MIT', 'zod MIT'],
     );
     expect(script).not.toContain('tag:yaml.org');
+    // AI suggestions come from the local server; no provider SDK or address is in the page (3b.8).
+    for (const s of ['@anthropic-ai', 'openai', 'api.anthropic.com', 'api.openai.com'])
+      expect(script.toLowerCase(), s).not.toContain(s);
+    // The build does hold the suggestions panel, so the check reads the right bundle.
+    expect(script).toContain('Suggest fixes for all');
   });
 });
 

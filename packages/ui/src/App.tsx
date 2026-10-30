@@ -18,7 +18,8 @@ import {
   type ImpactOrUnrated,
   type ScanReport,
 } from '@widedoor/report/browser';
-import { SESSION_ENDED, onSessionEnded, sessionEnded } from './api.js';
+import type { AiAvailability } from '../../server/src/ai-types.ts';
+import { SESSION_ENDED, getAi, onSessionEnded, sessionEnded } from './api.js';
 import { ChecklistView } from './ChecklistView.js';
 import { ExportView, ReviewsNote } from './ExportView.js';
 import { Initial } from './initial.js';
@@ -26,6 +27,7 @@ import { fetchServedReport, readReportFile, type Loaded } from './load.js';
 import type { UiData } from './data.js';
 import { ReportView, reportLead } from './ReportView.js';
 import { ScanView, type ScanEnd } from './ScanView.js';
+import { SuggestionsView, type SuggestionsRequest } from './SuggestionsView.js';
 
 /*
  * The viewer shell: four screens behind a nav of buttons (no router). Report
@@ -156,6 +158,11 @@ export function App({ data }: { data: UiData }) {
   const [generation, setGeneration] = useState(0);
   // Scan results announced while another screen is shown.
   const [announcement, setAnnouncement] = useState('');
+  // AI fix suggestions: whether the server offers them, and the last ask.
+  const [ai, setAi] = useState<AiAvailability>({ available: false });
+  const [suggest, setSuggest] = useState<SuggestionsRequest>();
+  // While a suggestion is prepared, confirmed or run, the per-finding buttons are disabled.
+  const [aiLocked, setAiLocked] = useState(false);
   const [outcome, setOutcome] = useState<OutcomeFilter>('all');
   const [impact, setImpact] = useState<ImpactFilter>('all');
   const fileId = useId();
@@ -179,6 +186,20 @@ export function App({ data }: { data: UiData }) {
     if (next === screen) heading.current?.focus();
     else setScreen(next);
   };
+
+  // Asked once the served report is there: a page opened without the server never asks.
+  const hasServed = served !== undefined;
+  useEffect(() => {
+    if (!hasServed) return;
+    let live = true;
+    getAi().then(
+      (got) => live && setAi(got),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [hasServed]);
 
   useEffect(() => {
     let live = true;
@@ -205,7 +226,12 @@ export function App({ data }: { data: UiData }) {
       ok: false as const,
       message: 'The page could not load the report. Reload it and try again.',
     }));
-    if (reason === 'scan') setGeneration((g) => g + 1);
+    if (reason === 'scan') {
+      setGeneration((g) => g + 1);
+      // Suggestions belong to the report they were asked for (the server drops its own too).
+      setSuggest(undefined);
+      setAiLocked(false);
+    }
     if (!result.ok) {
       const why = `The report widedoor ui holds could not be loaded again. ${result.message}`;
       setError(why);
@@ -339,6 +365,15 @@ export function App({ data }: { data: UiData }) {
               </p>
             )}
           </section>
+          {!file && served && !ended && (
+            <SuggestionsView
+              key={generation}
+              availability={ai}
+              request={suggest}
+              onRequest={setSuggest}
+              onLock={setAiLocked}
+            />
+          )}
           {loaded && report && (
             <>
               <Filters
@@ -355,6 +390,13 @@ export function App({ data }: { data: UiData }) {
                 attachments={loaded.attachments}
                 {...(filtered
                   ? { findings: report.findings.filter((f) => matches(f, outcome, impact)) }
+                  : {})}
+                {...(ai.available && !file && !ended
+                  ? {
+                      onSuggest: (f: Finding) =>
+                        setSuggest((prev) => ({ findingIds: [f.id], n: (prev?.n ?? 0) + 1 })),
+                      suggestDisabled: aiLocked,
+                    }
                   : {})}
               />
             </>

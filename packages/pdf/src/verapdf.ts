@@ -2,6 +2,7 @@ import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from 'node:c
 import { randomUUID } from 'node:crypto';
 import { statSync } from 'node:fs';
 import { basename, delimiter, isAbsolute, join } from 'node:path';
+import { withoutProviderEnv } from '@widedoor/core';
 
 /** The veraPDF release Widedoor runs; verapdf-map.yaml is built from its rel/1.30 profiles. */
 export const VERAPDF_VERSION = '1.30.3';
@@ -98,6 +99,8 @@ export function runProcess(
         stdio: [options.input ? 'pipe' : 'ignore', 'pipe', 'pipe'],
         windowsHide: true,
         ...options.spawnOptions,
+        // Provider keys stay in the CLI process: no veraPDF or Docker child gets one.
+        env: withoutProviderEnv(options.spawnOptions?.env ?? process.env),
       });
     } catch (e) {
       reject(e);
@@ -400,6 +403,7 @@ function killTree(child: ChildProcess, spawn: SpawnFn) {
     spawn(TASKKILL, ['/pid', String(child.pid), '/T', '/F'], {
       stdio: 'ignore',
       windowsHide: true,
+      env: withoutProviderEnv(process.env),
     });
   } else {
     process.kill(-child.pid, 'SIGKILL');

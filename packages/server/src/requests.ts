@@ -45,6 +45,23 @@ export const ReviewBodySchema = z.strictObject({
 });
 export type ReviewBody = z.infer<typeof ReviewBodySchema>;
 
+/**
+ * POST /api/suggestions: the findings to suggest fixes for (all of the
+ * report's fails when absent), and whether to only show what would be sent.
+ * 200 ids at most (the ai.maxGroups ceiling); the route also holds them to
+ * the run's own maxGroups and to ids the report has.
+ */
+export const SuggestionsBodySchema = z.strictObject({
+  findingIds: z
+    .array(z.string().regex(/^wd_[0-9a-f]{16}$/))
+    .min(1)
+    .max(200)
+    .refine((ids) => new Set(ids).size === ids.length, 'names the same finding twice')
+    .optional(),
+  dryRun: z.boolean().optional(),
+});
+export type SuggestionsBody = z.infer<typeof SuggestionsBodySchema>;
+
 /** A request refused; status is the HTTP status that says why. */
 export class RequestError extends Error {
   constructor(
