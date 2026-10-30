@@ -9,7 +9,7 @@ import {
 } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import MarkdownIt from 'markdown-it';
-import { NOT_FOUND_BODY, page, type NavItem } from './template.ts';
+import { NOT_FOUND_BODY, REPO_URL, page, type NavItem } from './template.ts';
 
 /*
  * The docs site (Task 3b.11, plan ruling 9): README.md split at its ##
@@ -21,7 +21,7 @@ import { NOT_FOUND_BODY, page, type NavItem } from './template.ts';
  * GitHub; a link to nothing fails the build. Same input, same bytes.
  */
 
-export const REPO_URL = 'https://github.com/edwardjgriggs/widedoor';
+export { REPO_URL };
 
 /** Operator runbooks: for whoever deploys, not for the public site. */
 export const RUNBOOKS: readonly string[] = ['hosted-runbook.md', 'docs-site-deploy.md'];
