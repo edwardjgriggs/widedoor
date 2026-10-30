@@ -7,3 +7,6 @@ export * from './answer.js';
 export * from './provider.js';
 export * from './providers/fake.js';
 export * from './providers/anthropic.js';
+export * from './providers/openai.js';
+export * from './run.js';
+export * from './html.js';

@@ -9,6 +9,7 @@ import {
   writeReports,
   type ScanPlan,
 } from '@widedoor/server';
+import { runAiSuggestions, type AiHooks, type AiSettings } from './ai.js';
 import { EXIT_ERROR, exitDecision, type GateOptions } from './policy.js';
 import { printSummary } from './summary.js';
 import { firstLine, safeText } from './text.js';
@@ -20,12 +21,15 @@ import type { Io } from './main.js';
  * first, so a folder that cannot be used stops the run before any scan. A
  * stop signal cancels the scan through performScan's signal, which kills its
  * processes and removes its containers, and exits 2 with no report written.
+ * With AI on, suggestions run after the reports are written and the summary
+ * printed; whatever happens to them, the exit code is the scan's.
  */
 export async function runScan(
   plan: ScanPlan,
   reviews: readonly Finding[],
   io: Io,
   gate: GateOptions = {},
+  ai?: { settings: AiSettings; hooks: AiHooks },
 ): Promise<number> {
   const stop = new AbortController();
   let stopping = false;
@@ -90,6 +94,20 @@ export async function runScan(
       },
       io,
     );
+    if (ai) {
+      try {
+        const written = await runAiSuggestions(
+          report,
+          ai.settings,
+          { dir: plan.out, restricted, roots: plan.outRoots },
+          io,
+          ai.hooks,
+        );
+        for (const file of written) io.out(`Wrote ${safeText(file, 1000)}`);
+      } catch (e) {
+        io.err(`widedoor: AI fix suggestions failed: ${safeText(firstLine(e), 1000)}`);
+      }
+    }
     return decision.code;
   } finally {
     dispose();

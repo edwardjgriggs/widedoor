@@ -73,6 +73,67 @@ const acrText = z
   .min(1);
 
 /** widedoor.config.yaml (spec section 6). Unknown keys are errors, so a typo never silently widens or narrows a scan. */
+/** The refusal for a key-shaped field anywhere in the ai block. */
+export const AI_KEY_IN_CONFIG =
+  'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+
+/**
+ * The ai block's limit ranges and defaults; @widedoor/ai's AiLimitsSchema holds
+ * the same (a CLI test checks they agree). The server never imports
+ * @widedoor/ai: the hosted tier must not load it (D16).
+ */
+export const AI_LIMIT_RANGES = {
+  maxGroups: { min: 1, max: 200 },
+  maxRequestsPerMinute: { min: 1, max: 60 },
+  concurrency: { min: 1, max: 4 },
+  maxOutputTokens: { min: 256, max: 16_384 },
+  maxInputTokensTotal: { min: 1000, max: 5_000_000 },
+} as const;
+
+const AI_FIELDS = new Set(['enabled', 'provider', 'model', ...Object.keys(AI_LIMIT_RANGES)]);
+const KEY_SHAPED = /key|token|secret|passw|credential|auth|bearer/i;
+
+/** Every path in the ai block that names a credential: any unknown key-shaped name, at any depth. */
+function keyShapedPaths(value: unknown, path: (string | number)[] = []): (string | number)[][] {
+  if (typeof value !== 'object' || value === null) return [];
+  return Object.entries(value).flatMap(([k, v]) => {
+    const here = [...path, k];
+    const named = (path.length > 0 || !AI_FIELDS.has(k)) && KEY_SHAPED.test(k) ? [here] : [];
+    return [...named, ...keyShapedPaths(v, here)];
+  });
+}
+
+const aiLimit = (name: keyof typeof AI_LIMIT_RANGES) =>
+  z.int().min(AI_LIMIT_RANGES[name].min).max(AI_LIMIT_RANGES[name].max).optional();
+
+/**
+ * The ai block (spec section 9, D16): off unless enabled; the provider's key
+ * comes from the environment only, so a key-shaped field is refused with
+ * AI_KEY_IN_CONFIG before the strict shape check.
+ */
+export const AiConfigSchema = z
+  .unknown()
+  .superRefine((value, ctx) => {
+    for (const path of keyShapedPaths(value))
+      ctx.addIssue({ code: 'custom', message: AI_KEY_IN_CONFIG, path, continue: false });
+  })
+  .pipe(
+    z.strictObject({
+      enabled: z.boolean().optional(),
+      provider: z.enum(['anthropic', 'openai']).optional(),
+      model: z
+        .string()
+        .regex(/^[A-Za-z0-9._:-]{1,100}$/, 'must be 1 to 100 letters, digits, ".", "_", ":" or "-"')
+        .optional(),
+      maxGroups: aiLimit('maxGroups'),
+      maxRequestsPerMinute: aiLimit('maxRequestsPerMinute'),
+      concurrency: aiLimit('concurrency'),
+      maxOutputTokens: aiLimit('maxOutputTokens'),
+      maxInputTokensTotal: aiLimit('maxInputTokensTotal'),
+    }),
+  );
+export type AiConfig = z.infer<typeof AiConfigSchema>;
+
 export const ConfigSchema = z.strictObject({
   // YAML reads a bare 508 as a number.
   profile: z.preprocess((v) => (v === 508 ? '508' : v), z.enum(PROFILE_IDS)).optional(),
@@ -144,15 +205,7 @@ export const ConfigSchema = z.strictObject({
         .optional(),
     })
     .optional(),
-  ai: z
-    .strictObject({
-      enabled: z
-        .boolean()
-        .refine((on) => !on, 'AI fix suggestions are not supported yet; set ai.enabled to false')
-        .optional(),
-      provider: z.enum(['anthropic', 'openai']).optional(),
-    })
-    .optional(),
+  ai: AiConfigSchema.optional(),
 });
 export type Config = z.infer<typeof ConfigSchema>;
 

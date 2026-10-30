@@ -12,7 +12,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { MARKER, OutputError, prepareOut, writeReport } from '../src/output.ts';
+import {
+  AI_SIDECARS,
+  MARKER,
+  OutputError,
+  prepareOut,
+  writeReport,
+  writeSidecar,
+} from '../src/output.ts';
 
 /*
  * The report folder refuses links and is cleared only when it carries the
@@ -206,5 +213,42 @@ describe('writeReport', () => {
     await writeReport(out, 'json', '{}', true);
     expect(statSync(out).mode & 0o777).toBe(0o700);
     expect(statSync(join(out, 'report.json')).mode & 0o777).toBe(0o600);
+  });
+});
+
+// Task 3b.7 item 5a: the AI suggestions sidecars.
+describe('writeSidecar', () => {
+  it('writes through a temp file and a rename, leaves no temp file and keeps the report', async () => {
+    const { dir, out } = fresh();
+    await prepareOut(out, false, [dir]);
+    await writeReport(out, 'json', '{"report":1}', false);
+    await writeSidecar(out, 'ai-suggestions.json', '{"a":1}', false, [dir]);
+    await writeSidecar(out, 'ai-suggestions.json', '{"a":2}', false, [dir]);
+    expect(readFileSync(join(out, 'ai-suggestions.json'), 'utf8')).toBe('{"a":2}');
+    expect(readFileSync(join(out, 'report.json'), 'utf8')).toBe('{"report":1}');
+    expect(readdirSync(out).sort()).toEqual(
+      [MARKER, 'ai-suggestions.json', 'evidence', 'report.json'].sort(),
+    );
+  });
+
+  it('creates a missing folder, and refuses a link at the name with the target untouched', async () => {
+    const t = fresh();
+    await writeSidecar(join(t.dir, 'new'), 'ai-suggestions.html', '<p>x</p>', false, [t.dir]);
+    expect(existsSync(join(t.dir, 'new', 'ai-suggestions.html'))).toBe(true);
+    await prepareOut(t.out, false, [t.dir]);
+    linkToFile(join(t.victim, 'keep.txt'), t.victim, join(t.out, 'ai-suggestions.json'));
+    await expect(
+      writeSidecar(t.out, 'ai-suggestions.json', 'pwned', false, [t.dir]),
+    ).rejects.toThrow(/symbolic link/);
+    untouched(t.victim);
+  });
+
+  it('prepareOut clears sidecars and their stale temp files from an earlier run', async () => {
+    const { dir, out } = fresh();
+    await prepareOut(out, false, [dir]);
+    for (const name of AI_SIDECARS) await writeSidecar(out, name, 'old', false, [dir]);
+    writeFileSync(join(out, '.ai-suggestions.json.0123456789ab.tmp'), 'half');
+    await prepareOut(out, false, [dir]);
+    expect(readdirSync(out).sort()).toEqual([MARKER, 'evidence'].sort());
   });
 });

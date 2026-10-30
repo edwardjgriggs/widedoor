@@ -23,12 +23,23 @@ export type ProviderAnswer =
       text: string;
       /** The model that actually answered (a refusal fallback can change it). */
       modelAnswered: string;
-      usage: { inputTokens: number; outputTokens: number };
+      /** Absent when the response reported none; the runner then counts its own estimate. */
+      usage?: { inputTokens: number; outputTokens: number };
     }
   | { status: 'refused'; reason: string }
   | {
       status: 'error';
       reason: string;
+      /** Set on a 429 the runner may wait for and retry once. */
+      rateLimited?: true;
+      /**
+       * Errors the runner's breaker treats as one: "server" for any 5xx,
+       * "connection" for a connection failure or timeout, "cut-off" for an
+       * answer stopped by the token limit. Absent, the reason is its own class.
+       */
+      errorClass?: 'server' | 'connection' | 'cut-off';
+      /** What the request was billed when the response reported it (a cut-off answer). */
+      usage?: { inputTokens: number; outputTokens: number };
       /** From retry-after on a 429. */
       retryAfterMs?: number;
       /** True when every later request would fail the same way (bad key, unknown model): stop the run. */

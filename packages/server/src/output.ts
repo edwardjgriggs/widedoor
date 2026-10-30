@@ -29,7 +29,11 @@ export const MARKER = '.widedoor-report';
 const MARKER_TEXT =
   'This folder holds Widedoor reports. Each scan clears the report files and evidence/ here.\n';
 /** Temp files left by an interrupted write (see writeFileReplacing). */
-const STALE_TEMP = /^\.report\.\w+\.[0-9a-f]{12}\.tmp$/;
+const STALE_TEMP = /^\.(?:report\.\w+|ai-suggestions\.(?:json|html))\.[0-9a-f]{12}\.tmp$/;
+
+/** The AI suggestions sidecar files (@widedoor/ai writes them through the CLI; the server never loads it). */
+export const AI_SIDECARS = ['ai-suggestions.json', 'ai-suggestions.html'] as const;
+export type AiSidecar = (typeof AI_SIDECARS)[number];
 
 export const reportName = (format: Format) => `report.${EXTENSION[format]}`;
 export const reportPath = (out: string, format: Format) => join(out, reportName(format));
@@ -111,6 +115,7 @@ export async function prepareOut(out: string, restricted: boolean, roots: readon
   if (exists) {
     await checkFileName(join(out, MARKER));
     for (const format of FORMATS) await checkFileName(reportPath(out, format));
+    for (const name of AI_SIDECARS) await checkFileName(join(out, name));
     await checkFolder(evidence);
     const names = await readdir(out);
     if (!names.includes(MARKER)) {
@@ -121,6 +126,8 @@ export async function prepareOut(out: string, restricted: boolean, roots: readon
         );
     } else {
       for (const format of FORMATS) await rm(reportPath(out, format), { force: true });
+      // A sidecar from an earlier run would sit beside a report it does not describe.
+      for (const name of AI_SIDECARS) await rm(join(out, name), { force: true });
       for (const name of names)
         if (STALE_TEMP.test(name) && (await statOf(join(out, name)))?.isFile())
           await rm(join(out, name), { force: true });
@@ -161,4 +168,27 @@ export async function writeReport(
   if (!(await checkFolder(out))) throw new OutputError(`${out} is gone`);
   await checkFileName(reportPath(out, format));
   await writeFileReplacing(out, reportName(format), data, restricted ? 0o600 : 0o644);
+}
+
+/**
+ * Writes one AI suggestions sidecar into a report folder without following
+ * links and without clearing anything: the folder is created when missing
+ * (its components checked against the roots, as prepareOut does), and an
+ * existing report beside it is left as it is.
+ */
+export async function writeSidecar(
+  out: string,
+  name: AiSidecar,
+  data: string,
+  restricted: boolean,
+  roots: readonly string[],
+) {
+  await checkComponents(out, roots);
+  if (!(await checkFolder(out))) {
+    await mkdirOrFail(out, true, restricted ? 0o700 : undefined);
+    await checkComponents(out, roots);
+    if (!(await checkFolder(out))) throw new OutputError(`${out} cannot be created`);
+  }
+  await checkFileName(join(out, name));
+  await writeFileReplacing(out, name, data, restricted ? 0o600 : 0o644);
 }

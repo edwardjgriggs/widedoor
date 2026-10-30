@@ -92,6 +92,7 @@ describe('the no-network guard (packages/ai unit tests)', () => {
     expect(answer).toEqual({
       status: 'error',
       reason: 'could not reach the Anthropic API',
+      errorClass: 'connection',
       fatal: false,
     });
     expect(globalThis.__widedoorBlocked).toEqual(['fetch api.anthropic.com']);

@@ -35,7 +35,10 @@ COPY tsconfig.base.json tsconfig.json ./
 COPY packages packages
 RUN npm run build
 
-# Production dependencies only, from the same lockfile.
+# Production dependencies only, from the same lockfile, for the shared base that the scan
+# and hosted images use: only the server workspace and what it depends on, so neither
+# image holds @widedoor/ai or a provider SDK (D16). npm ci needs every workspace's
+# package.json to check the lockfile; the ai one is removed again after the install.
 FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
@@ -49,7 +52,28 @@ COPY packages/cli/package.json packages/cli/
 COPY packages/ui/package.json packages/ui/
 COPY packages/action/package.json packages/action/
 # .npmrc only steers npm ci; it never reaches the runtime image.
-RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace @widedoor/server \
+    && npm cache clean --force \
+    && rm -rf .npmrc packages/ai \
+    && test ! -e node_modules/@widedoor/ai \
+    && test ! -e node_modules/@anthropic-ai \
+    && test ! -e node_modules/openai
+
+# The CLI image's production dependencies: the cli workspace, which adds @widedoor/ai and
+# the provider SDKs. Only the cli target copies from here.
+FROM node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS deps-cli
+WORKDIR /app
+COPY package.json package-lock.json .npmrc ./
+COPY packages/core/package.json packages/core/
+COPY packages/web/package.json packages/web/
+COPY packages/pdf/package.json packages/pdf/
+COPY packages/report/package.json packages/report/
+COPY packages/ai/package.json packages/ai/
+COPY packages/server/package.json packages/server/
+COPY packages/cli/package.json packages/cli/
+COPY packages/ui/package.json packages/ui/
+COPY packages/action/package.json packages/action/
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace @widedoor/cli \
     && npm cache clean --force \
     && rm .npmrc
 
@@ -165,8 +189,14 @@ FROM base AS hosted
 USER 10001:10001
 ENTRYPOINT ["node", "/app/packages/server/dist/hosted/api-bin.js"]
 
-# The CLI, last so it stays the default target.
+# The CLI, last so it stays the default target. Only this image gets AI fix suggestions:
+# the cli workspace's production dependencies (a superset of the base's, from the same
+# lockfile) and @widedoor/ai, which the CLI loads only when AI is turned on.
 FROM base AS cli
+COPY --from=deps-cli /app/node_modules node_modules
+COPY --from=deps-cli /app/packages/ai/package.json packages/ai/
+COPY --from=build /src/packages/ai/dist packages/ai/dist
+COPY --from=build /src/packages/ai/schema packages/ai/schema
 USER 10001:10001
 WORKDIR /work
 ENTRYPOINT ["node", "/app/packages/cli/dist/bin.js"]

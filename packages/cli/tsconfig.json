@@ -12,6 +12,7 @@
     { "path": "../web" },
     { "path": "../pdf" },
     { "path": "../report" },
+    { "path": "../ai" },
     { "path": "../server" }
   ]
 }

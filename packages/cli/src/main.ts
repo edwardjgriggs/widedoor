@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { loadReviews } from '@widedoor/core';
 import { ConfigError, buildPlan, loadConfig, type LoadedConfig } from '@widedoor/server';
+import { aiSettings, missingKey, type AiHooks } from './ai.js';
 import { CONFIG_FILE, USAGE, UsageError, parseCommand } from './args.js';
 import { EXIT_ERROR, EXIT_OK } from './policy.js';
 import { safeText } from './text.js';
@@ -29,8 +30,17 @@ function configError(e: ConfigError, io: Io): number {
   return EXIT_ERROR;
 }
 
+/** Test seams; the CLI itself passes none. */
+export interface MainHooks {
+  ai?: AiHooks;
+}
+
 /** The CLI: parses argv (without node and the script), runs the command and returns the exit code. */
-export async function main(argv: readonly string[], io: Io = processIo()): Promise<number> {
+export async function main(
+  argv: readonly string[],
+  io: Io = processIo(),
+  hooks: MainHooks = {},
+): Promise<number> {
   try {
     const command = parseCommand(argv);
     if (command.command === 'help') {
@@ -53,6 +63,10 @@ export async function main(argv: readonly string[], io: Io = processIo()): Promi
       const { runDiff } = await import('./diff-cmd.js');
       return runDiff(command, io);
     }
+    if (command.command === 'suggest') {
+      const { runSuggest } = await import('./suggest-cmd.js');
+      return await runSuggest(command, io, hooks.ai);
+    }
     const discovered = join(io.cwd, CONFIG_FILE);
     const configPath =
       command.config !== undefined
@@ -67,9 +81,22 @@ export async function main(argv: readonly string[], io: Io = processIo()): Promi
     }
     const loaded: LoadedConfig | undefined = configPath ? loadConfig(configPath) : undefined;
     const plan = buildPlan(command, loaded, io.cwd);
+    const ai = aiSettings(command.ai, loaded?.config.ai);
+    // A missing key stops the run before the scan, not after it.
+    const missing = ai ? missingKey(ai) : undefined;
+    if (missing !== undefined) {
+      io.err(`widedoor: ${missing}`);
+      return EXIT_ERROR;
+    }
     const { reviews } = await loadReviews(plan.reviewDir);
     const { runScan } = await import('./run.js');
-    return await runScan(plan, reviews, io, { ignoreOverrides: command.ignoreOverrides });
+    return await runScan(
+      plan,
+      reviews,
+      io,
+      { ignoreOverrides: command.ignoreOverrides },
+      ai ? { settings: ai, hooks: hooks.ai ?? {} } : undefined,
+    );
   } catch (e) {
     if (e instanceof UsageError) {
       io.err(`widedoor: ${safeText(e.message, 1000)}`);

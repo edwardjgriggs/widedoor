@@ -15,6 +15,10 @@ const dir = mkdtempSync(join(tmpdir(), 'widedoor-config-'));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 let n = 0;
+/** YAML from lines, one per argument. */
+const yaml = (...lines: string[]) =>
+  `${lines.join(String.fromCharCode(10))}${String.fromCharCode(10)}`;
+
 function configFile(text: string): string {
   const sub = join(dir, `c${n++}`);
   mkdirSync(sub);
@@ -93,10 +97,73 @@ describe('loadConfig', () => {
   });
 
   it('rejects features that are not supported yet', () => {
-    expect(problems('web:\n  actions: [{ click: "#menu" }]\nai:\n  enabled: true\n')).toEqual([
+    expect(problems(yaml('web:', '  actions: [{ click: "#menu" }]'))).toEqual([
       'web.actions: scripted actions are not supported yet; leave web.actions empty',
-      'ai.enabled: AI fix suggestions are not supported yet; set ai.enabled to false',
     ]);
+  });
+
+  describe('the ai block', () => {
+    it('accepts every field', () => {
+      const loaded = loadConfig(
+        configFile(
+          yaml(
+            'ai:',
+            '  enabled: true',
+            '  provider: openai',
+            '  model: gpt-5.5',
+            '  maxGroups: 10',
+            '  maxRequestsPerMinute: 5',
+            '  concurrency: 2',
+            '  maxOutputTokens: 4096',
+            '  maxInputTokensTotal: 100000',
+          ),
+        ),
+      );
+      expect(loaded.config.ai).toEqual({
+        enabled: true,
+        provider: 'openai',
+        model: 'gpt-5.5',
+        maxGroups: 10,
+        maxRequestsPerMinute: 5,
+        concurrency: 2,
+        maxOutputTokens: 4096,
+        maxInputTokensTotal: 100000,
+      });
+      expect(loadConfig(configFile(yaml('ai:', '  enabled: true'))).config.ai).toEqual({
+        enabled: true,
+      });
+    });
+
+    it('refuses a key-shaped field at any depth, with the environment message', () => {
+      const KEY_MESSAGE =
+        'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+      for (const lines of [
+        ['ai:', '  apiKey: sk-ant-x'],
+        ['ai:', '  key: sk-x'],
+        ['ai:', '  token: t'],
+        ['ai:', '  OPENAI_API_KEY: sk-x'],
+        ['ai:', '  enabled: true', '  openai:', '    apiKey: sk-x'],
+        ['ai:', '  provider: anthropic', '  extra:', '    - secret: s'],
+      ])
+        expect(problems(yaml(...lines)).join(' | '), lines.join(' / ')).toContain(KEY_MESSAGE);
+      expect(problems(yaml('ai:', '  apiKey: sk-ant-SECRET')).join(' ')).not.toContain('SECRET');
+    });
+
+    it('holds the model to its characters and the limits to their ranges', () => {
+      for (const line of [
+        '  model: "bad model"',
+        `  model: ${'m'.repeat(101)}`,
+        '  maxGroups: 0',
+        '  maxGroups: 201',
+        '  maxRequestsPerMinute: 61',
+        '  concurrency: 5',
+        '  maxOutputTokens: 100',
+        '  maxInputTokensTotal: 999',
+        '  provider: gemini',
+        '  temperature: 0.2',
+      ])
+        expect(problems(yaml('ai:', line)).length, line).toBeGreaterThan(0);
+    });
   });
 
   it('rejects PDF globs that leave the config folder', () => {

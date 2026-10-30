@@ -57,32 +57,52 @@ function retryAfterMs(headers: Headers | undefined, now = Date.now()): number | 
   return Number.isNaN(at) ? undefined : Math.max(0, at - now);
 }
 
+const count = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 0;
+
+/** The usage field of an ok answer: present only when the response carries both counts. */
+function usageOf(usage: { input_tokens?: unknown; output_tokens?: unknown } | null | undefined) {
+  if (!usage || !count(usage.input_tokens) || !count(usage.output_tokens)) return {};
+  return {
+    usage: {
+      inputTokens: usage.input_tokens as number,
+      outputTokens: usage.output_tokens as number,
+    },
+  };
+}
+
 /** Typed SDK errors, most specific first; see the module comment for what a reason may hold. */
 function errorAnswer(e: unknown, model: string): ProviderAnswer {
-  const fail = (reason: string, fatal: boolean, extra: { retryAfterMs?: number } = {}) => ({
+  const fail = (
+    reason: string,
+    fatal: boolean,
+    extra: { rateLimited?: true; retryAfterMs?: number; errorClass?: 'server' | 'connection' } = {},
+  ) => ({
     status: 'error' as const,
     reason,
     fatal,
     ...extra,
   });
+  const server = { errorClass: 'server' as const };
+  const connection = { errorClass: 'connection' as const };
   if (e instanceof Anthropic.AuthenticationError) return fail(`${KEY_REFUSED} (401)`, true);
   if (e instanceof Anthropic.PermissionDeniedError) return fail(`${KEY_REFUSED} (403)`, true);
   if (e instanceof Anthropic.NotFoundError) return fail(`model ${model} not found (404)`, true);
   if (e instanceof Anthropic.RateLimitError) {
     const wait = retryAfterMs(e.headers);
     return fail('the Anthropic API rate limit was reached (429)', false, {
+      rateLimited: true,
       ...(wait !== undefined ? { retryAfterMs: wait } : {}),
     });
   }
   if (e instanceof Anthropic.BadRequestError)
     return fail('the Anthropic API rejected the request (400)', false);
   if (e instanceof Anthropic.InternalServerError)
-    return fail(`the Anthropic API had a server error (${e.status})`, false);
+    return fail(`the Anthropic API had a server error (${e.status})`, false, server);
   if (e instanceof Anthropic.APIUserAbortError) return fail('the request was cancelled', false);
   if (e instanceof Anthropic.APIConnectionTimeoutError)
-    return fail('the request to the Anthropic API timed out', false);
+    return fail('the request to the Anthropic API timed out', false, connection);
   if (e instanceof Anthropic.APIConnectionError)
-    return fail('could not reach the Anthropic API', false);
+    return fail('could not reach the Anthropic API', false, connection);
   if (e instanceof Anthropic.APIError) {
     const status = typeof e.status === 'number' ? e.status : 0;
     // 402: a billing problem stops every later request too.
@@ -104,6 +124,8 @@ const CUSTOM_HEADERS = 'ANTHROPIC_CUSTOM_HEADERS';
  * defaultHeaders would also remove the SDK's own authorization and
  * anthropic-version headers when the variable names them, so the variable
  * is unset for the synchronous constructor call and restored right after.
+ * client.withOptions() builds a new client through the same constructor and
+ * so reads the variable again: any future use of it must go through here too.
  */
 function clientWithoutCustomHeaders(
   options: ConstructorParameters<typeof Anthropic>[0],
@@ -164,8 +186,15 @@ export function createAnthropicProvider(options: AnthropicProviderOptions): FixP
         status: 'refused',
         reason: `the model declined to answer (category: ${category(response.stop_details?.category)})`,
       };
+    // A cut-off answer was still billed: its usage goes to the runner's budget.
     if (stop === 'max_tokens')
-      return { status: 'error', reason: 'the answer was cut off', fatal: false };
+      return {
+        status: 'error',
+        reason: 'the answer was cut off',
+        fatal: false,
+        errorClass: 'cut-off',
+        ...usageOf(response.usage),
+      };
     if (stop !== 'end_turn')
       return {
         status: 'error',
@@ -183,11 +212,8 @@ export function createAnthropicProvider(options: AnthropicProviderOptions): FixP
       // The served model (a fallback can change it), kept only when it looks like a model id.
       modelAnswered: MODEL_ID.test(response.model) ? response.model : model,
       // Input and output tokens only: cache reads and writes and refusal-fallback billing are
-      // not included. Task 6 confirms what the token budget counts.
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
+      // not included. Absent when the response has no counts; the runner then uses its estimate.
+      ...usageOf(response.usage),
     };
   }
 

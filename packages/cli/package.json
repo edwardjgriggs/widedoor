@@ -10,6 +10,7 @@
     "widedoor": "./dist/bin.js"
   },
   "dependencies": {
+    "@widedoor/ai": "0.1.0",
     "@widedoor/core": "0.1.0",
     "@widedoor/pdf": "0.1.0",
     "@widedoor/report": "0.1.0",

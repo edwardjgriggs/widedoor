@@ -248,7 +248,13 @@ describe('createAnthropicProvider: the answer', () => {
 
   it('maps max_tokens to an error, and any other stop reason too', async () => {
     const cut = await run([message({ stop_reason: 'max_tokens' })]);
-    expect(cut.answer).toEqual({ status: 'error', reason: 'the answer was cut off', fatal: false });
+    expect(cut.answer).toEqual({
+      status: 'error',
+      reason: 'the answer was cut off',
+      fatal: false,
+      errorClass: 'cut-off',
+      usage: { inputTokens: 120, outputTokens: 40 },
+    });
     const paused = await run([message({ stop_reason: 'pause_turn' })]);
     expect(paused.answer).toMatchObject({
       status: 'error',
@@ -289,6 +295,7 @@ describe('createAnthropicProvider: errors', () => {
       {
         reason: 'the Anthropic API rate limit was reached (429)',
         fatal: false,
+        rateLimited: true,
         retryAfterMs: 7000,
       },
     ],
@@ -300,12 +307,12 @@ describe('createAnthropicProvider: errors', () => {
     [
       '500',
       apiError(500, 'api_error'),
-      { reason: 'the Anthropic API had a server error (500)', fatal: false },
+      { reason: 'the Anthropic API had a server error (500)', fatal: false, errorClass: 'server' },
     ],
     [
       '529',
       apiError(529, 'overloaded_error'),
-      { reason: 'the Anthropic API had a server error (529)', fatal: false },
+      { reason: 'the Anthropic API had a server error (529)', fatal: false, errorClass: 'server' },
     ],
     [
       '402',
@@ -323,6 +330,7 @@ describe('createAnthropicProvider: errors', () => {
   it('a 429 without retry-after has no retryAfterMs', async () => {
     const { answer } = await run([apiError(429, 'rate_limit_error')]);
     expect(answer).not.toHaveProperty('retryAfterMs');
+    expect(answer).toMatchObject({ rateLimited: true });
   });
 
   it('a connection failure is not fatal and never carries the thrown text', async () => {
@@ -336,6 +344,7 @@ describe('createAnthropicProvider: errors', () => {
     expect(answer).toEqual({
       status: 'error',
       reason: 'could not reach the Anthropic API',
+      errorClass: 'connection',
       fatal: false,
     });
     noKey(answer);
@@ -421,5 +430,26 @@ describe('createAnthropicProvider: fix round 1', () => {
       const { answer } = await run([message({ model: served })]);
       expect(answer.status === 'ok' && answer.modelAnswered, String(served)).toBe(recorded);
     }
+  });
+});
+
+// Task 3b.5 fix round 1, item 3: absent usage stays absent.
+describe('createAnthropicProvider: usage', () => {
+  it('leaves usage out when the response has none or a broken count', async () => {
+    for (const usage of [
+      undefined,
+      null,
+      { input_tokens: 'x', output_tokens: 1 },
+      { output_tokens: 3 },
+    ]) {
+      const { answer } = await run([message({ usage })]);
+      expect(answer.status).toBe('ok');
+      expect(answer, JSON.stringify(usage)).not.toHaveProperty('usage');
+    }
+  });
+
+  it('keeps zero counts as reported', async () => {
+    const { answer } = await run([message({ usage: { input_tokens: 0, output_tokens: 0 } })]);
+    expect(answer).toMatchObject({ usage: { inputTokens: 0, outputTokens: 0 } });
   });
 });

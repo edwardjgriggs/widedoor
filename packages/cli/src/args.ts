@@ -37,11 +37,35 @@ export {
   type Format,
 } from '@widedoor/server';
 
+/** AI fix suggestion flags (spec section 9); the key never comes from a flag. */
+export interface AiFlags {
+  /** --ai-fixes: suggest fixes after the scan (also on with ai.enabled in the config). */
+  fixes: boolean;
+  /** --ai-dry-run: print what would be sent and send nothing; needs no key. */
+  dryRun: boolean;
+  provider?: AiProviderId;
+  model?: string;
+}
+
+export const AI_PROVIDERS = ['anthropic', 'openai'] as const;
+export type AiProviderId = (typeof AI_PROVIDERS)[number];
+
 export interface ScanArgs extends PlanArgs {
   command: 'scan';
   config?: string;
   /** The exit gate counts automated fails that review records override (CI on untrusted changes). */
   ignoreOverrides: boolean;
+  ai: AiFlags;
+}
+
+export interface SuggestArgs {
+  command: 'suggest';
+  /** The report.json to suggest fixes for, as given. */
+  report: string;
+  /** Folder for the sidecar files, as given (default: the report's folder). */
+  out?: string;
+  config?: string;
+  ai: Omit<AiFlags, 'fixes'>;
 }
 
 export interface UiArgs {
@@ -105,7 +129,13 @@ export interface DiffArgs {
 }
 
 export type Command =
-  { command: 'help' } | { command: 'version' } | ScanArgs | UiArgs | ReviewArgs | DiffArgs;
+  | { command: 'help' }
+  | { command: 'version' }
+  | ScanArgs
+  | UiArgs
+  | ReviewArgs
+  | DiffArgs
+  | SuggestArgs;
 
 export const USAGE = `Usage: widedoor scan [urls and PDF files...] [options]
        widedoor ui [--report <file>] [--root <dir> | --config <file>] [--no-open]
@@ -115,6 +145,8 @@ export const USAGE = `Usage: widedoor scan [urls and PDF files...] [options]
                               --reviewer <name> [--notes <text>] [--attach <file>...]
                               [--override <finding id>...]
        widedoor diff <before.json> <after.json> [--format text|json] [--fail-on-new]
+       widedoor suggest --report <file> [--out <dir>] [--config <file>]
+                        [--ai-provider anthropic|openai] [--ai-model <id>] [--ai-dry-run]
 
 Scans web pages (http and https URLs), PDFs by URL (a URL ending in .pdf) and
 local PDF files against Section 508 and WCAG 2.1 AA and writes reports. Without
@@ -143,8 +175,26 @@ Options:
   --ignore-overrides    the exit code counts automated fails that a review record
                         overrides; the reports still show the overrides. For CI on
                         changes whose widedoor-review/ files are not trusted
+  --ai-fixes            after the scan, ask an AI provider for fix suggestions for the
+                        failed checks (off by default; also on with ai.enabled in the
+                        config). Needs ANTHROPIC_API_KEY, or OPENAI_API_KEY with
+                        --ai-provider openai, in the environment. Writes
+                        ai-suggestions.json and ai-suggestions.html beside the reports;
+                        the reports and the exit code never change
+  --ai-dry-run          print exactly what --ai-fixes would send, and send nothing (no key
+                        needed)
+  --ai-provider <id>    anthropic or openai (default: ai.provider, else anthropic)
+  --ai-model <id>       the model (default: ai.model; anthropic: claude-opus-5-5; openai
+                        has no default)
   -h, --help            show this help
   -v, --version         show the version
+
+widedoor suggest asks for AI fix suggestions for an existing report.json without
+scanning again, and writes ai-suggestions.json and ai-suggestions.html to --out
+(default: the report's folder). Only redacted snippets of failed checks are sent:
+no page URL, no full page and no PDF text. Suggestions are AI-generated; review
+them before use. It exits 0 when it wrote the files, 1 when it could not write
+them, and 2 on bad input or a missing key.
 
 widedoor ui serves a local report viewer on 127.0.0.1 (a random port) and
 opens it in the browser. It prints the link, which carries a one-time access
@@ -226,6 +276,14 @@ export function parseFormats(flag: string, value: string): Format[] {
 }
 
 const UI_ONLY = ['report', 'root', 'no-open'] as const;
+const SUGGEST_OPTIONS: readonly string[] = [
+  'report',
+  'out',
+  'config',
+  'ai-dry-run',
+  'ai-provider',
+  'ai-model',
+];
 const DIFF_ONLY = ['fail-on-new'] as const;
 const DIFF_OPTIONS: readonly string[] = ['format', ...DIFF_ONLY];
 const REVIEW_LIST_ONLY = ['status'] as const;
@@ -314,6 +372,44 @@ function diffArgs(values: Values, files: string[]): DiffArgs {
   };
 }
 
+/** The same rule as the ai.model config field. */
+const MODEL_ID = /^[A-Za-z0-9._:-]{1,100}$/;
+
+function aiFlags(values: Values): Omit<AiFlags, 'fixes'> {
+  const flags: Omit<AiFlags, 'fixes'> = { dryRun: values['ai-dry-run'] === true };
+  const provider = values['ai-provider'];
+  if (typeof provider === 'string') flags.provider = oneOf('--ai-provider', provider, AI_PROVIDERS);
+  const model = values['ai-model'];
+  if (typeof model === 'string') {
+    if (!MODEL_ID.test(model))
+      throw new UsageError('--ai-model must be 1 to 100 letters, digits, ".", "_", ":" or "-"');
+    flags.model = model;
+  }
+  return flags;
+}
+
+function suggestArgs(values: Values, rest: string[]): SuggestArgs {
+  if (rest.length > 0)
+    throw new UsageError(
+      `widedoor suggest takes no targets; got "${rest[0]}". Use --report <file>`,
+    );
+  for (const [flag, value] of Object.entries(values))
+    if (value !== undefined && !SUGGEST_OPTIONS.includes(flag))
+      throw new UsageError(`--${flag} is not an option of widedoor suggest`);
+  if (typeof values.report !== 'string' || values.report === '')
+    throw new UsageError('widedoor suggest needs --report');
+  const args: SuggestArgs = { command: 'suggest', report: values.report, ai: aiFlags(values) };
+  if (values.out !== undefined) {
+    if (values.out === '') throw new UsageError('--out needs a folder');
+    args.out = values.out as string;
+  }
+  if (values.config !== undefined) {
+    if (values.config === '') throw new UsageError('--config needs a file');
+    args.config = values.config as string;
+  }
+  return args;
+}
+
 function uiArgs(values: Values, targets: string[]): UiArgs {
   if (targets.length > 0)
     throw new UsageError(`widedoor ui takes no targets; got "${targets[0]}". Use --report <file>`);
@@ -370,6 +466,10 @@ export function parseCommand(argv: readonly string[]): Command {
         notes: { type: 'string' },
         attach: { type: 'string', multiple: true },
         override: { type: 'string', multiple: true },
+        'ai-fixes': { type: 'boolean' },
+        'ai-dry-run': { type: 'boolean' },
+        'ai-provider': { type: 'string' },
+        'ai-model': { type: 'string' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -385,8 +485,11 @@ export function parseCommand(argv: readonly string[]): Command {
   if (command === 'ui') return uiArgs(values, targets);
   if (command === 'review') return reviewArgs(values, targets);
   if (command === 'diff') return diffArgs(values, targets);
+  if (command === 'suggest') return suggestArgs(values, targets);
   if (command !== 'scan')
-    throw new UsageError(`unknown command "${command}"; expected scan, ui, review or diff`);
+    throw new UsageError(
+      `unknown command "${command}"; expected scan, ui, review, diff or suggest`,
+    );
   for (const flag of UI_ONLY)
     if (values[flag] !== undefined) throw new UsageError(`--${flag} is an option of widedoor ui`);
   for (const flag of DIFF_ONLY)
@@ -400,6 +503,7 @@ export function parseCommand(argv: readonly string[]): Command {
     targets,
     unsafeNoSandbox: values['unsafe-no-sandbox'] === true,
     ignoreOverrides: values['ignore-overrides'] === true,
+    ai: { fixes: values['ai-fixes'] === true, ...aiFlags(values) },
   };
   if (values.config !== undefined) {
     if (values.config === '') throw new UsageError('--config needs a file');

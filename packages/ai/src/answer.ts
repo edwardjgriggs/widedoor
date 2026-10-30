@@ -401,3 +401,26 @@ export const ANSWER_JSON_SCHEMAS = {
   web: toProviderSchema(z.toJSONSchema(WebPatchSchema)),
   pdf: toProviderSchema(z.toJSONSchema(PdfStepsSchema)),
 } as const;
+
+/**
+ * The OpenAI strict form of an answer schema: every const as a one-value
+ * enum, and no count or length keyword (minItems is the only one left after
+ * toProviderSchema). The installed SDK documents only that strict mode takes
+ * "a subset of JSON Schema"; enum is in every published form of that subset,
+ * and parseAnswer enforces every count and length the schema drops.
+ */
+export function toOpenAiSchema(schema: JsonSchema): JsonSchema {
+  const out: JsonSchema = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'const') out.enum = [value];
+    else if (key === 'minItems') continue;
+    else if (key === 'properties')
+      out.properties = Object.fromEntries(
+        Object.entries(value as Record<string, JsonSchema>).map(([k, v]) => [k, toOpenAiSchema(v)]),
+      );
+    else if (key === 'items') out.items = toOpenAiSchema(value as JsonSchema);
+    else if (key === 'anyOf') out.anyOf = (value as JsonSchema[]).map(toOpenAiSchema);
+    else out[key] = value;
+  }
+  return out;
+}

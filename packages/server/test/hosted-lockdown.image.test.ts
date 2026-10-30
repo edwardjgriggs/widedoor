@@ -432,6 +432,35 @@ describe('the scan image', () => {
     expect(hosted.Entrypoint).toEqual(['node', `${HOSTED_DIR}/api-bin.js`]);
   });
 
+  it('keeps @widedoor/ai and the provider SDKs out of the scan and hosted images (D16)', () => {
+    // Lists what each image holds; only the CLI image may carry AI fix suggestions.
+    const LIST =
+      'for p in /app/packages/ai /app/node_modules/@widedoor/ai /app/node_modules/@anthropic-ai /app/node_modules/openai; do test -e $p && echo $p; done; ls /app/node_modules/@widedoor; echo end';
+    const list = (image: string) =>
+      docker(['run', '--rm', '--label', LABEL, '--entrypoint', 'sh', image, '-c', LIST])
+        .stdout.trim()
+        .split('\n');
+    for (const image of [SCAN, HOSTED]) {
+      const held = list(image);
+      expect(held.at(-1), image).toBe('end');
+      expect(
+        held.filter((l) => l.startsWith('/app/')),
+        image,
+      ).toEqual([]);
+      expect(held, image).not.toContain('ai');
+      expect(held, image).toContain('server');
+    }
+    expect(list(CLI)).toEqual(
+      expect.arrayContaining([
+        '/app/packages/ai',
+        '/app/node_modules/@widedoor/ai',
+        '/app/node_modules/@anthropic-ai',
+        '/app/node_modules/openai',
+        'ai',
+      ]),
+    );
+  });
+
   it(
     'the hosted image boots and serves /healthz and the hosted page with its CSP',
     async () => {

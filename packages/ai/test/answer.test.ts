@@ -5,6 +5,7 @@ import {
   ANSWER_MAX_BYTES,
   ANSWER_MAX_DEPTH,
   parseAnswer,
+  toOpenAiSchema,
   toProviderSchema,
 } from '../src/answer.ts';
 import { PdfStepsSchema, WebPatchSchema } from '../src/model.ts';
@@ -536,5 +537,42 @@ describe('3b.3 carry-over', () => {
       'Point it at `evil.example`',
     ])
       expect(web(webAnswer({ summary })).ok, summary).toBe(true);
+  });
+});
+
+// Task 3b.5: the OpenAI form of the answer schemas.
+describe('toOpenAiSchema', () => {
+  it('turns every const into a one-value enum and changes nothing else', () => {
+    expect(toOpenAiSchema(ANSWER_JSON_SCHEMAS.web)).toEqual({
+      ...ANSWER_JSON_SCHEMAS.web,
+      properties: {
+        ...(ANSWER_JSON_SCHEMAS.web.properties as Record<string, unknown>),
+        kind: { type: 'string', enum: ['web-patch'] },
+      },
+    });
+    const pdf = toOpenAiSchema(ANSWER_JSON_SCHEMAS.pdf);
+    expect(JSON.stringify(pdf)).not.toContain('"const"');
+    expect((pdf.properties as Record<string, unknown>).kind).toEqual({
+      type: 'string',
+      enum: ['pdf-steps'],
+    });
+  });
+
+  it('carries no count or length keyword at all', () => {
+    const COUNTS = ['minItems', 'maxItems', 'minLength', 'maxLength', 'minimum', 'maximum'];
+    for (const kind of ['web', 'pdf'] as const) {
+      const text = JSON.stringify(toOpenAiSchema(ANSWER_JSON_SCHEMAS[kind]));
+      for (const keyword of COUNTS)
+        expect(text, `${kind} ${keyword}`).not.toContain(`"${keyword}"`);
+    }
+    const steps = (toOpenAiSchema(ANSWER_JSON_SCHEMAS.pdf).properties as Record<string, unknown>)
+      .steps;
+    expect(steps).toEqual({ type: 'array', items: { type: 'string' } });
+  });
+
+  it('does not change the input', () => {
+    const before = JSON.stringify(ANSWER_JSON_SCHEMAS.web);
+    toOpenAiSchema(ANSWER_JSON_SCHEMAS.web);
+    expect(JSON.stringify(ANSWER_JSON_SCHEMAS.web)).toBe(before);
   });
 });
