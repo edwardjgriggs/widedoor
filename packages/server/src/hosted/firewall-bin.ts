@@ -9,20 +9,18 @@ import { CONTROL_URL_ENV, EGRESS_PORT } from './protocol.js';
 /*
  * Writes the scan machine's firewall rules (firewall.ts) for the scan entry, as root and
  * before any rule is loaded: it resolves the control URL's host once, reads the
- * nameservers of /etc/resolv.conf, and writes `rules.v4` and `rules.v6` (mode 0600) into
- * the root-only folder named by its one argument. The entry loads them with
- * iptables-restore and ip6tables-restore. Any failure exits 1 and writes nothing the
- * entry could load; the log says what was wrong, never the URL.
+ * nameservers of /etc/resolv.conf, and writes `rules.nft` (mode 0600) into the root-only
+ * folder named by its one argument. The entry loads it with `nft -f`. Any failure exits 1
+ * and writes nothing the entry could load; the log says what was wrong, never the URL.
  */
 
-export const RULES_V4 = 'rules.v4';
-export const RULES_V6 = 'rules.v6';
+export const RULES_NFT = 'rules.nft';
 
 export type LookupAll = (host: string) => Promise<string[]>;
 
 export interface FirewallBinOptions {
   env: NodeJS.ProcessEnv;
-  /** The folder the two files go into (absolute; the entry's root-only temp folder). */
+  /** The folder the file goes into (absolute; the entry's root-only temp folder). */
   dir: string | undefined;
   /** Default /etc/resolv.conf. */
   resolvConf?: string;
@@ -45,7 +43,7 @@ export function nameservers(text: string): string[] {
   return out;
 }
 
-/** Writes the rules. Resolves with the exit code: 0 once both files are written, 1 otherwise. */
+/** Writes the rules. Resolves with the exit code: 0 once the file is written, 1 otherwise. */
 export async function main(options: FirewallBinOptions): Promise<number> {
   const log = options.log ?? ((line: string) => void process.stderr.write(`${line}\n`));
   const fail = (name: string) => {
@@ -84,8 +82,7 @@ export async function main(options: FirewallBinOptions): Promise<number> {
   }
   try {
     // wx: a file already there (planted, or from an earlier run) is never loaded in its place.
-    await writeFile(join(dir, RULES_V4), rules.v4, { mode: 0o600, flag: 'wx' });
-    await writeFile(join(dir, RULES_V6), rules.v6, { mode: 0o600, flag: 'wx' });
+    await writeFile(join(dir, RULES_NFT), rules, { mode: 0o600, flag: 'wx' });
   } catch {
     return fail('write');
   }

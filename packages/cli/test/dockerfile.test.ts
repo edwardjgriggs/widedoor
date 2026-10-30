@@ -55,8 +55,13 @@ describe('Dockerfile', () => {
       'cli',
     ]);
     // Only the scan target gets the firewall tools and the reaper's pkill.
-    expect(stage('base')).not.toMatch(/apt-get install.*(iptables|procps)/);
-    expect(stage('scan')).toMatch(/apt-get install -y --no-install-recommends iptables procps/);
+    expect(stage('base')).not.toMatch(/apt-get install.*(nftables|iptables|procps)/);
+    expect(stage('scan')).toMatch(/apt-get install -y --no-install-recommends nftables procps/);
+    expect(stage('scan')).toContain('test -x /usr/sbin/nft');
+    // Only root (the entry) may run nft.
+    expect(stage('scan')).toMatch(/^\s+&& chmod 0700 \/usr\/sbin\/nft \\$/m);
+    // The firewall is native nftables: Fly's kernel has no xt owner match for iptables.
+    expect(dockerfile).not.toMatch(/apt-get install.*iptables/);
     expect(stage('scan')).toContain('ENTRYPOINT ["/app/docker/scan-entry.sh"]');
     // The test switches never reach an image.
     expect(dockerfile).not.toMatch(/WIDEDOOR_(AGENT|EGRESS)_SAME_USER/);

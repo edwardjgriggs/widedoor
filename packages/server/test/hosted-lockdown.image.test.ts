@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseJsonReport } from '@widedoor/report';
 import { ROOT, reportValidator } from '../../cli/test/helpers.ts';
 import { STOPPED, TIMED_OUT } from '../src/hosted/agent-bin.ts';
+import { firewallRules } from '../src/hosted/firewall.ts';
 import { API_HEAP_MB } from '../src/hosted/limits.ts';
 import type { JobInput } from '../src/hosted/protocol.ts';
 
@@ -384,17 +385,26 @@ describe('the scan image', () => {
 
     const sh = (script: string) =>
       docker(['run', '--rm', '--label', LABEL, '--entrypoint', 'sh', SCAN, '-c', script]);
-    // setpriv, pkill (the reaper) and both restore tools at their absolute paths.
+    // setpriv, pkill (the reaper) and nft at their absolute paths; no iptables (Fly's
+    // kernel has no xt owner match, so the firewall is native nftables).
     const tools = sh(
-      'for t in /usr/bin/setpriv /usr/bin/pkill /usr/bin/pgrep /usr/sbin/iptables-restore /usr/sbin/ip6tables-restore; do test -x $t && echo $t; done',
+      'for t in /usr/bin/setpriv /usr/bin/pkill /usr/bin/pgrep /usr/sbin/nft; do test -x $t && echo $t; done',
     );
     expect(tools.stdout.trim().split('\n')).toEqual([
       '/usr/bin/setpriv',
       '/usr/bin/pkill',
       '/usr/bin/pgrep',
-      '/usr/sbin/iptables-restore',
-      '/usr/sbin/ip6tables-restore',
+      '/usr/sbin/nft',
     ]);
+    // nft is root's alone (the entry runs as root).
+    expect(sh('stat -c "%F %U:%G %a" /usr/sbin/nft').stdout.trim()).toBe(
+      'regular file root:root 700',
+    );
+    expect(
+      sh(
+        'dpkg -s iptables >/dev/null 2>&1 && echo present; command -v iptables iptables-restore ip6tables-restore; echo end',
+      ).stdout.trim(),
+    ).toBe('end');
     // The proxy's user: 10002, its own group, no home, no shell.
     expect(sh('getent passwd egress; getent group egress').stdout.trim().split('\n')).toEqual([
       'egress:x:10002:10002::/nonexistent:/usr/sbin/nologin',
@@ -409,7 +419,46 @@ describe('the scan image', () => {
     expect(entry).not.toMatch(/SAME_USER=/);
   });
 
-  it('leaves iptables and procps out of the CLI and hosted images', () => {
+  it("loads a ruleset with IPv6 control and resolver addresses with the image's nft, twice", () => {
+    // The probe network is IPv4 only, so its ruleset names no IPv6 address. This one does
+    // (Fly's shape: the control API and the resolver on the 6PN), and loading it again
+    // replaces the table in one transaction instead of failing on the one already there.
+    writeFileSync(
+      join(tmp, 'rules.nft'),
+      firewallRules({
+        controlAddresses: ['10.1.2.3', 'fdaa:0:1::2'],
+        controlPort: 8080,
+        resolvers: ['127.0.0.11', 'fdaa::3'],
+        proxyPort: 18080,
+      }),
+    );
+    const r = docker([
+      'run',
+      '--rm',
+      '--label',
+      LABEL,
+      '--network',
+      'none',
+      '--cap-add',
+      'NET_ADMIN',
+      '--volume',
+      `${tmp}:/stand-in:ro`,
+      '--entrypoint',
+      'sh',
+      SCAN,
+      '-c',
+      'nft -c -f /stand-in/rules.nft && nft -f /stand-in/rules.nft && nft -f /stand-in/rules.nft && nft list ruleset',
+    ]);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout.match(/^table /gm)).toEqual(['table ']);
+    expect(r.stdout.match(/policy drop;/g)).toHaveLength(3);
+    expect(r.stdout).toContain(
+      'meta skuid 10002 meta l4proto 17 ct original ip6 daddr fdaa::3 ct original proto-dst 53 accept',
+    );
+    expect(r.stdout).toContain('meta skuid 0 ip6 daddr fdaa:0:1::2 tcp dport 8080 accept');
+  });
+
+  it('leaves nftables, iptables and procps out of the CLI and hosted images', () => {
     // Proves R8's split: only the scan target gets the firewall tools and pkill.
     for (const image of [CLI, HOSTED]) {
       const r = docker([
@@ -421,7 +470,7 @@ describe('the scan image', () => {
         'sh',
         image,
         '-c',
-        'dpkg -s iptables procps >/dev/null 2>&1 && echo present; command -v iptables-restore pkill; echo end',
+        'for p in nftables iptables procps; do dpkg -s $p >/dev/null 2>&1 && echo $p; done; command -v nft iptables-restore pkill; echo end',
       ]);
       expect(r.stdout.trim(), image).toBe('end');
     }
@@ -680,12 +729,12 @@ register('data:text/javascript,' + encodeURIComponent(
   it(
     'without NET_ADMIN the entry exits non-zero and the agent never runs',
     () => {
-      // Proves the firewall fails closed: iptables-restore cannot load, so nothing starts
+      // Proves the firewall fails closed: nft cannot load the ruleset, so nothing starts
       // and the API never hears from the machine.
       const name = createMachine(`${probe}-nocap`, machineEnv(JOBS.noCap));
       const r = docker(['start', '--attach', name]);
       expect(r.status).not.toBe(0);
-      expect(r.stdout + r.stderr).toContain('widedoor event=entry_failed step=iptables');
+      expect(r.stdout + r.stderr).toContain('widedoor event=entry_failed step=nftables');
       expect(r.stdout + r.stderr).not.toContain('agent_');
       expect(requestsFor(JOBS.noCap)).toEqual([]);
     },
@@ -790,22 +839,46 @@ describe('a locked scan machine', () => {
   beforeAll(() => startProbe(probe), TIMEOUT);
 
   it('loads the firewall whole: every chain drops by default, in both families', () => {
-    // Proves both restores ran: the policies are DROP and the rules are the generated ones.
-    for (const tool of ['iptables', 'ip6tables']) {
-      const r = shAs(probe, '0', `${tool} -S`);
-      expect(r.status, r.stderr).toBe(0);
-      expect(r.stdout.split('\n').slice(0, 3), tool).toEqual([
-        '-P INPUT DROP',
-        '-P FORWARD DROP',
-        '-P OUTPUT DROP',
-      ]);
-      expect(r.stdout).toContain('--uid-owner 10001 -m tcp --dport 18080 -j ACCEPT');
-      // R33: the kernel takes the neighbor discovery rules (IPv6 only, 4 types, 2 chains).
-      // This network is IPv4, so it shows the rules load, not that IPv6 works on Fly.
-      const discovery = r.stdout.split('\n').filter((l) => /icmpv6-type/.test(l));
-      expect(discovery, tool).toHaveLength(tool === 'ip6tables' ? 8 : 0);
-      for (const rule of discovery) expect(rule).toContain('-m hl --hl-eq 255 -j ACCEPT');
-    }
+    // Proves nft -f ran: the inet table (both families) is the generated ruleset, rule for
+    // rule, with policy drop on every chain. The probe's inputs: the control API's address,
+    // Docker's resolver from resolv.conf, the control and proxy ports.
+    const r = shAs(probe, '0', 'nft list ruleset');
+    expect(r.status, r.stderr).toBe(0);
+    // Root ran it (the entry and this probe); the machine's other users cannot run it at all.
+    for (const user of ['10001', '10002'])
+      expect(shAs(probe, user, '/usr/sbin/nft list ruleset').status, user).toBe(126);
+    const listed = r.stdout.split('\n');
+    const start = listed.indexOf('table inet widedoor {');
+    expect(start, r.stdout).toBeGreaterThanOrEqual(0);
+    const table = listed
+      .slice(start, listed.indexOf('}', start) + 1)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    // nft lists protocols by number, the default reject bare and a /128 as the address.
+    const generated = firewallRules({
+      controlAddresses: [CONTROL_IP],
+      controlPort: 8080,
+      resolvers: ['127.0.0.11'],
+      proxyPort: 18080,
+    })
+      .split('\n')
+      .slice(2)
+      .map((l) =>
+        l
+          .trim()
+          .replace('meta l4proto udp', 'meta l4proto 17')
+          .replace('meta l4proto tcp', 'meta l4proto 6')
+          .replace(' reject with icmpx type port-unreachable', ' reject')
+          .replace(/ daddr (\S+)\/128 /, ' daddr $1 '),
+      )
+      .filter(Boolean);
+    expect(table).toEqual(generated);
+    expect(table.filter((l) => l.endsWith('policy drop;'))).toHaveLength(3);
+    // R33: the kernel takes the neighbor discovery rules (IPv6 only, 4 types, input and
+    // output). This network is IPv4, so it shows the rules load, not that IPv6 works on Fly.
+    const discovery = table.filter((l) => l.includes('icmpv6'));
+    expect(discovery).toHaveLength(2);
+    for (const rule of discovery) expect(rule).toMatch(/^ip6 hoplimit 255 icmpv6 type \{ /);
   });
 
   it('the scan user reaches nothing but the proxy', () => {
