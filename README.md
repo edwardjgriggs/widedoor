@@ -586,6 +586,22 @@ the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
   recognise other triggers that check out a pull request's code (an `issue_comment` command),
   so set `off` in those workflows.
 
+## AI fix suggestions (optional)
+
+Widedoor can ask Claude or OpenAI for a suggested fix for each failed check, with your own key
+from the environment. It is off by default. Turn it on with `--ai-fixes`, `ai.enabled` in the
+config, or `widedoor suggest` for an existing report. Only redacted snippets of failed checks
+are sent, and suggestions never change a result or the exit code. See
+[AI fix suggestions](docs/ai-fixes.md).
+
+## Use from an AI coding agent
+
+`widedoor mcp` is an MCP server, so an agent such as Claude Code can scan pages and PDFs and
+read the findings. It scans public hosts only unless started with `--allow-local`, works only
+inside its root folder, and never calls an AI provider. See
+[Use Widedoor from an AI coding agent](docs/mcp.md) and the skill in
+`integrations/claude-code/`.
+
 ## Reports
 
 - **HTML**: one self-contained file for people, with no scripts and a strict Content Security Policy.

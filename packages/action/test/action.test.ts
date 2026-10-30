@@ -410,7 +410,7 @@ describe('run', () => {
       [
         "import { mkdirSync, writeFileSync } from 'node:fs';",
         "const out = process.argv.find((a) => a.startsWith('--out=')).slice(6);",
-        "writeFileSync(process.env.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), inputs: Object.keys(process.env).filter((k) => k.startsWith('INPUT_')) }));",
+        "writeFileSync(process.env.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), inputs: Object.keys(process.env).filter((k) => k.startsWith('INPUT_')), providers: Object.keys(process.env).filter((k) => /^(anthropic|openai)_/i.test(k)) }));",
         "if (process.env.FAKE_SARIF === '1') { mkdirSync(out, { recursive: true }); writeFileSync(out + '/.widedoor-report', ''); writeFileSync(out + '/report.sarif', '{}'); }",
         'process.exit(Number(process.env.FAKE_CODE));',
         '',
@@ -454,7 +454,7 @@ describe('run', () => {
     } catch {
       // no outputs written
     }
-    let child: { argv: string[]; inputs: string[] } | undefined;
+    let child: { argv: string[]; inputs: string[]; providers: string[] } | undefined;
     try {
       child = JSON.parse(readFileSync(record, 'utf8'));
     } catch {
@@ -462,6 +462,21 @@ describe('run', () => {
     }
     return { result, outputs, child, stdout, stderr, dir };
   }
+
+  // Phase 3b final fix round 1 item 1: a CI run never sends to an AI provider by accident.
+  it('gives the CLI no provider key or setting from the job environment', async () => {
+    const r = await runFake(
+      0,
+      { urls: 'https://example.com/' },
+      {
+        ANTHROPIC_API_KEY: 'sk-ant-api03-FAKE-ACTION-KEY',
+        OPENAI_API_KEY: 'sk-FAKE-ACTION-KEY',
+        openai_base_url: 'https://proxy.example',
+      },
+    );
+    expect(r.result).toBe(0);
+    expect(r.child?.providers).toEqual([]);
+  });
 
   it.each([0, 1, 2])('passes CLI exit code %i through to the step and its output', async (code) => {
     const r = await runFake(code, { urls: 'https://example.com/$(id)' });

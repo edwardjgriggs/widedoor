@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "widedoor": {
+      "command": "node",
+      "args": ["<path>/packages/cli/dist/bin.js", "mcp", "--root", "."]
+    }
+  }
+}

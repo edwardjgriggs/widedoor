@@ -46,6 +46,17 @@ export function overriddenFails(report: Pick<ScanReport, 'rollup'>): OverrideTes
   };
 }
 
+/**
+ * The records AI fix suggestions are asked for: automated fails no reviewer
+ * overrode (a manual record holds a reviewer's own text and is never sent).
+ * @widedoor/ai's buildGroups and the viewer's "Suggest a fix (AI)" button
+ * both use it, so the button shows only where a run would send something.
+ */
+export const aiSuggestable =
+  (overridden: OverrideTest): OverrideTest =>
+  (f) =>
+    f.outcome === 'fail' && f.source.engine !== 'manual' && !overridden(f);
+
 const cited = (f: Finding): Override['criterion'][] => [
   ...(f.criteria.wcag ?? []).map((id) => ({ type: 'wcag' as const, id })),
   ...(f.criteria.section508 ?? []).map((id) => ({ type: 'section508' as const, id })),

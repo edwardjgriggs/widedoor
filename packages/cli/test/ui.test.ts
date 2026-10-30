@@ -5,7 +5,9 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { UsageError, parseCommand } from '../src/args.ts';
 import { main, type Io } from '../src/main.ts';
 import { findOnPath } from '@widedoor/pdf';
-import { URL_HANDLER, browserCommand, rundll32Path, uiRoot } from '../src/ui.ts';
+import { EventEmitter } from 'node:events';
+import type { ChildProcess, SpawnOptions } from 'node:child_process';
+import { URL_HANDLER, browserCommand, openBrowserWith, rundll32Path, uiRoot } from '../src/ui.ts';
 
 /*
  * widedoor ui up to the point where it serves: arguments, the root folder,
@@ -62,6 +64,47 @@ describe('widedoor ui arguments', () => {
   ])('refuses %j', (argv, message) => {
     expect(() => parseCommand(argv)).toThrow(UsageError);
     expect(() => parseCommand(argv)).toThrow(message);
+  });
+});
+
+// 3b.8 fix round 1 item 7 (CWE-526): a browser widedoor ui starts never gets a provider key.
+describe('openBrowser', () => {
+  it('spawns the browser command with an environment holding no provider setting', () => {
+    const fake = {
+      ANTHROPIC_API_KEY: 'sk-ant-api03-FAKE-OPEN-KEY',
+      OPENAI_API_KEY: 'sk-proj-FAKE-OPEN-KEY',
+      anthropic_base_url: 'https://proxy.example',
+    };
+    const saved = Object.fromEntries(Object.keys(fake).map((k) => [k, process.env[k]]));
+    Object.assign(process.env, fake);
+    const seen: { command: string; options: SpawnOptions }[] = [];
+    try {
+      const spawn = ((command: string, _args: readonly string[], options: SpawnOptions) => {
+        seen.push({ command, options });
+        return Object.assign(new EventEmitter(), { unref: () => undefined }) as ChildProcess;
+      }) as unknown as Parameters<typeof openBrowserWith>[0];
+      const err: string[] = [];
+      openBrowserWith(spawn)('http://127.0.0.1:51234/?code=AbC_d-9', {
+        out: () => undefined,
+        err: (l) => void err.push(l),
+        cwd: root,
+      });
+      // Off Windows the command is found on PATH; where it is not, nothing is spawned.
+      if (seen.length === 0) {
+        expect(process.platform).not.toBe('win32');
+        expect(err).toEqual(['widedoor: could not open a browser; open the link above yourself.']);
+        return;
+      }
+      const env = seen[0]!.options.env ?? {};
+      expect(Object.keys(env).filter((k) => /^(anthropic|openai)_/i.test(k))).toEqual([]);
+      expect(JSON.stringify(env)).not.toMatch(/FAKE-OPEN-KEY|proxy\.example/);
+      expect(Object.keys(env).some((k) => k.toUpperCase() === 'PATH')).toBe(true);
+      expect(seen[0]!.options.shell).toBe(false);
+    } finally {
+      for (const [k, v] of Object.entries(saved))
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+    }
   });
 });
 

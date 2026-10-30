@@ -23,7 +23,7 @@ import {
   validateDockerOptions,
   type SpawnFn,
 } from '../src/index.ts';
-import { fakeSpawn } from './fixtures.ts';
+import { fakeSpawn, type SpawnCall } from './fixtures.ts';
 
 const node = process.execPath;
 const limits = { timeoutMs: 10_000, maxOutputBytes: 1024 * 1024 };
@@ -283,6 +283,56 @@ describe('resolveRunner', () => {
     for (const c of calls)
       expect(isAbsolute(c.command.replace(/^"|"$/g, '')), c.command).toBe(true);
     expect(TASKKILL).toMatch(/[\\/]System32[\\/]taskkill\.exe$/i);
+  });
+
+  it('gives no veraPDF or Docker child an AI provider setting (3b.7 fix 1)', async () => {
+    const fake = {
+      ANTHROPIC_API_KEY: 'sk-ant-api03-FAKE-VERAPDF-KEY',
+      OPENAI_API_KEY: 'sk-proj-FAKE-VERAPDF-KEY',
+      openai_base_url: 'https://proxy.example',
+    };
+    const saved = Object.fromEntries(Object.keys(fake).map((k) => [k, process.env[k]]));
+    Object.assign(process.env, fake);
+    try {
+      const all: SpawnCall[] = [];
+      for (const [choice, dockerImage] of [
+        ['local', false],
+        ['docker', true],
+      ] as const) {
+        const { spawn, calls } = world({ localVersion: '1.30.3', dockerImage });
+        const r = await resolveRunner(choice, opts(spawn));
+        if (!r.ok) throw new Error(r.message);
+        await r.runner.run(Buffer.from('%PDF'), { ...limits, maxFailuresDisplayed: 1 });
+        all.push(...calls);
+      }
+      // A docker run that never answers: the rm after the timeout is a spawn too.
+      const hung = fakeSpawn((c) => {
+        if (c.args[0] === 'rm') c.child.exit(0);
+      });
+      await dockerRunner({ docker, spawn: hung.spawn }).run(Buffer.from('%PDF'), {
+        ...limits,
+        timeoutMs: 50,
+        maxFailuresDisplayed: 1,
+      });
+      all.push(...hung.calls);
+      expect(all.length).toBeGreaterThan(4);
+      for (const c of all) {
+        const env = c.options.env ?? {};
+        expect(
+          Object.keys(env).filter((k) => /^(anthropic|openai)_/i.test(k)),
+          c.command,
+        ).toEqual([]);
+        expect(JSON.stringify(env)).not.toMatch(/FAKE-VERAPDF-KEY|proxy\.example/);
+        expect(
+          Object.keys(env).some((k) => k.toUpperCase() === 'PATH'),
+          c.command,
+        ).toBe(true);
+      }
+    } finally {
+      for (const [k, v] of Object.entries(saved))
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+    }
   });
 });
 

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { MODEL_ID_RULE } from '@widedoor/core';
 import {
   ConfigError,
   buildPlan,
@@ -15,6 +16,10 @@ const dir = mkdtempSync(join(tmpdir(), 'widedoor-config-'));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 let n = 0;
+/** YAML from lines, one per argument. */
+const yaml = (...lines: string[]) =>
+  `${lines.join(String.fromCharCode(10))}${String.fromCharCode(10)}`;
+
 function configFile(text: string): string {
   const sub = join(dir, `c${n++}`);
   mkdirSync(sub);
@@ -93,10 +98,106 @@ describe('loadConfig', () => {
   });
 
   it('rejects features that are not supported yet', () => {
-    expect(problems('web:\n  actions: [{ click: "#menu" }]\nai:\n  enabled: true\n')).toEqual([
+    expect(problems(yaml('web:', '  actions: [{ click: "#menu" }]'))).toEqual([
       'web.actions: scripted actions are not supported yet; leave web.actions empty',
-      'ai.enabled: AI fix suggestions are not supported yet; set ai.enabled to false',
     ]);
+  });
+
+  describe('the ai block', () => {
+    it('accepts every field', () => {
+      const loaded = loadConfig(
+        configFile(
+          yaml(
+            'ai:',
+            '  enabled: true',
+            '  provider: openai',
+            '  model: gpt-5.5',
+            '  maxGroups: 10',
+            '  maxRequestsPerMinute: 5',
+            '  concurrency: 2',
+            '  maxOutputTokens: 4096',
+            '  maxInputTokensTotal: 100000',
+          ),
+        ),
+      );
+      expect(loaded.config.ai).toEqual({
+        enabled: true,
+        provider: 'openai',
+        model: 'gpt-5.5',
+        maxGroups: 10,
+        maxRequestsPerMinute: 5,
+        concurrency: 2,
+        maxOutputTokens: 4096,
+        maxInputTokensTotal: 100000,
+      });
+      expect(loadConfig(configFile(yaml('ai:', '  enabled: true'))).config.ai).toEqual({
+        enabled: true,
+      });
+    });
+
+    it('refuses a key-shaped field at any depth, with the environment message', () => {
+      const KEY_MESSAGE =
+        'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+      for (const lines of [
+        ['ai:', '  apiKey: sk-ant-x'],
+        ['ai:', '  key: sk-x'],
+        ['ai:', '  token: t'],
+        ['ai:', '  OPENAI_API_KEY: sk-x'],
+        ['ai:', '  enabled: true', '  openai:', '    apiKey: sk-x'],
+        ['ai:', '  provider: anthropic', '  extra:', '    - secret: s'],
+      ])
+        expect(problems(yaml(...lines)).join(' | '), lines.join(' / ')).toContain(KEY_MESSAGE);
+      expect(problems(yaml('ai:', '  apiKey: sk-ant-SECRET')).join(' ')).not.toContain('SECRET');
+    });
+
+    // 3b.7 fix round 1 item 2: a key pasted into ai.model (CWE-532).
+    it('refuses a key-shaped model with the environment message, never echoing it', () => {
+      const KEY_MESSAGE =
+        'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+      for (const model of [
+        'sk-proj-SECRETabc123def456',
+        'sk-ant-api03-SECRET-x1y2z3',
+        'sk-SECRET123',
+        'sk_live_SECRET',
+        'SECRETa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+        'my-token-SECRET',
+      ]) {
+        const found = problems(yaml('ai:', `  model: ${model}`)).join(' | ');
+        expect(found, model).toContain(KEY_MESSAGE);
+        expect(found, model).not.toContain('SECRET');
+      }
+      for (const model of ['claude-opus-5-5', 'gpt-5.5', 'claude-3-5-sonnet-20241022', 'o4-mini'])
+        expect(loadConfig(configFile(yaml('ai:', `  model: ${model}`))).config.ai?.model).toBe(
+          model,
+        );
+    });
+
+    it('holds the model to its characters and the limits to their ranges', () => {
+      for (const line of [
+        '  model: "bad model"',
+        `  model: ${'m'.repeat(101)}`,
+        '  maxGroups: 0',
+        '  maxGroups: 201',
+        '  maxRequestsPerMinute: 61',
+        '  concurrency: 5',
+        '  maxOutputTokens: 100',
+        '  maxInputTokensTotal: 999',
+        '  provider: gemini',
+        '  temperature: 0.2',
+      ])
+        expect(problems(yaml('ai:', line)).length, line).toBeGreaterThan(0);
+    });
+
+    // Final fix round 1 item 15: ai.model, --ai-model, the runner and the providers share one rule.
+    it('takes the model ids the providers take, with "@" and "/", and names the rule', () => {
+      for (const model of ['anthropic/claude-opus-5-5', 'claude-opus-5-5@2026-10-01'])
+        expect(loadConfig(configFile(yaml('ai:', `  model: ${model}`))).config.ai?.model).toBe(
+          model,
+        );
+      expect(problems(yaml('ai:', '  model: "bad model"')).join(' ')).toContain(
+        `must be ${MODEL_ID_RULE}`,
+      );
+    });
   });
 
   it('rejects PDF globs that leave the config folder', () => {

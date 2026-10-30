@@ -483,6 +483,39 @@ describe('the scan image', () => {
     expect(hosted.Entrypoint).toEqual(['node', `${HOSTED_DIR}/api-bin.js`]);
   });
 
+  it('keeps @widedoor/ai and the provider SDKs out of the scan and hosted images (D16)', () => {
+    // Lists what each image holds; only the CLI image may carry AI fix suggestions.
+    const LIST =
+      'for p in /app/packages/ai /app/node_modules/@widedoor/ai /app/node_modules/@anthropic-ai /app/node_modules/openai /app/packages/docs /app/node_modules/@widedoor/docs; do test -e $p && echo $p; done; ls /app/node_modules/@widedoor; echo end';
+    const list = (image: string) =>
+      docker(['run', '--rm', '--label', LABEL, '--entrypoint', 'sh', image, '-c', LIST])
+        .stdout.trim()
+        .split('\n');
+    for (const image of [SCAN, HOSTED]) {
+      const held = list(image);
+      expect(held.at(-1), image).toBe('end');
+      expect(
+        held.filter((l) => l.startsWith('/app/')),
+        image,
+      ).toEqual([]);
+      expect(held, image).not.toContain('ai');
+      expect(held, image).toContain('server');
+    }
+    const cli = list(CLI);
+    expect(cli).toEqual(
+      expect.arrayContaining([
+        '/app/packages/ai',
+        '/app/node_modules/@widedoor/ai',
+        '/app/node_modules/@anthropic-ai',
+        '/app/node_modules/openai',
+        'ai',
+      ]),
+    );
+    // The docs site is in no image (Task 3b.11 ruling 2).
+    for (const held of [list(SCAN), list(HOSTED), cli])
+      expect(held.filter((l) => l.includes('docs'))).toEqual([]);
+  });
+
   it(
     'the hosted image boots and serves /healthz and the hosted page with its CSP',
     async () => {
@@ -544,6 +577,104 @@ describe('the scan image', () => {
       expect(text).not.toContain('api_config_error');
       expect(text).not.toContain(token);
       docker(['rm', '--force', name]);
+    },
+    TIMEOUT,
+  );
+
+  // 3b.8 fix round 1 item 5: the hosted entry never asks for AI code, at load or at run time.
+  it(
+    'the hosted API boots and serves under a resolve hook that throws on @widedoor/ai and the provider SDKs',
+    async () => {
+      // node --import: any resolve of those specifiers throws HOSTED_AI_IMPORT, before resolution,
+      // so the hook catches an attempt even in an image that does not hold the packages.
+      const hook = `data:text/javascript,${encodeURIComponent(
+        `import { register } from 'node:module';
+register('data:text/javascript,' + encodeURIComponent(
+  "export async function resolve(s, c, next) { if (s === '@widedoor/ai' || s.startsWith('@widedoor/ai/') || s.startsWith('@anthropic-ai/') || s === 'openai' || s.startsWith('openai/')) throw new Error('HOSTED_AI_IMPORT ' + s); return next(s, c); }"
+));`,
+      )}`;
+      // Positive control: the hook does catch each specifier in this image.
+      for (const spec of ['@widedoor/ai', '@anthropic-ai/sdk', 'openai']) {
+        const control = docker([
+          'run',
+          '--rm',
+          '--label',
+          LABEL,
+          '--network',
+          'none',
+          '--entrypoint',
+          'node',
+          HOSTED,
+          '--import',
+          hook,
+          '-e',
+          `import(${JSON.stringify(spec)}).then(() => console.log('loaded'), (e) => console.log(e.message))`,
+        ]);
+        expect(control.stdout.trim(), control.stderr).toBe(`HOSTED_AI_IMPORT ${spec}`);
+      }
+      const name = `widedoor-lockdown-hosted-hook-${id}`;
+      const started = docker([
+        'run',
+        '--detach',
+        '--label',
+        LABEL,
+        '--name',
+        name,
+        '--network',
+        'none',
+        '--env',
+        'FLY_API_TOKEN=lockdown-hosted-hook-0123456789',
+        '--env',
+        `WIDEDOOR_SCAN_IMAGE=registry.fly.io/widedoor-scan@sha256:${'0'.repeat(64)}`,
+        '--env',
+        'WIDEDOOR_PUBLIC_ORIGIN=https://widedoor.example.net',
+        '--env',
+        'WIDEDOOR_CONTACT_URL=https://contact.example.net/widedoor',
+        '--env',
+        'WIDEDOOR_CONTROL_HOST=127.0.0.1',
+        '--entrypoint',
+        'node',
+        HOSTED,
+        '--import',
+        hook,
+        `${HOSTED_DIR}/api-bin.js`,
+      ]);
+      expect(started.status, started.stderr).toBe(0);
+      try {
+        await waitForLog(name, 'widedoor event=api_ready', 'the hosted API under the hook');
+        // Each page and route the public API serves, and a scan request, under the hook.
+        const seen = JSON.parse(
+          nodeAs(
+            name,
+            '10001',
+            [
+              '(async () => {',
+              '  const out = {};',
+              "  for (const path of ['/healthz', '/', '/about-scanner', '/api/ai', '/api/suggestions'])",
+              "    out[path] = (await fetch('http://127.0.0.1:8080' + path)).status;",
+              "  out.scan = (await fetch('http://127.0.0.1:8080/api/scans', {",
+              "    method: 'POST',",
+              "    headers: { origin: 'https://widedoor.example.net', 'content-type': 'application/json' },",
+              "    body: JSON.stringify({ url: 'https://site.example.org/', profile: '508+wcag21aa' }),",
+              '  })).status;',
+              '  console.log(JSON.stringify(out));',
+              '})();',
+            ].join('\n'),
+          ),
+        ) as Record<string, number>;
+        expect(seen['/healthz']).toBe(200);
+        expect(seen['/']).toBe(200);
+        expect(seen['/api/ai']).toBe(404);
+        expect(seen['/api/suggestions']).toBe(404);
+        expect(seen.scan).toBeGreaterThanOrEqual(200);
+        const logs = docker(['logs', name]);
+        expect(logs.stdout + logs.stderr).not.toContain('HOSTED_AI_IMPORT');
+        expect(docker(['inspect', '--format', '{{.State.Running}}', name]).stdout.trim()).toBe(
+          'true',
+        );
+      } finally {
+        docker(['rm', '--force', name]);
+      }
     },
     TIMEOUT,
   );

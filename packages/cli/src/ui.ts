@@ -1,6 +1,7 @@
 import { spawn as nodeSpawn } from 'node:child_process';
 import { statSync } from 'node:fs';
 import { isAbsolute, resolve, win32 } from 'node:path';
+import { withoutProviderEnv } from '@widedoor/core';
 import { findOnPath } from '@widedoor/pdf';
 import {
   ReportFileError,
@@ -16,6 +17,7 @@ import {
   type CurrentReport,
   type LocalRoot,
 } from '@widedoor/server';
+import { localAi, type AiHooks } from './ai.js';
 import type { UiArgs } from './args.js';
 import type { Io } from './main.js';
 import { EXIT_ERROR, EXIT_OK } from './policy.js';
@@ -66,21 +68,28 @@ export function browserCommand(
 
 export type OpenFn = (url: string, io: Io) => void;
 
-export const openBrowser: OpenFn = (url, io) => {
-  const failed = () => io.err('widedoor: could not open a browser; open the link above yourself.');
-  try {
-    const [command, args] = browserCommand(url);
-    const child = nodeSpawn(command, args, {
-      stdio: 'ignore',
-      detached: process.platform !== 'win32',
-      shell: false,
-    });
-    child.once('error', failed);
-    child.unref();
-  } catch {
-    failed();
-  }
-};
+/** openBrowser with its spawn chosen (tests). A browser it starts never gets a provider key. */
+export const openBrowserWith =
+  (spawn: typeof nodeSpawn): OpenFn =>
+  (url, io) => {
+    const failed = () =>
+      io.err('widedoor: could not open a browser; open the link above yourself.');
+    try {
+      const [command, args] = browserCommand(url);
+      const child = spawn(command, args, {
+        stdio: 'ignore',
+        detached: process.platform !== 'win32',
+        shell: false,
+        env: withoutProviderEnv(process.env),
+      });
+      child.once('error', failed);
+      child.unref();
+    } catch {
+      failed();
+    }
+  };
+
+export const openBrowser: OpenFn = openBrowserWith(nodeSpawn);
 
 /**
  * The folder widedoor ui works in: --root, the folder of --config (which
@@ -103,7 +112,12 @@ export function uiRoot(args: Pick<UiArgs, 'root' | 'config'>, cwd: string): Loca
   return { dir };
 }
 
-export async function runUi(args: UiArgs, io: Io, open: OpenFn = openBrowser): Promise<number> {
+export async function runUi(
+  args: UiArgs,
+  io: Io,
+  open: OpenFn = openBrowser,
+  hooks: AiHooks = {},
+): Promise<number> {
   const root = uiRoot(args, io.cwd);
   if (root === undefined) {
     io.err(`widedoor: ${safeText(resolve(io.cwd, args.root ?? '.'), 1000)} is not a folder`);
@@ -138,9 +152,16 @@ export async function runUi(args: UiArgs, io: Io, open: OpenFn = openBrowser): P
         );
       throw e;
     }
+    // AI fix suggestions: on with ai.enabled and the provider's key; the server never gets the key.
+    const ai = await localAi(loadRootConfig(root)?.config.ai, hooks);
+    if ('ai' in ai)
+      io.out(
+        `AI fix suggestions are on (${ai.ai.provider}, ${safeText(ai.ai.model, 100)}); the page asks before it sends anything.`,
+      );
     server = await startLocalServer({
       files,
       root,
+      ...('ai' in ai ? { ai: ai.ai } : { aiUnavailable: ai.unavailable }),
       ...(current ? { current } : {}),
       onCodeReuse: () =>
         io.err(

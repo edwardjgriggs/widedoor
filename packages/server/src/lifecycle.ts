@@ -1,6 +1,7 @@
 import { spawn as nodeSpawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
+import { withoutProviderEnv } from '@widedoor/core';
 import { CONTAINER_LABEL, TASKKILL, runProcess, type SpawnFn } from '@widedoor/pdf';
 
 /*
@@ -45,6 +46,7 @@ export class ProcessTracker {
             stdio: 'ignore',
             windowsHide: true,
             timeout: 10_000,
+            env: withoutProviderEnv(process.env),
           });
         else if (detached) process.kill(-child.pid, 'SIGKILL');
         else child.kill('SIGKILL');
@@ -138,7 +140,13 @@ export async function sweepContainers(docker: string, spawn: SpawnFn): Promise<n
 
 /** Removes this run's own containers. Synchronous, for the interrupt and exit paths. */
 export function removeOwnContainers(docker: string, prefix: string): void {
-  const sync = { encoding: 'utf8' as const, windowsHide: true, timeout: 15_000 };
+  // Provider keys stay in the CLI process, as for every other child (core's withoutProviderEnv).
+  const sync = {
+    encoding: 'utf8' as const,
+    windowsHide: true,
+    timeout: 15_000,
+    env: withoutProviderEnv(process.env),
+  };
   try {
     const list = spawnSync(docker, listArgs(prefix), sync);
     const own = parseContainerRows(list.stdout ?? '')

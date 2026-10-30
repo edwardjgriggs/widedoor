@@ -35,6 +35,7 @@ import {
   moreSkippedText,
   notEvaluated,
   notTestedText,
+  aiSuggestable,
   overriddenFails,
   overrideEntries,
   overrideNotes,
@@ -81,6 +82,15 @@ export interface ReportViewProps {
   attachments?: ReadonlyMap<string, ScreenshotView>;
   /** The findings to list in the cards and per-asset sections; all of them when not filtered. */
   findings?: readonly Finding[];
+  /**
+   * Given only when AI fix suggestions are available for this report: each
+   * automated fail no reviewer overrode (aiSuggestable) gets a "Suggest a
+   * fix (AI)" button. The HTML report has no such button, so render.test.tsx
+   * renders without it.
+   */
+  onSuggest?: (finding: Finding) => void;
+  /** The "Suggest a fix (AI)" buttons are disabled while a suggestion is being prepared, confirmed or run. */
+  suggestDisabled?: boolean;
 }
 
 const isWebUrl = (href: string) => {
@@ -228,10 +238,14 @@ function FindingItem({
   f,
   data,
   screenshots,
+  onSuggest,
+  suggestDisabled,
 }: {
   f: Finding;
   data: UiData;
   screenshots: ReadonlyMap<string, ScreenshotView>;
+  onSuggest?: ((finding: Finding) => void) | undefined;
+  suggestDisabled?: boolean | undefined;
 }) {
   const p = plainFor(f, data.plain);
   const viewport = f.evidence?.viewport;
@@ -269,6 +283,14 @@ function FindingItem({
         wcag={f.criteria.wcag ?? []}
         s508={f.criteria.section508 ?? []}
       />
+      {onSuggest && f.outcome === 'fail' && (
+        <div className="actions">
+          <button type="button" onClick={() => onSuggest(f)} disabled={suggestDisabled === true}>
+            Suggest a fix (AI)
+            <span className="visually-hidden">: {t(findingHeading(f, p))}</span>
+          </button>
+        </div>
+      )}
     </li>
   );
 }
@@ -323,12 +345,18 @@ function Assets({
   findings,
   filtered,
   overridden,
-}: Omit<Required<ReportViewProps>, 'attachments'> & {
+  onSuggest,
+  suggestDisabled,
+}: Omit<Required<ReportViewProps>, 'attachments' | 'onSuggest' | 'suggestDisabled'> & {
   filtered: boolean;
   overridden: OverrideTest;
+  onSuggest?: ((finding: Finding) => void) | undefined;
+  suggestDisabled?: boolean | undefined;
 }) {
   const titles = new Map(report.titles.map((x) => [x.uri, x.title]));
   const { unscanned, skippedOver } = unscannedAssets(report);
+  // Only where a run would send something: not on a manual fail or an overridden one.
+  const suggestable = aiSuggestable(overridden);
   if (report.assets.length === 0 && unscanned.length === 0) return <p>{TEXT.noAssets}</p>;
   const section = (uri: string, kind: string, i: number, note?: ReactNode) => {
     // The counts describe the page, so they come from every finding, not the filtered list.
@@ -338,7 +366,14 @@ function Assets({
       note !== undefined && all.length === 0 ? null : found.length > 0 ? (
         <ol className="findings">
           {found.map((f, j) => (
-            <FindingItem key={j} f={f} data={data} screenshots={screenshots} />
+            <FindingItem
+              key={j}
+              f={f}
+              data={data}
+              screenshots={screenshots}
+              onSuggest={suggestable(f) ? onSuggest : undefined}
+              suggestDisabled={suggestDisabled}
+            />
           ))}
         </ol>
       ) : all.length > 0 ? (
@@ -712,6 +747,8 @@ export function ReportView({
   screenshots,
   attachments = new Map(),
   findings,
+  onSuggest,
+  suggestDisabled,
 }: ReportViewProps) {
   const shownFindings = findings ?? report.findings;
   const filtered = findings !== undefined;
@@ -742,6 +779,8 @@ export function ReportView({
           findings={shownFindings}
           filtered={filtered}
           overridden={overridden}
+          onSuggest={onSuggest}
+          suggestDisabled={suggestDisabled}
         />
       </section>
       <section aria-labelledby="summary">

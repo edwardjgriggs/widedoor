@@ -3,6 +3,8 @@ import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { z } from 'zod';
 import {
   ConfigError,
+  MODEL_ID,
+  MODEL_ID_RULE,
   PROFILE_IDS,
   formatIssues,
   getProfile,
@@ -71,6 +73,86 @@ const acrText = z
   .string({ error: 'must be text; quote a value YAML would read as a number, such as "2.10"' })
   .trim()
   .min(1);
+
+/** widedoor.config.yaml (spec section 6). Unknown keys are errors, so a typo never silently widens or narrows a scan. */
+/** The refusal for a key-shaped field anywhere in the ai block. */
+export const AI_KEY_IN_CONFIG =
+  'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file';
+
+/**
+ * The ai block's limit ranges and defaults; @widedoor/ai's AiLimitsSchema holds
+ * the same (a CLI test checks they agree). The server never imports
+ * @widedoor/ai: the hosted tier must not load it (D16).
+ */
+export const AI_LIMIT_RANGES = {
+  maxGroups: { min: 1, max: 200 },
+  maxRequestsPerMinute: { min: 1, max: 60 },
+  concurrency: { min: 1, max: 4 },
+  maxOutputTokens: { min: 256, max: 16_384 },
+  maxInputTokensTotal: { min: 1000, max: 5_000_000 },
+} as const;
+
+const AI_FIELDS = new Set([
+  'enabled',
+  'allowSignedIn',
+  'provider',
+  'model',
+  ...Object.keys(AI_LIMIT_RANGES),
+]);
+const KEY_SHAPED = /key|token|secret|passw|credential|auth|bearer/i;
+
+/** Every path in the ai block that names a credential: any unknown key-shaped name, at any depth. */
+function keyShapedPaths(value: unknown, path: (string | number)[] = []): (string | number)[][] {
+  if (typeof value !== 'object' || value === null) return [];
+  return Object.entries(value).flatMap(([k, v]) => {
+    const here = [...path, k];
+    const named = (path.length > 0 || !AI_FIELDS.has(k)) && KEY_SHAPED.test(k) ? [here] : [];
+    return [...named, ...keyShapedPaths(v, here)];
+  });
+}
+
+/**
+ * Whether a model id looks like a pasted key: an sk- or sk_ prefix, a
+ * credential word (the field-name test above), or a long run of letters and
+ * digits with no separator, which no model id has. Refused with
+ * AI_KEY_IN_CONFIG, which never echoes the value.
+ */
+export const keyShapedModel = (model: string) =>
+  /^sk[-_]/i.test(model) || KEY_SHAPED.test(model) || /[A-Za-z0-9]{32,}/.test(model);
+
+const aiLimit = (name: keyof typeof AI_LIMIT_RANGES) =>
+  z.int().min(AI_LIMIT_RANGES[name].min).max(AI_LIMIT_RANGES[name].max).optional();
+
+/**
+ * The ai block (spec section 9, D16): off unless enabled; the provider's key
+ * comes from the environment only, so a key-shaped field is refused with
+ * AI_KEY_IN_CONFIG before the strict shape check.
+ */
+export const AiConfigSchema = z
+  .unknown()
+  .superRefine((value, ctx) => {
+    for (const path of keyShapedPaths(value))
+      ctx.addIssue({ code: 'custom', message: AI_KEY_IN_CONFIG, path, continue: false });
+  })
+  .pipe(
+    z.strictObject({
+      enabled: z.boolean().optional(),
+      /** AI for a signed-in scan (storage state): off unless set, since its snippets can hold personal data. */
+      allowSignedIn: z.boolean().optional(),
+      provider: z.enum(['anthropic', 'openai']).optional(),
+      model: z
+        .string()
+        .refine((m) => !keyShapedModel(m), { message: AI_KEY_IN_CONFIG, abort: true })
+        .regex(MODEL_ID, `must be ${MODEL_ID_RULE}`)
+        .optional(),
+      maxGroups: aiLimit('maxGroups'),
+      maxRequestsPerMinute: aiLimit('maxRequestsPerMinute'),
+      concurrency: aiLimit('concurrency'),
+      maxOutputTokens: aiLimit('maxOutputTokens'),
+      maxInputTokensTotal: aiLimit('maxInputTokensTotal'),
+    }),
+  );
+export type AiConfig = z.infer<typeof AiConfigSchema>;
 
 /** widedoor.config.yaml (spec section 6). Unknown keys are errors, so a typo never silently widens or narrows a scan. */
 export const ConfigSchema = z.strictObject({
@@ -144,15 +226,7 @@ export const ConfigSchema = z.strictObject({
         .optional(),
     })
     .optional(),
-  ai: z
-    .strictObject({
-      enabled: z
-        .boolean()
-        .refine((on) => !on, 'AI fix suggestions are not supported yet; set ai.enabled to false')
-        .optional(),
-      provider: z.enum(['anthropic', 'openai']).optional(),
-    })
-    .optional(),
+  ai: AiConfigSchema.optional(),
 });
 export type Config = z.infer<typeof ConfigSchema>;
 

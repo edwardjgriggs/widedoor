@@ -9,3 +9,5 @@ export * from './text.js';
 export * from './issues.js';
 export * from './repo-files.js';
 export * from './review-files.js';
+export * from './child-env.js';
+export * from './model-id.js';

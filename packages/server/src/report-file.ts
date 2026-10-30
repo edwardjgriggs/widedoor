@@ -11,7 +11,7 @@ import {
   type ScanReport,
 } from '@widedoor/report';
 import type { ScanInputs } from './engine.js';
-import { evidencePath } from './output.js';
+import { evidencePath, signedInMarked } from './output.js';
 
 /** A report file that cannot be used; the message says why. widedoor review, diff and ui read reports the same way. */
 export class ReportFileError extends Error {}
@@ -51,6 +51,8 @@ export interface CurrentReport {
    * after each recorded review ('live'). A report file has none ('as-scanned').
    */
   inputs?: ScanInputs;
+  /** A signed-in scan's report (storage state): AI needs ai.allowSignedIn for it. */
+  signedIn?: boolean;
 }
 
 /** Whether the served report shows reviews recorded since it was built. */
@@ -105,5 +107,14 @@ export function reportBodyOf(
 export function loadReportFile(path: string, reviewDir?: string): CurrentReport {
   const report = readReport(path);
   const evidenceDir = evidencePath(dirname(path));
-  return { report, evidenceDir, body: reportBodyOf(report, evidenceDir, reviewDir) };
+  // A signed-in scan leaves its marker beside the report; off Windows its reports are also
+  // private (0600). A report copied without its marker is not known as signed-in.
+  const signedIn =
+    signedInMarked(path) || (process.platform !== 'win32' && (statSync(path).mode & 0o077) === 0);
+  return {
+    report,
+    evidenceDir,
+    body: reportBodyOf(report, evidenceDir, reviewDir),
+    ...(signedIn ? { signedIn: true } : {}),
+  };
 }

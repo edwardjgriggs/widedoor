@@ -1,0 +1,11 @@
+{
+  "name": "@widedoor/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "The Widedoor docs site: README.md and docs/*.md as static HTML. Never published; never in an image.",
+  "devDependencies": {
+    "markdown-it": "15.0.3"
+  }
+}

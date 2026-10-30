@@ -41,7 +41,7 @@ jobs:
   verify:
     needs: secrets
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Check out full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -77,6 +77,12 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # The docs site as Vercel builds it (packages/docs; not part of npm run build). Its unit
+      # tests ran in npm test above, and its browser test (Widedoor's own scan of every page)
+      # runs with the browser tests below.
+      - name: Build the docs site
+        run: npm run docs:build
 
       # Audit before the browser tests, so a known-bad dependency fails the job before it runs.
       - name: Audit dependencies

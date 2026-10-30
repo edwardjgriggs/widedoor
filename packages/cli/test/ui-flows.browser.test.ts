@@ -133,9 +133,18 @@ interface Api {
   on(method: string, path: string | RegExp, handler: Handler): void;
 }
 
-/** Answers every /api call but the session trade from the handlers set with on(); 404 otherwise. */
+/**
+ * Answers every /api call but the session trade from the handlers set with on(); 404 otherwise.
+ * GET /api/ai always answers on the real server: here it says AI is off unless a test says otherwise.
+ */
 async function standIn(page: Page): Promise<Api> {
-  const handlers: { method: string; path: string | RegExp; handler: Handler }[] = [];
+  const handlers: { method: string; path: string | RegExp; handler: Handler }[] = [
+    {
+      method: 'GET',
+      path: '/api/ai',
+      handler: () => ({ status: 200, body: { available: false, reason: 'off' } }),
+    },
+  ];
   const api: Api = {
     calls: [],
     on: (method, path, handler) => void handlers.unshift({ method, path, handler }),
@@ -756,6 +765,111 @@ describe('the screens against a stand-in API', () => {
         await poll(() => page.getByRole('alert').filter({ hasText: /\S/ }).innerText()).toBe(
           'The report widedoor ui holds could not be loaded again. Server error. The widedoor ui terminal shows the cause.',
         );
+        expect(await w.violations()).toEqual([]);
+      } finally {
+        await page.context().close();
+      }
+    },
+    TIMEOUT,
+  );
+  // 3b.8 fix round 1 item 1: a failed run moves the focus to its error (WCAG 2.4.3).
+  it(
+    'move the focus to the error when AI suggestions fail, and re-enable the finding buttons',
+    async () => {
+      const { w, api } = await open();
+      const { page } = w;
+      api.on('GET', '/api/ai', () => ({
+        status: 200,
+        body: { available: true, provider: 'anthropic', model: 'fake-model' },
+      }));
+      api.on('GET', '/api/report', () => ({ status: 200, body: REPORT_BODY }));
+      api.on('POST', '/api/suggestions', (_route, body) =>
+        (JSON.parse(body) as { dryRun?: boolean }).dryRun
+          ? {
+              status: 200,
+              body: {
+                dryRun: true,
+                provider: 'anthropic',
+                model: 'fake-model',
+                system: 'SYSTEM',
+                messages: ['MESSAGE'],
+                estimatedInputTokens: 10,
+                skipped: 0,
+              },
+            }
+          : { status: 502, body: 'The provider could not be reached.' },
+      );
+      try {
+        await page.goto(`http://127.0.0.1:${ui.port}/`);
+        await page.getByText('Showing the report given to widedoor ui.').waitFor();
+        const suggest = page.getByRole('button', { name: /^Suggest a fix \(AI\)/ }).first();
+        await suggest.focus();
+        await page.keyboard.press('Enter');
+        await page.locator('section.confirm').waitFor();
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Enter');
+        const alert = page.locator('p.error[role="alert"]').filter({ hasText: /suggestions/ });
+        // The page words a 5xx itself; the server's text stays in its terminal.
+        await poll(() => alert.innerText()).toMatch(/^The suggestions could not be made: \S/);
+        await poll(() =>
+          page.evaluate(() => document.activeElement?.getAttribute('role') ?? ''),
+        ).toBe('alert');
+        expect(await page.evaluate(() => document.activeElement?.textContent ?? '')).toBe(
+          await alert.innerText(),
+        );
+        expect(await suggest.isDisabled()).toBe(false);
+        expect(api.calls.filter((c) => c.call === 'POST /api/suggestions')).toHaveLength(2);
+        expect(await w.violations()).toEqual([]);
+      } finally {
+        await page.context().close();
+      }
+    },
+    TIMEOUT,
+  );
+  // Final fix round 1 item 30: AI availability follows the served report.
+  it(
+    'ask GET /api/ai again when a scan replaces the report: a signed-in report, then a public one',
+    async () => {
+      const { w, api } = await open();
+      const { page } = w;
+      let signedIn = true;
+      let state = 'running';
+      let report: Reply = { status: 200, body: REPORT_BODY };
+      api.on('GET', '/api/ai', () => ({
+        status: 200,
+        body: signedIn
+          ? { available: false, reason: 'The report comes from a signed-in scan.' }
+          : { available: true, provider: 'anthropic', model: 'fake-model' },
+      }));
+      api.on('GET', '/api/report', () => report);
+      api.on('POST', '/api/scans', () => ({ status: 202, body: job('queued') }));
+      api.on('GET', `/api/scans/${JOB}`, () => ({ status: 200, body: job(state) }));
+      const suggest = page.getByRole('button', { name: /^Suggest a fix \(AI\)/ });
+      const asked = () => api.calls.filter((c) => c.call === 'GET /api/ai').length;
+      try {
+        await page.goto(`http://127.0.0.1:${ui.port}/`);
+        await page.getByText('Showing the report given to widedoor ui.').waitFor();
+        await poll(asked).toBe(1);
+        expect(await suggest.count()).toBe(0);
+
+        await showScreen(page, 'Scan', 'Scan pages and PDFs');
+        await page.getByLabel('Web page URLs, one per line').fill(PAGE.uri);
+        await page.getByRole('button', { name: 'Start scan' }).click();
+        await poll(() => status(page).innerText()).toMatch(/^Scanning /);
+        signedIn = false;
+        report = {
+          status: 200,
+          body: reportBodyOf(
+            { ...REPORT, startedAt: '2026-10-26T12:00:30.000Z' },
+            join(tmpdir(), 'no-evidence'),
+            undefined,
+            'live',
+          ),
+        };
+        state = 'done';
+        await poll(asked).toBe(2);
+        await showScreen(page, 'Report', 'Accessibility report');
+        await poll(() => suggest.count()).toBeGreaterThan(0);
         expect(await w.violations()).toEqual([]);
       } finally {
         await page.context().close();

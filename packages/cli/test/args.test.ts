@@ -43,6 +43,7 @@ describe('parseCommand', () => {
       memoryMb: 1024,
       unsafeNoSandbox: true,
       ignoreOverrides: false,
+      ai: { fixes: false, dryRun: false },
     });
   });
 
@@ -86,6 +87,7 @@ describe('parseCommand', () => {
       targets: [],
       unsafeNoSandbox: false,
       ignoreOverrides: false,
+      ai: { fixes: false, dryRun: false },
     });
   });
 
@@ -97,7 +99,7 @@ describe('parseCommand', () => {
 
   it.each([
     [[], /no command given/],
-    [['audit'], /unknown command "audit"; expected scan, ui, review or diff/],
+    [['audit'], /unknown command "audit"; expected scan, ui, review, diff, suggest or mcp/],
     [['scan', '--bogus'], /Unknown option '--bogus'/],
     [['scan', '--profile', '2.2'], /--profile must be one of 508, wcag21aa, 508\+wcag21aa/],
     [['scan', '--format', 'pdf'], /--format must be one of html, json, sarif, junit/],

@@ -11,6 +11,7 @@ corpus/web
 corpus/pdf
 corpus/fonts
 packages/report/schema/report.v1.json
+packages/ai/schema/ai-suggestions.v1.json
 packages/report/vendor
 packages/report/test/__snapshots__
 .claude/settings.local.json

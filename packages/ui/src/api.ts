@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { ChecklistItemStatus, Outcome, ProfileId } from '@widedoor/core/browser';
 import { CODE_HEADER, TOKEN_HEADER } from '@widedoor/report/browser';
+// Types only, from the server's browser-safe copy (no runtime code; @widedoor/ai never reaches the bundle).
+import type { AiAvailability, AiSuggestionsDoc } from '../../server/src/ai-types.ts';
 
 /*
  * The only module that talks to the widedoor ui server. Every call carries
@@ -364,3 +366,128 @@ export async function download(format: string, fileName: string): Promise<void> 
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 }
+
+// AI fix suggestions (only when widedoor ui was started with ai.enabled and a provider key).
+
+/**
+ * A provider id by shape, not by name: the page only shows it as text, and the
+ * bundle must not hold a provider's name (the build test looks for one).
+ */
+const ProviderSchema = z.string().regex(/^[a-z]{1,20}$/);
+
+/** GET /api/ai as the page reads it: the provider id is any short lowercase word. */
+export type ViewedAvailability = AiAvailability<string>;
+/** The suggestions document as the page reads it, provider id as above. */
+export type ViewedSuggestions = AiSuggestionsDoc<string>;
+
+const AvailabilitySchema: z.ZodType<ViewedAvailability> = z.object({
+  available: z.boolean(),
+  provider: ProviderSchema.optional(),
+  model: z.string().optional(),
+  reason: z.string().optional(),
+});
+
+/** Whether the server can suggest fixes, with which provider and model, or why not. */
+export const getAi = async (): Promise<ViewedAvailability> =>
+  parsed(await call('/api/ai'), AvailabilitySchema);
+
+const PreviewSchema = z.object({
+  dryRun: z.literal(true),
+  provider: ProviderSchema,
+  model: z.string(),
+  system: z.string(),
+  messages: z.array(z.string()),
+  estimatedInputTokens: z.int(),
+  skipped: z.int(),
+});
+export type SuggestionsPreview = z.infer<typeof PreviewSchema>;
+
+const SentSchema = z.object({
+  ruleId: z.string(),
+  criteria: z.array(z.string()),
+  assetKind: z.enum(['web', 'pdf']),
+  selector: z.string().optional(),
+  snippet: z.string().optional(),
+  page: z.int().optional(),
+  structPath: z.string().optional(),
+  plain: z.object({ what: z.string(), fix: z.string() }).optional(),
+  reportRule: z.string().optional(),
+  reportCriteria: z.array(z.string()).optional(),
+  redactions: z.array(z.object({ kind: z.string(), count: z.int() })),
+});
+
+const SuggestionSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('web-patch'),
+    summary: z.string(),
+    patch: z.string(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    kind: z.literal('pdf-steps'),
+    summary: z.string(),
+    tool: z.enum(['word', 'indesign', 'acrobat', 'other']),
+    steps: z.array(z.string()),
+  }),
+]);
+
+const UsageSchema = z.object({ inputTokens: z.int(), outputTokens: z.int() });
+
+const AiSuggestionsSchema: z.ZodType<ViewedSuggestions> = z.object({
+  schemaVersion: z.literal(1),
+  $id: z.literal('urn:widedoor:schema:ai-suggestions:v1'),
+  label: z.literal(
+    'AI-generated. Review before use. Suggestions do not change any result in the report.',
+  ),
+  provider: ProviderSchema,
+  model: z.string(),
+  modelAnswered: z.string().optional(),
+  createdAt: z.string(),
+  report: z.object({ startedAt: z.string(), findings: z.int() }),
+  limits: z.object({
+    maxGroups: z.int(),
+    maxRequestsPerMinute: z.int(),
+    concurrency: z.int(),
+    maxOutputTokens: z.int(),
+    maxInputTokensTotal: z.int(),
+  }),
+  entries: z.array(
+    z.object({
+      group: z.string(),
+      findingIds: z.array(z.string()),
+      request: SentSchema,
+      delivered: z.boolean(),
+      status: z.enum(['ok', 'refused', 'invalid', 'error', 'skipped-budget', 'not-sent']),
+      suggestion: SuggestionSchema.optional(),
+      reason: z.string().optional(),
+      usage: UsageSchema.optional(),
+    }),
+  ),
+  totals: z.object({
+    requests: z.int(),
+    inputTokens: z.int(),
+    outputTokens: z.int(),
+    skippedGroups: z.int(),
+  }),
+});
+
+const suggestionsBody = (findingIds: readonly string[] | undefined, dryRun: boolean) => ({
+  ...(findingIds !== undefined ? { findingIds } : {}),
+  ...(dryRun ? { dryRun: true } : {}),
+});
+
+/** Exactly what a run for findingIds (or every failed finding) would send; sends nothing. */
+export const previewSuggestions = async (
+  findingIds?: readonly string[],
+): Promise<SuggestionsPreview> =>
+  parsed(
+    await call('/api/suggestions', { method: 'POST', json: suggestionsBody(findingIds, true) }),
+    PreviewSchema,
+  );
+
+/** Asks the provider for fix suggestions; resolves with the suggestions document. */
+export const runSuggestions = async (findingIds?: readonly string[]): Promise<ViewedSuggestions> =>
+  parsed(
+    await call('/api/suggestions', { method: 'POST', json: suggestionsBody(findingIds, false) }),
+    AiSuggestionsSchema,
+  );

@@ -56,13 +56,14 @@ describe('main', () => {
 
   it('discovers widedoor.config.yaml and exits 2 on its problems', async () => {
     const dir = folder({
-      'widedoor.config.yaml': 'web:\n  urls: [https://example.com/]\nai:\n  enabled: true\n',
+      'widedoor.config.yaml':
+        'web:\n  urls: [https://example.com/]\nai:\n  apiKey: sk-ant-IN-CONFIG\n',
     });
     const r = io(dir);
     expect(await main(['scan'], r.io)).toBe(2);
     expect(r.err).toEqual([
       `widedoor: ${join(dir, 'widedoor.config.yaml')} is not usable:`,
-      '  ai.enabled: AI fix suggestions are not supported yet; set ai.enabled to false',
+      '  ai.apiKey: API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file',
     ]);
   });
 

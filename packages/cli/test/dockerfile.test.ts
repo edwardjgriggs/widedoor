@@ -86,7 +86,7 @@ describe('Dockerfile', () => {
       existsSync(join(ROOT, 'packages', p, 'package.json')),
     );
     expect(packages).toContain('server');
-    for (const stage of [' AS build', ' AS deps']) {
+    for (const stage of [' AS build\n', ' AS deps\n', ' AS deps-cli\n']) {
       const from = dockerfile.indexOf(stage);
       const ci = dockerfile.indexOf('RUN npm ci', from);
       const copies = dockerfile.slice(from, ci);
@@ -94,6 +94,51 @@ describe('Dockerfile', () => {
         expect(copies, `${p} in${stage}`).toContain(
           `COPY packages/${p}/package.json packages/${p}/\n`,
         );
+    }
+  });
+
+  it('keeps @widedoor/ai and the provider SDKs out of the scan and hosted images (D16)', () => {
+    // The shared base installs only the server workspace and drops the ai package.json again.
+    const deps = stage('deps');
+    expect(deps).toMatch(
+      /RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace @widedoor\/server \\\n/,
+    );
+    expect(deps).not.toMatch(/--workspace @widedoor\/(cli|ai)\b/);
+    expect(deps).toContain('rm -rf .npmrc packages/ai');
+    for (const gone of [
+      'node_modules/@widedoor/ai',
+      'node_modules/@anthropic-ai',
+      'node_modules/openai',
+    ])
+      expect(deps).toContain(`test ! -e ${gone}`);
+    expect(stage('base')).toMatch(/^COPY --from=deps \/app \.\/$/m);
+    // Nothing the scan and hosted images build on, nor they themselves, reaches the CLI's
+    // dependencies or the ai package.
+    for (const name of ['base', 'scan', 'hosted']) {
+      expect(stage(name), name).not.toContain('deps-cli');
+      expect(stage(name), name).not.toContain('packages/ai');
+    }
+    // Only the CLI target adds them.
+    expect(stage('deps-cli')).toContain('--workspace @widedoor/cli');
+    const cli = stage('cli');
+    expect(cli).toContain('COPY --from=deps-cli /app/node_modules node_modules');
+    expect(cli).toContain('COPY --from=build /src/packages/ai/dist packages/ai/dist');
+  });
+
+  // Task 3b.11 ruling 2: the docs site is in no image.
+  it('keeps the docs site out of every image', () => {
+    const deps = stage('deps');
+    expect(deps).toContain('rm -rf .npmrc packages/ai packages/docs node_modules/@widedoor/docs');
+    expect(deps).toContain('test ! -e node_modules/@widedoor/docs');
+    expect(stage('deps-cli')).toContain('rm -rf .npmrc packages/docs node_modules/@widedoor/docs');
+    for (const name of ['base', 'scan', 'hosted', 'cli']) {
+      expect(stage(name), name).not.toContain('packages/docs');
+      expect(stage(name), name).not.toContain('@widedoor/docs');
+    }
+    // And no Widedoor package the images ship depends on it.
+    for (const p of ['core', 'web', 'pdf', 'report', 'ai', 'server', 'cli', 'ui']) {
+      const json = readFileSync(join(ROOT, 'packages', p, 'package.json'), 'utf8');
+      expect(json, p).not.toContain('@widedoor/docs');
     }
   });
 

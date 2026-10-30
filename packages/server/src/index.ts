@@ -16,3 +16,4 @@ export * from './requests.js';
 export * from './jobs.js';
 export * from './scan-job.js';
 export * from './app.js';
+export type * from './ai-types.js';
