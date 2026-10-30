@@ -10,7 +10,6 @@ import {
   guardedRequestGuard,
   hostedUserAgent,
   logValue,
-  type PinnedResolver,
 } from '@widedoor/web/egress';
 import { classifyTarget, type ScanPlan } from '../config.js';
 import { performHostedScan } from '../engine.js';
@@ -44,13 +43,6 @@ export interface HostedScanOptions {
   pdf?: Uint8Array;
   /** The egress proxy, an IP literal URL such as http://127.0.0.1:<port> (WIDEDOOR_PROXY_URL). */
   proxyUrl: string;
-  /**
-   * One per scan: the proxied fetcher checks each hop's name with it before
-   * asking the proxy. In tests the in-process proxy shares it. In the scan
-   * machine the proxy is a separate process with its own resolver, and the
-   * fetcher's requests go through it, so the pin that binds is the proxy's.
-   */
-  resolver: PinnedResolver;
   /** The page the user agent names, for site owners who want to know what Widedoor is. */
   contactUrl: string;
   signal: AbortSignal;
@@ -87,6 +79,17 @@ export function formatFetchRefusal(hop: URL, error: EgressRefusedError): string 
   return `widedoor event=fetch_refused host=${logValue(hop.hostname)} reason=${logValue(error.blockReason ?? error.reason)}`;
 }
 
+/**
+ * Why a refused robots.txt fetch was refused. With no block reason the egress proxy
+ * refused it, and the proxy never says why: the scan child does no DNS, so either is
+ * possible.
+ */
+function refusedWhy(blockReason: RobotsDecision['blockReason']): string {
+  if (blockReason === undefined) return 'the name did not resolve or its address is not allowed';
+  if (blockReason === 'unresolved') return 'the name did not resolve';
+  return 'its address is not allowed';
+}
+
 /** Why robots.txt kept the start URL from being scanned, in plain words. */
 function robotsRefusal(verdict: Exclude<PageVerdict, 'scan'>, decision?: RobotsDecision): string {
   if (verdict === 'robots-disallowed')
@@ -99,7 +102,7 @@ function robotsRefusal(verdict: Exclude<PageVerdict, 'scan'>, decision?: RobotsD
     'http-other': `the server answered ${decision?.status ?? 'with an error'}`,
     timeout: 'it did not arrive in time',
     network: 'the connection failed',
-    refused: 'its address is not allowed',
+    refused: refusedWhy(decision?.blockReason),
     'too-many-redirects': 'it redirected too many times',
     'too-large': 'its rules for Widedoor are too large to apply',
   };
@@ -141,7 +144,6 @@ export async function runHostedScan(options: HostedScanOptions): Promise<ScanRes
     const userAgent = hostedUserAgent(options.contactUrl);
     const fetcher = createProxiedFetcher({
       proxyUrl: options.proxyUrl,
-      resolver: options.resolver,
       userAgent,
       onRefused: (hop, error) => log(formatFetchRefusal(hop, error)),
     });

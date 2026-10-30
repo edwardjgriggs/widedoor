@@ -50,6 +50,8 @@ const CONTROL_URL = `http://${control}:8080`;
 const dns = `widedoor-lockdown-dns-${id}`;
 const DNS_IP = '10.213.47.53';
 const TOKEN = 'lockdown-test-token-0123456789';
+/** A name only the DNS stub answers (with SITE_IP), so only the proxy user can resolve it. */
+const SITE_NAME = 'site.example.org';
 
 const job = (n: number) => n.toString(16).padStart(32, '0');
 const JOBS = {
@@ -67,7 +69,7 @@ const urlJob = (jobId: string, url: string): JobInput => ({
   profile: '508+wcag21aa',
 });
 const INPUTS: Record<string, JobInput> = {
-  [JOBS.scan]: urlJob(JOBS.scan, `http://${SITE_IP}/page.html`),
+  [JOBS.scan]: urlJob(JOBS.scan, `http://${SITE_NAME}/page.html`),
   [JOBS.noCap]: urlJob(JOBS.noCap, `http://${SITE_IP}/page.html`),
   [JOBS.nonRoot]: urlJob(JOBS.nonRoot, `http://${SITE_IP}/page.html`),
   [JOBS.timeout]: urlJob(JOBS.timeout, `http://${SITE_IP}/hang`),
@@ -746,14 +748,19 @@ register('data:text/javascript,' + encodeURIComponent(
   );
 
   it(
-    'scans a page on 11.0.0.0/24 through the proxy and sends a valid result',
+    'scans a page on 11.0.0.0/24 by its host name through the proxy and sends a valid result',
     () => {
       // Proves the whole machine: entry, firewall, proxy as 10002, agent as root, scan child
-      // as 10001 with Chromium's sandbox, the reaper, and the result the API receives.
+      // as 10001 with Chromium's sandbox, the reaper, and the result the API receives. The
+      // target is a name, so the scan works only if the child leaves DNS to the proxy: the
+      // firewall gives uid 10001 none (resolv.conf names the stub; the control API goes by
+      // address, since the stub answers every name with the site's).
       const name = createMachine(`${probe}-scan`, [
         '--cap-add',
         'NET_ADMIN',
-        ...machineEnv(JOBS.scan),
+        ...machineEnv(JOBS.scan, `http://${CONTROL_IP}:8080`),
+        '--volume',
+        `${join(tmp, 'resolv.conf')}:/etc/resolv.conf:ro`,
       ]);
       const r = docker(['start', '--attach', name]);
       const log = r.stdout + r.stderr;
@@ -770,7 +777,7 @@ register('data:text/javascript,' + encodeURIComponent(
       expect(validate(JSON.parse(sent.reportJson)), JSON.stringify(validate.errors)).toBe(true);
       const report = parseJsonReport(sent.reportJson);
       expect(report.errors).toEqual([]);
-      expect(report.assets.map((a) => a.uri)).toEqual([`http://${SITE_IP}/page.html`]);
+      expect(report.assets.map((a) => a.uri)).toEqual([`http://${SITE_NAME}/page.html`]);
       expect(report.findings.some((f) => f.outcome === 'fail')).toBe(true);
       // The JSON report only (R37).
       expect(Object.keys(sent).sort()).toEqual(['reportJson', 'status']);

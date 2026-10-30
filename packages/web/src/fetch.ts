@@ -13,9 +13,10 @@ import type { BlockReason } from './egress/policy.js';
 /**
  * Why a hop was refused. A caller may treat off-origin differently (a crawled
  * PDF link that redirects away is a scope gap); a hook (Phase 3's SSRF guard)
- * picks its own reason, "policy" by default.
+ * picks its own reason, "policy" by default. "proxy" is the hosted egress proxy
+ * refusing a hop it was asked for; it never says why.
  */
-export type EgressRefusal = 'off-origin' | 'redirect-limit' | 'scheme' | 'policy';
+export type EgressRefusal = 'off-origin' | 'redirect-limit' | 'scheme' | 'policy' | 'proxy';
 
 /**
  * Which hosted egress rule refused the hop: an address class, or a host-level rule.
