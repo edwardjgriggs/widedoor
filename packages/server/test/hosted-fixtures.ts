@@ -1,6 +1,5 @@
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { PinnedResolver } from '@widedoor/web/egress';
 import { runHostedScan, type HostedScanOptions } from '../src/hosted/agent.ts';
 import type { JobInput, ScanResult } from '../src/hosted/protocol.ts';
 import { PUBLIC_V4, SITE, startLab, type Lab } from '../../web/test/ssrf-fixtures.ts';
@@ -43,7 +42,10 @@ export const pdfJob = (fileName = 'report.pdf'): JobInput => ({
   profile: '508+wcag21aa',
 });
 
-/** runHostedScan through the lab's proxy and resolver, with its log lines kept. */
+/**
+ * runHostedScan through the lab's proxy, with its log lines kept. As in the scan machine,
+ * only the proxy resolves names: the lab's resolver is the proxy's alone.
+ */
 export async function scanInLab(
   lab: Lab,
   input: JobInput,
@@ -53,8 +55,6 @@ export async function scanInLab(
   const result = await runHostedScan({
     input,
     proxyUrl: lab.proxy.url,
-    // The web source's class; typecheck reads @widedoor/web's built declaration of the same class.
-    resolver: lab.resolver as unknown as PinnedResolver,
     contactUrl: 'https://example.org/contact',
     signal: AbortSignal.timeout(110_000),
     log: (line) => void log.push(line),

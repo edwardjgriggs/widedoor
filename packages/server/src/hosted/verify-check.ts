@@ -4,7 +4,6 @@ import {
   createProxiedFetcher,
   hostedUserAgent,
   type EgressBlockReason,
-  type PinnedResolver,
 } from '@widedoor/web/egress';
 import type { Fetcher } from '@widedoor/web';
 import { formatFetchRefusal } from './agent.js';
@@ -48,6 +47,8 @@ export const NOT_HTTPS = 'the site redirected away from https';
 export const OTHER_PORT = 'the site redirected to another port';
 export const TOO_MANY_REDIRECTS = 'the site redirected too many times';
 export const UNREACHABLE = 'the site could not be reached';
+/** The egress proxy refused the hop; it never says why. */
+export const PROXY_REFUSED = 'the name did not resolve or its address is not allowed';
 export const NO_ANSWER_IN_TIME = 'the site did not answer in time';
 export const VERIFY_STOPPED = 'the verification was stopped';
 
@@ -76,8 +77,6 @@ export interface VerificationOptions {
   token: string;
   /** The egress proxy, an IP literal URL such as http://127.0.0.1:<port>. */
   proxyUrl: string;
-  /** One per job; see HostedScanOptions.resolver. */
-  resolver: PinnedResolver;
   /** The page the user agent names. */
   contactUrl: string;
   signal: AbortSignal;
@@ -117,6 +116,7 @@ async function fetchText(
     if (e instanceof HopRefused) return { reason: e.message };
     if (e instanceof EgressRefusedError) {
       if (e.reason === 'redirect-limit') return { reason: TOO_MANY_REDIRECTS };
+      if (e.reason === 'proxy') return { reason: PROXY_REFUSED };
       return { reason: (e.blockReason && BLOCKED[e.blockReason]) ?? UNREACHABLE };
     }
     if (timeout.aborted && !signal.aborted) return { reason: NO_ANSWER_IN_TIME };
@@ -279,16 +279,13 @@ export async function runVerification(options: VerificationOptions): Promise<Job
   const log = options.log ?? ((line: string) => void process.stderr.write(`${line}\n`));
   const fetcher = createProxiedFetcher({
     proxyUrl: options.proxyUrl,
-    resolver: options.resolver,
     userAgent: hostedUserAgent(options.contactUrl),
     maxRedirects: VERIFY_MAX_REDIRECTS,
     ...(options.ca !== undefined ? { ca: options.ca } : {}),
     onRefused: (hop, error) => log(formatFetchRefusal(hop, error)),
-    // After the egress check, so a hop to a blocked address reads as that, not as another
-    // host. By design that check resolves a hop's name first: a redirect to another host
-    // has that host looked up by the scan machine's DNS before this rule refuses it, and
-    // such a hop may report the DNS reason (for example "the name did not resolve")
-    // instead of OTHER_HOST.
+    // After the egress check, so a hop to a blocked address literal reads as that, not as
+    // another host. The child does no DNS (the proxy owns it), so a redirect to another
+    // host name is refused here as OTHER_HOST before anyone looks the name up.
     checkHop: (hop, start) => {
       if (bareHost(hop) !== host) throw new HopRefused(OTHER_HOST);
       if (hop.protocol !== 'https:') throw new HopRefused(NOT_HTTPS);

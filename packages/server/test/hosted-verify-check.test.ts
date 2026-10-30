@@ -16,6 +16,7 @@ import {
   OTHER_HOST,
   OTHER_PORT,
   PAGE_MAX_BYTES,
+  PROXY_REFUSED,
   TOO_MANY_REDIRECTS,
   WELL_KNOWN_MAX_BYTES,
   WELL_KNOWN_PATH,
@@ -97,7 +98,10 @@ afterEach(async () => {
   dials.length = 0;
 });
 
-/** runVerification through a fresh proxy and resolver; the log lines are kept. */
+/**
+ * runVerification through a fresh proxy and resolver; the log lines are kept. As in the
+ * scan machine, the resolver is the proxy's alone: the verification does no DNS.
+ */
 async function verify(extra: Partial<VerificationOptions> = {}) {
   const resolver = new PinnedResolver({
     lookup: (host) => {
@@ -119,7 +123,6 @@ async function verify(extra: Partial<VerificationOptions> = {}) {
     host: HOST,
     token: TOKEN,
     proxyUrl: proxy.url,
-    resolver,
     contactUrl: CONTACT,
     signal: AbortSignal.timeout(60_000),
     ca: certs.ca,
@@ -211,14 +214,42 @@ describe('runVerification', () => {
   });
 
   it('fails a redirect to a private address with the egress reason, before any request', async () => {
-    routes.set(WELL_KNOWN_PATH, redirect('https://evil.example.org/widedoor.txt'));
+    routes.set(WELL_KNOWN_PATH, redirect('https://10.0.0.1/widedoor.txt'));
     const { result, log } = await verify();
     expect(result).toMatchObject({
       tried: [{ method: 'well_known', ok: false, reason: 'private address' }, {}],
     });
     expect(leaks).toBe(0);
     expect(dials.every((dial) => dial.startsWith(`${PUBLIC}:`))).toBe(true);
-    expect(log).toContain('widedoor event=fetch_refused host=evil.example.org reason=private');
+    expect(log).toContain('widedoor event=fetch_refused host=10.0.0.1 reason=private');
+  });
+
+  it('fails a redirect to a name with a private address as another host, never looking it up', async () => {
+    // The child does no DNS: the host rule refuses the hop before the proxy is asked.
+    routes.set(WELL_KNOWN_PATH, redirect('https://evil.example.org/widedoor.txt'));
+    const { result } = await verify();
+    expect(result).toMatchObject({
+      tried: [{ method: 'well_known', ok: false, reason: OTHER_HOST }, {}],
+    });
+    expect(leaks).toBe(0);
+    expect(dials.every((dial) => dial.startsWith(`${PUBLIC}:`))).toBe(true);
+  });
+
+  it.each([
+    ['resolves to a private address', 'evil.example.org'],
+    ['does not resolve', 'nowhere.example.org'],
+  ])('fails a host that %s when the proxy refuses it, in plain words', async (_, host) => {
+    const { result, log } = await verify({ host });
+    expect(result).toEqual({
+      status: 'not_verified',
+      tried: [
+        { method: 'well_known', ok: false, reason: PROXY_REFUSED },
+        { method: 'meta_tag', ok: false, reason: PROXY_REFUSED },
+      ],
+    });
+    expect(leaks).toBe(0);
+    expect(dials).toEqual([]);
+    expect(log).toContain(`widedoor event=fetch_refused host=${host} reason=proxy`);
   });
 
   it('fails a redirect to another public host without requesting it', async () => {

@@ -1,5 +1,5 @@
 import { writeSync } from 'node:fs';
-import { PinnedResolver, logValue } from '@widedoor/web/egress';
+import { logValue } from '@widedoor/web/egress';
 import { runHostedScan } from './agent.js';
 import { runVerification } from './verify-check.js';
 import {
@@ -21,7 +21,9 @@ import {
  * `widedoor event=` lines (agent-bin drops anything else): console output,
  * process warnings and Node's crash printers are silenced, since they could
  * quote a URL, a file name or scanned text. The lines carry no job id:
- * agent-bin adds its own, and drops a child line that names one.
+ * agent-bin adds its own, and drops a child line that names one. The child
+ * does no DNS: the firewall lets uid 10001 reach only the proxy, which
+ * resolves and pins every name and refuses what it may not visit.
  */
 
 /** Largest job read from stdin: a 25 MiB upload as base64, plus the input. */
@@ -77,7 +79,6 @@ async function main(): Promise<number> {
   const { input, pdf } = parsed.data;
   const shared = {
     proxyUrl,
-    resolver: new PinnedResolver(),
     contactUrl: process.env[CONTACT_URL_ENV] || DEFAULT_CONTACT_URL,
     signal: controller.signal,
     log: (line: string) => void process.stderr.write(`${line}\n`),

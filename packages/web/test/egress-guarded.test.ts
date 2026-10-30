@@ -11,7 +11,12 @@ import {
   hostedUserAgent,
 } from '../src/egress/guarded.js';
 import { PinnedResolver } from '../src/egress/resolver.js';
-import { startEgressProxy, type DialFn, type EgressProxy } from '../src/egress/proxy.js';
+import {
+  PROXY_REFUSED_STATUS,
+  startEgressProxy,
+  type DialFn,
+  type EgressProxy,
+} from '../src/egress/proxy.js';
 import { makeTestCertificates } from './test-ca.js';
 
 const PUBLIC = '93.184.215.14';
@@ -34,6 +39,15 @@ beforeAll(async () => {
     seen.push({ url: req.url, ua: req.headers['user-agent'] });
     if (req.url === '/to-internal') {
       res.writeHead(302, { location: 'http://evil.example.org/' }).end();
+      return;
+    }
+    if (req.url === '/forbidden') {
+      res.writeHead(403).end('origin says no');
+      return;
+    }
+    if (req.url === '/forged') {
+      // An origin claiming the proxy's refusal: the proxy drops its Proxy-* fields.
+      res.writeHead(403, { 'proxy-status': PROXY_REFUSED_STATUS }).end('origin says no');
       return;
     }
     res.end('plain hello');
@@ -69,9 +83,10 @@ afterEach(async () => {
   seen.length = 0;
 });
 
-const resolverFor = () =>
+const resolverFor = (lookups: string[] = []) =>
   new PinnedResolver({
     lookup: async (host) => {
+      lookups.push(host);
       const address = answers[host];
       return address === undefined ? [] : [{ address, family: 4 }];
     },
@@ -119,25 +134,39 @@ describe('guardedHop', () => {
     );
     await expect(hop(new URL('https://site.example.org/'), start)).resolves.toBeUndefined();
   });
+
+  it('without a resolver checks the policy only, and looks nothing up', async () => {
+    const hop = guardedHop();
+    const start = new URL('https://site.example.org/');
+    await expect(hop(new URL('http://10.0.0.1/'), start)).rejects.toMatchObject({
+      blockReason: 'private',
+    });
+    // A name no resolver knows passes: the proxy resolves it, or refuses it.
+    await expect(hop(new URL('http://nowhere.example.org/'), start)).resolves.toBeUndefined();
+  });
 });
 
 describe('createProxiedFetcher', () => {
-  async function setup() {
+  /** A proxy and a fetcher; the fetcher shares the proxy's resolver unless `childDns` is false. */
+  async function setup({ childDns = true } = {}) {
     const dial = vi.fn<DialFn>((address, port) => {
       if (address !== PUBLIC) throw new Error('unexpected dial');
       return connect(port === 443 ? tlsPort : httpPort, '127.0.0.1');
     });
-    const resolver = resolverFor();
+    const lookups: string[] = [];
+    const resolver = resolverFor(lookups);
     const proxy = await startEgressProxy({ resolver, dial });
     proxies.push(proxy);
+    const refused: { host: string; reason: string }[] = [];
     const fetcher = createProxiedFetcher({
       proxyUrl: proxy.url,
-      resolver,
+      ...(childDns ? { resolver } : {}),
       userAgent: UA,
       ca: certs.ca,
       maxRedirects: 3,
+      onRefused: (hop, e) => void refused.push({ host: hop.hostname, reason: e.reason }),
     });
-    return { dial, fetcher };
+    return { dial, fetcher, proxy, lookups, refused };
   }
 
   it('goes through the proxy over http and sends the user agent', async () => {
@@ -171,6 +200,62 @@ describe('createProxiedFetcher', () => {
     const { dial, fetcher } = await setup();
     await expect(fetcher('http://10.0.0.1/')).rejects.toBeInstanceOf(EgressRefusedError);
     expect(dial).not.toHaveBeenCalled();
+  });
+
+  describe('without a resolver, as in the scan machine', () => {
+    it('does no DNS of its own: a name reaches the proxy, which resolves it once', async () => {
+      const { dial, fetcher, lookups } = await setup({ childDns: false });
+      expect(await (await fetcher('http://site.example.org/page')).response.text()).toBe(
+        'plain hello',
+      );
+      expect(await (await fetcher('https://site.example.org/')).response.text()).toBe(
+        'secure hello',
+      );
+      expect(dial.mock.calls).toEqual([
+        [PUBLIC, 80],
+        [PUBLIC, 443],
+      ]);
+      // Every lookup is the proxy's (the pin is cached, so one per name).
+      expect(lookups).toEqual(['site.example.org']);
+    });
+
+    it.each([
+      ['http', 'a name that does not resolve', 'http://nowhere.example.org/robots.txt'],
+      ['https', 'a name that does not resolve', 'https://nowhere.example.org/robots.txt'],
+      ['http', 'a name with a private address', 'http://evil.example.org/'],
+      ['https', 'a name with a private address', 'https://evil.example.org/'],
+    ])('over %s, refuses %s when the proxy does, never as a response', async (_, __, url) => {
+      const { dial, fetcher, proxy, refused } = await setup({ childDns: false });
+      const error = await fetcher(url).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(EgressRefusedError);
+      expect(error).toMatchObject({ reason: 'proxy', blockReason: undefined });
+      const host = new URL(url).hostname;
+      expect(refused).toEqual([{ host, reason: 'proxy' }]);
+      expect(proxy.refusals().map((r) => r.host)).toEqual([host]);
+      expect(dial).not.toHaveBeenCalled();
+      expect(seen).toEqual([]);
+    });
+
+    it('refuses a redirect the proxy refuses, after only the first hop was dialed', async () => {
+      const { dial, fetcher, refused } = await setup({ childDns: false });
+      await expect(fetcher('http://site.example.org/to-internal')).rejects.toMatchObject({
+        name: 'EgressRefusedError',
+        reason: 'proxy',
+      });
+      expect(dial).toHaveBeenCalledTimes(1);
+      expect(refused).toEqual([{ host: 'evil.example.org', reason: 'proxy' }]);
+    });
+
+    it("passes an origin's own 403 through as a response, even one claiming the proxy's field", async () => {
+      const { fetcher, refused } = await setup({ childDns: false });
+      for (const path of ['/forbidden', '/forged']) {
+        const { response } = await fetcher(`http://site.example.org${path}`);
+        expect(response.status, path).toBe(403);
+        expect(response.headers.get('proxy-status'), path).toBeNull();
+        expect(await response.text(), path).toBe('origin says no');
+      }
+      expect(refused).toEqual([]);
+    });
   });
 });
 

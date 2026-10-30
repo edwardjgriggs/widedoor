@@ -333,6 +333,29 @@ describe('runHostedScan: robots.txt and the start URL', () => {
     expect(lab.leaks()).toEqual(NO_LEAKS);
   });
 
+  it.each(['http', 'https'])(
+    'over %s, a name only the proxy could resolve is refused there, never scanned anyway',
+    async (scheme) => {
+      // The scan child does no DNS (the scan machine's firewall gives it none): the name
+      // goes to the proxy, which looks it up, refuses it, and robots.txt stays fail-closed.
+      // Over http the refusal is a 403 that must not read as "no robots.txt".
+      const host = 'nowhere.example.org';
+      const { result, log } = await scanInLab(lab, urlJob(`${scheme}://${host}/`));
+      expect(result).toEqual({
+        status: 'failed',
+        error:
+          "the site's robots.txt could not be read (the name did not resolve or its address is not allowed), so the site was not scanned",
+      });
+      // The lab's resolver is the proxy's alone (it pins answers, so once per name).
+      expect(lab.lookups).toContain(host);
+      expect(log).toEqual([
+        `widedoor event=fetch_refused host=${host} reason=proxy`,
+        `widedoor event=robots_decision origin=${scheme}:%2F%2F${host} verdict=disallow-all bytes=0 rules=0 truncated=false cause=refused`,
+      ]);
+      expect(lab.leaks()).toEqual(NO_LEAKS);
+    },
+  );
+
   it('refuses an input that does not validate before anything is requested', async () => {
     const { result } = await scanInLab(lab, { ...urlJob(), jobId: 'nope' });
     expect(result).toEqual({ status: 'failed', error: INPUT_REFUSED });

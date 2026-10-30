@@ -16,7 +16,8 @@ import type { PinnedResolver } from './resolver.js';
  * the SSRF policy is enforced: each CONNECT or absolute-form request is checked with
  * checkTarget, its host goes through the pinned resolver, and the proxy dials the
  * pinned address itself, never the host name. Refusals get one generic 403 that names
- * neither the host nor the reason; the reason is kept in refusals() for the report.
+ * neither the host nor the reason; the reason is kept in refusals() for the report. The
+ * 403 carries PROXY_REFUSED_STATUS, so the proxied fetcher can tell it from an origin's.
  */
 
 export type DialFn = (address: string, port: number) => Socket;
@@ -74,6 +75,11 @@ export interface EgressProxyOptions {
 }
 
 const REFUSED_BODY = 'Refused by the Widedoor egress policy.';
+/**
+ * The Proxy-Status field (RFC 9209) of every refusal. An origin cannot forge it: the proxy
+ * drops every Proxy-* field of an upstream response.
+ */
+export const PROXY_REFUSED_STATUS = 'widedoor; error=http_request_denied';
 const MAX_REFUSALS = 1000;
 const MAX_HEADER_BYTES = 16 * 1024;
 
@@ -102,6 +108,7 @@ const defaultDial: DialFn = (address, port) => connect({ host: address, port });
 function rawResponse(status: number, body: string): string {
   return (
     `HTTP/1.1 ${status} ${STATUS_TEXT[status] ?? 'Error'}\r\n` +
+    (status === 403 ? `Proxy-Status: ${PROXY_REFUSED_STATUS}\r\n` : '') +
     'Content-Type: text/plain; charset=utf-8\r\n' +
     `Content-Length: ${Buffer.byteLength(body)}\r\n` +
     'Connection: close\r\n\r\n' +
@@ -351,6 +358,7 @@ export function startEgressProxy(options: EgressProxyOptions): Promise<EgressPro
         return;
       }
       res.writeHead(status, {
+        ...(status === 403 ? { 'Proxy-Status': PROXY_REFUSED_STATUS } : {}),
         'Content-Type': 'text/plain; charset=utf-8',
         'Content-Length': Buffer.byteLength(body),
       });
