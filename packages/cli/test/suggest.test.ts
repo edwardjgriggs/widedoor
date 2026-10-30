@@ -476,9 +476,14 @@ describe('reportIsPrivate', () => {
     chmodSync(file, 0o600);
     process.env.ANTHROPIC_API_KEY = FAKE_KEY;
     const out = join(dir, 'private-out');
-    expect(await main(['suggest', '--report', file, '--out', out], io(dir).io, seams().hooks)).toBe(
-      0,
-    );
+    // A private report reads as a signed-in scan's: AI needs the opt-in first.
+    const refused = io(dir);
+    const s = seams();
+    expect(await main(['suggest', '--report', file, '--out', out], refused.io, s.hooks)).toBe(2);
+    expect(refused.err).toEqual([`widedoor: ${SIGNED_IN_AI}`]);
+    expect(s.provider.calls).toHaveLength(0);
+    writeFileSync(join(dir, 'widedoor.config.yaml'), 'ai:\n  allowSignedIn: true\n');
+    expect(await main(['suggest', '--report', file, '--out', out], io(dir).io, s.hooks)).toBe(0);
     expect(statSync(out).mode & 0o777).toBe(0o700);
     for (const name of ['ai-suggestions.json', 'ai-suggestions.html'])
       expect(statSync(join(out, name)).mode & 0o777).toBe(0o600);
