@@ -354,6 +354,12 @@ cat /proc/sys/net/ipv6/conf/all/accept_ra /proc/sys/net/ipv6/conf/eth0/accept_ra
 ls -la /.fly                               # whether the machine API socket exists
 ```
 
+Still before the entry:
+
+- `awk '$8 ~ /^@/' /proc/net/unix`: abstract sockets. Any listed is reachable by uid 10001, since
+  abstract sockets have no file permissions and the firewall does not cover them. None is a
+  pass; any listed needs a look at what owns it before going live.
+
 Then run the entry against the real API with a job id that does not exist. The API machine's
 id is in `fly machine list -a widedoor`; any 32 hex characters work as the job id.
 
@@ -363,25 +369,25 @@ WIDEDOOR_JOB_ID=0123456789abcdef0123456789abcdef WIDEDOOR_JOB_TOKEN=x \
 /app/docker/scan-entry.sh; echo "exit $?"
 ```
 
-The console stays connected: the firewall lets established connections through. Read:
+The console freezes once the firewall loads: on Fly it cuts the SSH session (seen on
+2026-10-30), so the entry's output never arrives. Read the result on the API side instead:
 
-- `widedoor event=agent_input_unavailable job=... status=404` then `exit 1`: the firewall
-  loaded, and root reached the control listener over IPv6 (the API answers 404 for an unknown
-  job, and logs `control_refused route=input reason=unauthorized`).
-  `agent_input_unavailable` with no status means it could not reach it: a failure.
-- `nft list ruleset`: `table inet widedoor` is loaded, with `policy drop` on its input, forward
-  and output chains (the scan image has no iptables).
-- `stat -c '%U %a' /.fly /.fly/api`: `root 700` and `root 600`, if they exist.
-- `awk '$8 ~ /^@/' /proc/net/unix`: abstract sockets. Any listed is reachable by uid 10001, since
-  abstract sockets have no file permissions and the firewall does not cover them. None is a
-  pass; any listed needs a look at what owns it before going live.
-- `ps -u 10001`: no process is a pass.
+```powershell
+fly logs -a widedoor --no-tail | Select-String "control_refused"
+```
+
+- `control_refused route=input reason=unauthorized`, timed after you ran the entry: the
+  firewall loaded and root reached the control listener over IPv6. No such line means it could
+  not reach it: a failure.
+- The rest is proven by check 2's real scan, not here: the entry itself refuses to go on
+  without `policy drop` on all three chains (`step=nftables_verify`) and without the `/.fly`
+  lock (`step=fly_api`), and `agent_reaped found=no` shows no uid 10001 process survived.
 - **Router advertisements.** If eth0's `fdaa:` address is permanent (flags `80`) and `accept_ra`
   is 0 or the default route did not come from an advertisement, Fly configures IPv6 statically.
   Then a follow-up narrows the firewall's neighbor discovery rule (R33) to types 135 and 136
   and sets `accept_ra` to 0. Either way, note what you saw.
 
-Then destroy the debug machine. The API's sweep never destroys a machine without
+Close the frozen console, then destroy the debug machine. The API's sweep never destroys a machine without
 `widedoor_role` (it only counts it), so it bills until you do. **Needs Edward's OK.**
 
 ```powershell
