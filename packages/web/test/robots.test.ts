@@ -268,7 +268,7 @@ describe('robotsPolicy', () => {
     expect(events[1]).toMatchObject({ verdict: 'rules', rules: 125 });
   });
 
-  it('keeps every single check under 50 ms for the worst files the limits allow', async () => {
+  it('keeps every single check under 200 ms for the worst files the limits allow', async () => {
     const path = `/${'a'.repeat(ROBOTS_MAX_URL_LENGTH - 1)}`;
     const fill = (rule: string) => {
       const n = Math.min(ROBOTS_MAX_RULES, Math.floor(ROBOTS_MAX_RULE_CHARS / rule.length));
@@ -290,7 +290,8 @@ describe('robotsPolicy', () => {
         times.push(performance.now() - started);
       }
       // The fastest of the runs: a loaded CI host slows single runs, not the work itself.
-      expect(Math.min(...times), name).toBeLessThan(50);
+      // Runaway matching takes seconds; GitHub's shared runners take about 50 ms here.
+      expect(Math.min(...times), name).toBeLessThan(200);
     }
   });
 
