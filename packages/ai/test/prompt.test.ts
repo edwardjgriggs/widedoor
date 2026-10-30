@@ -53,7 +53,9 @@ describe('SYSTEM_PROMPT', () => {
   });
 
   it('asks for code names in backticks', () => {
-    expect(SYSTEM_PROMPT).toContain('Write code names, such as document.title, in backticks.');
+    expect(SYSTEM_PROMPT).toContain(
+      'Write code names, such as document.title, and script file names, such as app.js, in backticks.',
+    );
   });
 
   it('names the untrusted block, the JSON-only answer and the PDF order', () => {

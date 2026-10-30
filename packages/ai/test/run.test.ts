@@ -541,7 +541,7 @@ describe('suggestFixes', () => {
     expect(lines.length).toBeGreaterThan(0);
     for (const line of lines) {
       expect(line).toMatch(
-        /^ai_(?:request group=[0-9a-f]{16} status=[a-z-]+|stop reason=[a-z-]+)$/,
+        /^ai_(?:request group=[0-9a-f]{16} status=[a-z-]+|stop reason=[a-z-]+|run status=(?:done|aborted|stopped|failed) sent=\d+ input_tokens=\d+ output_tokens=\d+)$/,
       );
       expect(line).not.toContain(MARKER);
     }
@@ -827,3 +827,58 @@ function deepFreeze<T>(value: T): T {
   }
   return value;
 }
+
+// Phase 3b final fix round 1 item 32: a run that sent requests always leaves its ai_run line.
+describe('the ai_run line', () => {
+  it('is logged, as failed, when the final document fails its schema', async () => {
+    // A report time that is not a timestamp passes the run and fails only the final parse.
+    const provider = createFakeProvider(() => ok());
+    const bad = { ...report(2), startedAt: 'not a time' };
+    const lines: string[] = [];
+    await expect(
+      suggestFixes({
+        report: bad,
+        provider,
+        limits: limits(),
+        log: (line) => void lines.push(line),
+      }),
+    ).rejects.toThrow();
+    expect(provider.calls.length).toBeGreaterThan(0);
+    expect(lines.filter((l) => l.startsWith('ai_run '))).toEqual([
+      expect.stringMatching(/^ai_run status=failed sent=\d+ input_tokens=\d+ output_tokens=\d+$/),
+    ]);
+  });
+
+  // Final fix round 2 item 2: the finally starts before the workers.
+  it('is logged, and onSpent called, when a worker rejects', async () => {
+    // One answer billed, then a 429 whose wait rejects: the worker, and so Promise.all, reject.
+    const provider = createFakeProvider(() =>
+      provider.calls.length === 1
+        ? ok()
+        : {
+            status: 'error',
+            reason: 'the Anthropic API rate limit was reached (429)',
+            fatal: false,
+            rateLimited: true,
+            retryAfterMs: 10,
+          },
+    );
+    const lines: string[] = [];
+    const spent: number[] = [];
+    await expect(
+      suggestFixes({
+        report: report(2),
+        provider,
+        limits: { ...limits(), concurrency: 1 },
+        log: (line) => void lines.push(line),
+        onSpent: (n) => void spent.push(n),
+        sleep: () => Promise.reject(new Error('the clock broke')),
+      }),
+    ).rejects.toThrow('the clock broke');
+    expect(provider.calls).toHaveLength(2);
+    expect(spent).toEqual([100]);
+    expect(lines.filter((l) => l.startsWith('ai_run '))).toEqual([
+      'ai_run status=failed sent=2 input_tokens=100 output_tokens=20',
+    ]);
+  });
+});

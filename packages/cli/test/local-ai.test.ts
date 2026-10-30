@@ -6,7 +6,9 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FindingSchema, findingId, getProfile, type Asset, type Finding } from '@widedoor/core';
 import { TOKEN_HEADER, buildScanReport, serializeJson } from '@widedoor/report';
 import { AiConfigSchema, loadReportFile, startLocalServer, type AiConfig } from '@widedoor/server';
-import { PREVIEW_NONCE, createFakeProvider, type ProviderAnswer } from '@widedoor/ai';
+import { PREVIEW_NONCE, type ProviderAnswer } from '@widedoor/ai';
+// Test code only: the package index does not export the fake provider.
+import { createFakeProvider } from '../../ai/src/providers/fake.ts';
 import { UsageError, parseCommand } from '../src/args.ts';
 import { localAi, type AiHooks, type AiModule } from '../src/ai.ts';
 
@@ -117,7 +119,9 @@ describe('localAi', () => {
     // The capability is the server's view: no key on it, at any depth that serializes.
     expect(JSON.stringify(r.ai)).not.toContain(FAKE_KEY);
     expect(Object.keys(r.ai).sort()).toEqual([
+      'allowSignedIn',
       'maxGroups',
+      'maxInputTokensTotal',
       'model',
       'preview',
       'provider',

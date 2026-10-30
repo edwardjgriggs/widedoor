@@ -6,7 +6,13 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { FindingSchema, findingId, type Asset } from '@widedoor/core';
 import { TOKEN_HEADER, type ScanReport } from '@widedoor/report';
 import type { AiPreview, AiSuggestionsDoc } from '../src/ai-types.ts';
-import { startLocalServer, type LocalAi, type UiServer } from '../src/app.ts';
+import {
+  AI_SIGNED_IN,
+  AI_SPENT,
+  startLocalServer,
+  type LocalAi,
+  type UiServer,
+} from '../src/app.ts';
 import { buildReport, type ScanInputs, type ScanOutcome } from '../src/engine.ts';
 import { reportBodyOf } from '../src/report-file.ts';
 import { SECURITY_HEADERS } from '../src/security.ts';
@@ -85,23 +91,46 @@ const doc = (report: ScanReport): AiSuggestionsDoc => ({
 });
 
 /** A fake capability that records its calls; suggest waits for release() when hold is set. */
-function fakeAi(options: { hold?: boolean } = {}) {
-  const calls = { suggest: [] as (readonly string[] | undefined)[], preview: 0 };
+function fakeAi(
+  options: {
+    hold?: boolean;
+    inputTokens?: number;
+    cap?: number;
+    allowSignedIn?: boolean;
+    throws?: boolean;
+  } = {},
+) {
+  const calls = {
+    suggest: [] as (readonly string[] | undefined)[],
+    preview: 0,
+    budgets: [] as (number | undefined)[],
+  };
   const signals: AbortSignal[] = [];
   let release: () => void = () => {};
   const ai: LocalAi = {
     provider: 'anthropic',
     model: 'fake-model',
     maxGroups: 2,
-    async suggest(report, { findingIds, signal }) {
+    maxInputTokensTotal: options.cap ?? 200000,
+    allowSignedIn: options.allowSignedIn ?? false,
+    async suggest(report, { findingIds, signal, log, budget, onSpent }) {
       calls.suggest.push(findingIds);
+      calls.budgets.push(budget);
+      onSpent?.(options.inputTokens ?? 0);
+      if (options.throws) throw new Error('the run failed');
       signals.push(signal);
       if (options.hold)
         await new Promise<void>((done) => {
           release = done;
           signal.addEventListener('abort', () => done(), { once: true });
         });
-      return doc(report);
+      const d = doc(report);
+      const spent = { ...d, totals: { ...d.totals, inputTokens: options.inputTokens ?? 0 } };
+      log?.(
+        `ai_run status=${signal.aborted ? 'aborted' : 'done'} sent=0 input_tokens=${spent.totals.inputTokens} output_tokens=0`,
+      );
+      log?.('ai_request group=x status=ok');
+      return spent;
     },
     preview(_report, { findingIds }): AiPreview {
       calls.preview++;
@@ -128,6 +157,7 @@ async function setup(
     ai?: LocalAi;
     aiUnavailable?: string;
     engine?: () => Promise<ScanOutcome>;
+    signedIn?: boolean;
   } = {},
 ) {
   const root = join(tmp, `r${n++}`);
@@ -143,6 +173,7 @@ async function setup(
       report: REPORT,
       body: reportBodyOf(REPORT, join(root, 'no-evidence'), root),
       evidenceDir: join(root, 'no-evidence'),
+      ...(options.signedIn ? { signedIn: true } : {}),
     },
     performScan:
       options.engine ??
@@ -274,17 +305,19 @@ describe('with an AI capability', () => {
       { body: { findingIds: [] }, status: 400 },
       { body: { findingIds: [FAIL_ID, FAIL_ID] }, status: 400 },
       {
+        // Final fix round 1 item 17: the message says what is checked (findings, not groups).
         body: { findingIds: ['wd_0000000000000001', 'wd_0000000000000002', 'wd_0000000000000003'] },
         status: 400,
+        text: 'name at most 2 findings: ai.maxGroups caps a run',
       },
       { body: { findingIds: ['wd_0000000000000001'] }, status: 400 },
       { body: { dryRun: 'yes' }, status: 400 },
     ];
-    for (const { body, status } of bad)
-      expect(
-        (await call(server, 'POST', '/api/suggestions', { body })).status,
-        JSON.stringify(body),
-      ).toBe(status);
+    for (const { body, status, text } of bad as { body: object; status: number; text?: string }[]) {
+      const res = await call(server, 'POST', '/api/suggestions', { body });
+      expect(res.status, JSON.stringify(body)).toBe(status);
+      if (text !== undefined) expect(res.text).toContain(text);
+    }
     const wrongType = await call(server, 'POST', '/api/suggestions', {
       body: {},
       headers: { 'content-type': 'text/plain' },
@@ -380,7 +413,7 @@ describe('with an AI capability', () => {
   });
 
   // 3b.8 fix round 1 item 6: a closed tab stops the run.
-  it('a client that disconnects aborts its run, and its partial result is not kept', async () => {
+  it('a client that disconnects aborts its run, and its partial document is kept', async () => {
     const f = fakeAi({ hold: true });
     const { server } = await setup({ ai: f.ai });
     const raw = JSON.stringify({});
@@ -408,12 +441,79 @@ describe('with an AI capability', () => {
     for (let i = 0; i < 200 && !f.signals[0]?.aborted; i++)
       await new Promise((done) => setTimeout(done, 10));
     expect(f.signals[0]?.aborted).toBe(true);
-    // The run has ended: no result is kept, and a new run may start (not 409).
+    // The run has ended, and a new run may start (not 409). Its document is kept: an aborted
+    // run still records what was sent (Phase 3b final fix round 1 item 4).
     await new Promise((done) => setTimeout(done, 20));
-    expect((await call(server, 'GET', '/api/export/ai-suggestions.json')).status).toBe(404);
+    expect((await call(server, 'GET', '/api/export/ai-suggestions.json')).status).toBe(200);
     const next = call(server, 'POST', '/api/suggestions', { body: {} });
     await new Promise((done) => setTimeout(done, 50));
     f.release();
     expect((await next).status).toBe(200);
+  });
+});
+
+// Phase 3b final fix round 1, items 4, 5 and 8.
+describe('final fix round 1', () => {
+  it('logs the run line of every run, and no other runner line', async () => {
+    const f = fakeAi({ inputTokens: 1234 });
+    const { server, logs } = await setup({ ai: f.ai });
+    expect((await call(server, 'POST', '/api/suggestions', { body: {} })).status).toBe(200);
+    expect(logs).toContain(
+      'widedoor ui: ai_run status=done sent=0 input_tokens=1234 output_tokens=0',
+    );
+    expect(logs.some((l) => l.includes('ai_request'))).toBe(false);
+  });
+
+  it('gives each run what is left of the session cap, and refuses below the smallest budget', async () => {
+    // Item 27: at 199k of 200k used, the next run can spend at most 1k.
+    const f = fakeAi({ inputTokens: 199_000, cap: 200_000 });
+    const { server } = await setup({ ai: f.ai });
+    expect((await call(server, 'POST', '/api/suggestions', { body: {} })).status).toBe(200);
+    expect((await call(server, 'POST', '/api/suggestions', { body: {} })).status).toBe(200);
+    expect(f.calls.budgets).toEqual([200_000, 1000]);
+    // Now past the cap: refused until widedoor ui restarts.
+    const third = await call(server, 'POST', '/api/suggestions', { body: {} });
+    expect(third.status).toBe(429);
+    expect(third.text).toBe(AI_SPENT);
+    expect(f.calls.suggest).toHaveLength(2);
+    // A dry run sends nothing and stays allowed.
+    expect(
+      (await call(server, 'POST', '/api/suggestions', { body: { dryRun: true } })).status,
+    ).toBe(200);
+  });
+
+  it('refuses when less than the smallest budget is left, and counts a run that threw', async () => {
+    const f = fakeAi({ inputTokens: 199_500, cap: 200_000, throws: true });
+    const { server } = await setup({ ai: f.ai });
+    const failed = await call(server, 'POST', '/api/suggestions', { body: {} });
+    expect(failed.status).toBe(500);
+    // 500 left is under the 1000 floor: the thrown run's spend still counted.
+    const next = await call(server, 'POST', '/api/suggestions', { body: {} });
+    expect(next.status).toBe(429);
+    expect(next.text).toBe(AI_SPENT);
+    expect(f.calls.suggest).toHaveLength(1);
+  });
+
+  it('keeps AI off for a signed-in scan without ai.allowSignedIn, dry run allowed', async () => {
+    const f = fakeAi();
+    const { server } = await setup({ ai: f.ai, signedIn: true });
+    expect(JSON.parse((await call(server, 'GET', '/api/ai')).text)).toEqual({
+      available: false,
+      reason: AI_SIGNED_IN,
+    });
+    const run = await call(server, 'POST', '/api/suggestions', { body: {} });
+    expect(run.status).toBe(403);
+    expect(run.text).toBe(AI_SIGNED_IN);
+    expect(
+      (await call(server, 'POST', '/api/suggestions', { body: { dryRun: true } })).status,
+    ).toBe(200);
+    expect(f.calls.suggest).toEqual([]);
+  });
+
+  it('allows AI for a signed-in scan with ai.allowSignedIn', async () => {
+    const f = fakeAi({ allowSignedIn: true });
+    const { server } = await setup({ ai: f.ai, signedIn: true });
+    expect(JSON.parse((await call(server, 'GET', '/api/ai')).text).available).toBe(true);
+    expect((await call(server, 'POST', '/api/suggestions', { body: {} })).status).toBe(200);
   });
 });

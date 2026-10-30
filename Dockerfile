@@ -162,6 +162,8 @@ COPY --from=build /src/packages/report/data packages/report/data
 COPY --from=build /src/packages/report/schema packages/report/schema
 COPY --from=build /src/packages/report/vendor/openacr packages/report/vendor/openacr
 COPY --from=build /src/packages/server/dist packages/server/dist
+# cli/dist without @widedoor/ai beside it: in the scan and hosted images, --ai-fixes and
+# widedoor suggest fail by design (the AI module cannot load; D16).
 COPY --from=build /src/packages/cli/dist packages/cli/dist
 COPY --from=build /src/packages/ui/dist packages/ui/dist
 COPY LICENSE NOTICE docker/THIRD-PARTY-NOTICES.txt ./

@@ -826,4 +826,55 @@ describe('the screens against a stand-in API', () => {
     },
     TIMEOUT,
   );
+  // Final fix round 1 item 30: AI availability follows the served report.
+  it(
+    'ask GET /api/ai again when a scan replaces the report: a signed-in report, then a public one',
+    async () => {
+      const { w, api } = await open();
+      const { page } = w;
+      let signedIn = true;
+      let state = 'running';
+      let report: Reply = { status: 200, body: REPORT_BODY };
+      api.on('GET', '/api/ai', () => ({
+        status: 200,
+        body: signedIn
+          ? { available: false, reason: 'The report comes from a signed-in scan.' }
+          : { available: true, provider: 'anthropic', model: 'fake-model' },
+      }));
+      api.on('GET', '/api/report', () => report);
+      api.on('POST', '/api/scans', () => ({ status: 202, body: job('queued') }));
+      api.on('GET', `/api/scans/${JOB}`, () => ({ status: 200, body: job(state) }));
+      const suggest = page.getByRole('button', { name: /^Suggest a fix \(AI\)/ });
+      const asked = () => api.calls.filter((c) => c.call === 'GET /api/ai').length;
+      try {
+        await page.goto(`http://127.0.0.1:${ui.port}/`);
+        await page.getByText('Showing the report given to widedoor ui.').waitFor();
+        await poll(asked).toBe(1);
+        expect(await suggest.count()).toBe(0);
+
+        await showScreen(page, 'Scan', 'Scan pages and PDFs');
+        await page.getByLabel('Web page URLs, one per line').fill(PAGE.uri);
+        await page.getByRole('button', { name: 'Start scan' }).click();
+        await poll(() => status(page).innerText()).toMatch(/^Scanning /);
+        signedIn = false;
+        report = {
+          status: 200,
+          body: reportBodyOf(
+            { ...REPORT, startedAt: '2026-10-26T12:00:30.000Z' },
+            join(tmpdir(), 'no-evidence'),
+            undefined,
+            'live',
+          ),
+        };
+        state = 'done';
+        await poll(asked).toBe(2);
+        await showScreen(page, 'Report', 'Accessibility report');
+        await poll(() => suggest.count()).toBeGreaterThan(0);
+        expect(await w.violations()).toEqual([]);
+      } finally {
+        await page.context().close();
+      }
+    },
+    TIMEOUT,
+  );
 });

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { FixProvider, ProviderAnswer, ProviderRequest } from '../provider.js';
+import { answeredModel, checkModel, retryAfterMs, usageOf, withoutEnv } from './shared.js';
 
 /*
  * The Claude provider: one non-streaming Messages API call per request
@@ -48,28 +49,6 @@ const STOP_REASONS = new Set([
 const category = (value: unknown) =>
   typeof value === 'string' && /^[a-z_]{1,40}$/.test(value) ? value : 'none';
 
-/** retry-after in milliseconds: delay seconds or an HTTP date. */
-function retryAfterMs(headers: Headers | undefined, now = Date.now()): number | undefined {
-  const value = headers?.get('retry-after')?.trim();
-  if (!value) return undefined;
-  if (/^\d+(?:\.\d+)?$/.test(value)) return Math.round(Number(value) * 1000);
-  const at = Date.parse(value);
-  return Number.isNaN(at) ? undefined : Math.max(0, at - now);
-}
-
-const count = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 0;
-
-/** The usage field of an ok answer: present only when the response carries both counts. */
-function usageOf(usage: { input_tokens?: unknown; output_tokens?: unknown } | null | undefined) {
-  if (!usage || !count(usage.input_tokens) || !count(usage.output_tokens)) return {};
-  return {
-    usage: {
-      inputTokens: usage.input_tokens as number,
-      outputTokens: usage.output_tokens as number,
-    },
-  };
-}
-
 /** Typed SDK errors, most specific first; see the module comment for what a reason may hold. */
 function errorAnswer(e: unknown, model: string): ProviderAnswer {
   const fail = (
@@ -111,9 +90,6 @@ function errorAnswer(e: unknown, model: string): ProviderAnswer {
   return fail('the Anthropic provider failed', false);
 }
 
-/** A model id as the API reports it; anything else is not recorded. */
-const MODEL_ID = /^[A-Za-z0-9._:@/-]{1,100}$/;
-
 const CUSTOM_HEADERS = 'ANTHROPIC_CUSTOM_HEADERS';
 
 /**
@@ -127,24 +103,15 @@ const CUSTOM_HEADERS = 'ANTHROPIC_CUSTOM_HEADERS';
  * client.withOptions() builds a new client through the same constructor and
  * so reads the variable again: any future use of it must go through here too.
  */
-function clientWithoutCustomHeaders(
-  options: ConstructorParameters<typeof Anthropic>[0],
-): Anthropic {
-  const saved = process.env[CUSTOM_HEADERS];
-  if (saved === undefined) return new Anthropic(options);
-  delete process.env[CUSTOM_HEADERS];
-  try {
-    return new Anthropic(options);
-  } finally {
-    process.env[CUSTOM_HEADERS] = saved;
-  }
-}
+const clientWithoutCustomHeaders = (options: ConstructorParameters<typeof Anthropic>[0]) =>
+  withoutEnv(CUSTOM_HEADERS, () => new Anthropic(options));
 
 export function createAnthropicProvider(options: AnthropicProviderOptions): FixProvider {
   // Checked before the client exists: with no key the SDK would read ANTHROPIC_API_KEY itself.
   if (typeof options.apiKey !== 'string' || options.apiKey.trim() === '')
     throw new Error('the Anthropic provider needs a key: set ANTHROPIC_API_KEY');
   const model = options.model ?? ANTHROPIC_DEFAULT_MODEL;
+  checkModel(model, 'Anthropic');
   const client = clientWithoutCustomHeaders({
     apiKey: options.apiKey,
     // Explicit, so ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL in the environment change nothing.
@@ -210,7 +177,7 @@ export function createAnthropicProvider(options: AnthropicProviderOptions): FixP
       status: 'ok',
       text,
       // The served model (a fallback can change it), kept only when it looks like a model id.
-      modelAnswered: MODEL_ID.test(response.model) ? response.model : model,
+      modelAnswered: answeredModel(response.model, model),
       // Input and output tokens only: cache reads and writes and refusal-fallback billing are
       // not included. Absent when the response has no counts; the runner then uses its estimate.
       ...usageOf(response.usage),

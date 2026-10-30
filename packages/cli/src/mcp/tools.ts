@@ -171,6 +171,16 @@ export interface ToolResult {
 /** A refusal or a failure the caller can act on: an isError result, no page text. */
 class ToolError extends Error {}
 
+/** A policy or path refusal: logged as one fixed line (mcp_refused), never with the URL or path. */
+class Refused extends ToolError {
+  constructor(
+    message: string,
+    readonly kind: 'policy' | 'path',
+  ) {
+    super(message);
+  }
+}
+
 /**
  * A scan the engine could not finish: fixed wording by category, and the engine's own
  * message (it can name page addresses or text) only in untrustedPageContent.
@@ -283,22 +293,31 @@ export function validationMessage(error: z.ZodError): string {
  * drive-relative (C:x) or UNC (\\server\share, \\?\) path. Throws ToolError.
  */
 export function insideRoot(root: string, path: string, field: string): string {
-  if (path.includes('\0')) throw new ToolError(`${field} is not a usable path.`);
+  if (path.includes('\0')) throw new Refused(`${field} is not a usable path.`, 'path');
   if (/^[a-z]:(?![\\/])/i.test(path))
-    throw new ToolError(`${field} is a drive-relative path; give a path inside the root folder.`);
+    throw new Refused(
+      `${field} is a drive-relative path; give a path inside the root folder.`,
+      'path',
+    );
   if (/^[\\/]{2}/.test(path))
-    throw new ToolError(`${field} is a UNC or device path; give a path inside the root folder.`);
+    throw new Refused(
+      `${field} is a UNC or device path; give a path inside the root folder.`,
+      'path',
+    );
   let real: string;
   try {
     real = realpathSync.native(resolve(root, path));
   } catch {
-    throw new ToolError(`${field} does not name an existing file inside the root folder.`);
+    throw new Refused(`${field} does not name an existing file inside the root folder.`, 'path');
   }
   const rel = relative(root, real);
   // A folder named ..drafts is inside; only .. itself or ../ leaves.
   if (rel === '' || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel))
-    throw new ToolError(`${field} is outside the root folder; widedoor mcp reads only inside it.`);
-  if (!statSync(real).isFile()) throw new ToolError(`${field} is not a file.`);
+    throw new Refused(
+      `${field} is outside the root folder; widedoor mcp reads only inside it.`,
+      'path',
+    );
+  if (!statSync(real).isFile()) throw new Refused(`${field} is not a file.`, 'path');
   return real;
 }
 
@@ -489,8 +508,9 @@ async function checkPolicy(ctx: ToolContext, url: string, field: string): Promis
       e instanceof Error && 'blockReason' in e && typeof e.blockReason === 'string'
         ? ` (${safeText(e.blockReason, 40)})`
         : '';
-    throw new ToolError(
+    throw new Refused(
       `${field} is refused by the public-only network policy${reason}: widedoor mcp scans public hosts on ports 80 and 443 only. Start it with --allow-local to scan localhost, private or other local hosts.`,
+      'policy',
     );
   }
 }
@@ -585,11 +605,19 @@ async function scanPdf(
   // The path is checked before the slot and before anything runs.
   const file = args.path !== undefined ? insideRoot(ctx.root, args.path, 'path') : undefined;
   if (file !== undefined && extname(file).toLowerCase() !== '.pdf')
-    throw new ToolError('path is not a PDF file (.pdf).');
+    throw new Refused('path is not a PDF file (.pdf).', 'path');
   if (args.url !== undefined) await checkPolicy(ctx, args.url, 'url');
   return oneScan(state, async () => {
-    const target = file !== undefined ? forwardSlashes(ctx.root, file) : (args.url as string);
-    const plan = planFor(ctx, [target], {});
+    // The realpath goes in as an absolute path, which can never read as a URL (a folder named
+    // "https:" included); the plan's file entry is then that realpath, relative to the root.
+    const plan = planFor(ctx, [file ?? (args.url as string)], {});
+    if (file !== undefined)
+      plan.pdf = {
+        baseDir: ctx.root,
+        files: [forwardSlashes(ctx.root, file)],
+        include: [],
+        urls: [],
+      };
     // A URL without .pdf would be planned as a page: it is a PDF by URL here.
     if (args.url !== undefined && !plan.pdf) {
       delete plan.web;
@@ -607,6 +635,8 @@ function readReportTool(ctx: ToolContext, state: ToolState, args: z.infer<typeof
     );
   let report: ScanReport;
   try {
+    // readReport refuses a file over MAX_REPORT_BYTES (100 MiB) before it reads it. It is
+    // synchronous, so two reads can never overlap in this process: no lock is needed.
     report = readReport(file);
   } catch (e) {
     // The reason can name a key of the file: it goes only into untrustedPageContent.
@@ -794,6 +824,8 @@ export async function callTool(
   try {
     return await (found.run as Tool<z.ZodType>['run'])(ctx, state, parsed.data, signal);
   } catch (e) {
+    // One fixed line per refusal: the kind and the tool, never the URL or the path.
+    if (e instanceof Refused) ctx.log(`mcp_refused reason=${e.kind} tool=${name}`);
     if (e instanceof ScanFailed && e.engineMessage !== undefined)
       return detailedError(e.message, {
         error: e.category,

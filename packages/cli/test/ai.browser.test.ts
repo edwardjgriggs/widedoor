@@ -1,9 +1,19 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createFakeProvider } from '@widedoor/ai';
+// Test code only: the package index does not export the fake provider.
+import { createFakeProvider } from '../../ai/src/providers/fake.ts';
+import { CONFIG_AI_SKIPPED } from '../src/ai.ts';
 import { main, type Io } from '../src/main.ts';
 import { BIN, CORPUS, buildCli, serveHtml, type CliRun, type StaticServer } from './helpers.ts';
 
@@ -218,6 +228,35 @@ describe('scans and @widedoor/ai', () => {
       for (const e of doc.entries)
         expect(e.reason === 'cancelled' || e.status === 'not-sent', JSON.stringify(e)).toBe(true);
       expect(readdirSync(out).filter((n) => n.endsWith('.tmp'))).toEqual([]);
+    },
+    TIMEOUT,
+  );
+
+  // Final fix round 1 item 1: ai.enabled in the config alone never breaks a scan.
+  it(
+    'with ai.enabled and no key, warns once, scans, and keeps the scan exit code',
+    async () => {
+      const saved = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      const cwd = join(tmp, 'config-only');
+      mkdirSync(cwd);
+      writeFileSync(join(cwd, 'widedoor.config.yaml'), 'ai:\n  enabled: true\n');
+      const out = join(cwd, 'out');
+      const err: string[] = [];
+      const io: Io = { out: () => undefined, err: (l) => void err.push(l), cwd };
+      try {
+        const code = await main(
+          ['scan', `${site.origin}/alt-fail.html`, '--out', out, ...sandbox],
+          io,
+        );
+        // alt-fail.html fails a check: the scan's own 1, not the 2 of an AI error.
+        expect(code).toBe(1);
+      } finally {
+        if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
+      }
+      expect(err.filter((l) => l === CONFIG_AI_SKIPPED)).toHaveLength(1);
+      expect(existsSync(join(out, 'report.json'))).toBe(true);
+      expect(readdirSync(out).filter((n) => n.startsWith('ai-'))).toEqual([]);
     },
     TIMEOUT,
   );

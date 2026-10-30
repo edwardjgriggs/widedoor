@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MANUAL_OUTCOMES, PROFILE_IDS, formatIssues } from '@widedoor/core';
-import { isHttpUrl } from './config.js';
+import { AI_LIMIT_RANGES, isHttpUrl } from './config.js';
 import { UPLOAD_ID } from './uploads.js';
 
 /*
@@ -48,14 +48,14 @@ export type ReviewBody = z.infer<typeof ReviewBodySchema>;
 /**
  * POST /api/suggestions: the findings to suggest fixes for (all of the
  * report's fails when absent), and whether to only show what would be sent.
- * 200 ids at most (the ai.maxGroups ceiling); the route also holds them to
- * the run's own maxGroups and to ids the report has.
+ * At most as many ids as ai.maxGroups can ever be (its ceiling); the route
+ * also holds them to the run's own maxGroups and to ids the report has.
  */
 export const SuggestionsBodySchema = z.strictObject({
   findingIds: z
     .array(z.string().regex(/^wd_[0-9a-f]{16}$/))
     .min(1)
-    .max(200)
+    .max(AI_LIMIT_RANGES.maxGroups.max)
     .refine((ids) => new Set(ids).size === ids.length, 'names the same finding twice')
     .optional(),
   dryRun: z.boolean().optional(),

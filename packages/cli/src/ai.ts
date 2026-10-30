@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { safeText } from '@widedoor/core';
+import { firstLine, safeText } from '@widedoor/core';
 import type { ScanReport } from '@widedoor/report';
 import {
   AI_SIDECARS,
@@ -96,14 +96,20 @@ export function missingKey(settings: AiSettings): string | undefined {
   return `AI fix suggestions need ${KEY_VARIABLES[settings.provider]} in the environment (or use --ai-dry-run, which sends nothing)`;
 }
 
+/** ai.enabled alone (no --ai-fixes) with no usable provider: one fixed warning, and the scan goes on. */
+export const CONFIG_AI_SKIPPED =
+  'widedoor: warning: ai.enabled is set, but AI fix suggestions cannot run (a provider key is missing from the environment, or provider openai has no model); the scan goes on without them. Use --ai-fixes to make this an error.';
+
+/** AI for a signed-in scan needs the opt-in (snippets of signed-in pages can hold personal data). */
+export const SIGNED_IN_AI =
+  'AI fix suggestions are off for a signed-in scan (storage state), because its snippets can hold personal data. Set ai.allowSignedIn: true in the config to allow them, or use --ai-dry-run to see what would be sent.';
+
 /** The sidecar files could not be written: widedoor suggest exits 1. */
 export class AiWriteError extends Error {}
 
 /** Text with every occurrence of the key replaced: a last guard on anything printed. */
 const scrub = (text: string, key: string | undefined) =>
   key ? text.split(key).join('[key removed]') : text;
-
-const firstLine = (e: unknown) => String((e as Error)?.message ?? e).split('\n')[0] ?? '';
 
 /**
  * Suggests fixes for a finished report and writes the two sidecar files to
@@ -155,7 +161,7 @@ export async function runAiSuggestions(
     ...(signal ? { signal } : {}),
     // Fixed-shape lines only; the stop line says why a run ended early.
     log: (line) => {
-      if (line.startsWith('ai_stop ')) io.err(`widedoor: ${line}`);
+      if (line.startsWith('ai_stop ') || line.startsWith('ai_run ')) io.err(`widedoor: ${line}`);
     },
   });
   const files: Record<AiSidecar, string> = {
@@ -222,13 +228,21 @@ export async function localAi(
       provider: chosen.provider,
       model: provider.model,
       maxGroups: limits.maxGroups,
+      maxInputTokensTotal: limits.maxInputTokensTotal,
+      allowSignedIn: config?.allowSignedIn === true,
       // The groups come from the findings named; the document still describes the whole report.
-      suggest: async (report, { findingIds, signal }) => {
+      suggest: async (report, { findingIds, signal, log, budget, onSpent }) => {
         const doc = await ai.suggestFixes({
           report: withFindings(report, findingIds),
           provider,
-          limits,
+          // The session's remaining budget never raises the configured limit.
+          limits:
+            budget === undefined
+              ? limits
+              : { ...limits, maxInputTokensTotal: Math.min(limits.maxInputTokensTotal, budget) },
           signal,
+          ...(log ? { log } : {}),
+          ...(onSpent ? { onSpent } : {}),
         });
         return {
           ...doc,

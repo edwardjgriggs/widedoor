@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { ChecklistItemStatus, Outcome, ProfileId } from '@widedoor/core/browser';
 import { CODE_HEADER, TOKEN_HEADER } from '@widedoor/report/browser';
 // Types only, from the server's browser-safe copy (no runtime code; @widedoor/ai never reaches the bundle).
-import type { AiAvailability, AiProviderId, AiSuggestionsDoc } from '../../server/src/ai-types.ts';
+import type { AiAvailability, AiSuggestionsDoc } from '../../server/src/ai-types.ts';
 
 /*
  * The only module that talks to the widedoor ui server. Every call carries
@@ -373,11 +373,14 @@ export async function download(format: string, fileName: string): Promise<void> 
  * A provider id by shape, not by name: the page only shows it as text, and the
  * bundle must not hold a provider's name (the build test looks for one).
  */
-const ProviderSchema = z.custom<AiProviderId>(
-  (v) => typeof v === 'string' && /^[a-z]{1,20}$/.test(v),
-);
+const ProviderSchema = z.string().regex(/^[a-z]{1,20}$/);
 
-const AvailabilitySchema: z.ZodType<AiAvailability> = z.object({
+/** GET /api/ai as the page reads it: the provider id is any short lowercase word. */
+export type ViewedAvailability = AiAvailability<string>;
+/** The suggestions document as the page reads it, provider id as above. */
+export type ViewedSuggestions = AiSuggestionsDoc<string>;
+
+const AvailabilitySchema: z.ZodType<ViewedAvailability> = z.object({
   available: z.boolean(),
   provider: ProviderSchema.optional(),
   model: z.string().optional(),
@@ -385,7 +388,7 @@ const AvailabilitySchema: z.ZodType<AiAvailability> = z.object({
 });
 
 /** Whether the server can suggest fixes, with which provider and model, or why not. */
-export const getAi = async (): Promise<AiAvailability> =>
+export const getAi = async (): Promise<ViewedAvailability> =>
   parsed(await call('/api/ai'), AvailabilitySchema);
 
 const PreviewSchema = z.object({
@@ -408,6 +411,8 @@ const SentSchema = z.object({
   page: z.int().optional(),
   structPath: z.string().optional(),
   plain: z.object({ what: z.string(), fix: z.string() }).optional(),
+  reportRule: z.string().optional(),
+  reportCriteria: z.array(z.string()).optional(),
   redactions: z.array(z.object({ kind: z.string(), count: z.int() })),
 });
 
@@ -428,7 +433,7 @@ const SuggestionSchema = z.discriminatedUnion('kind', [
 
 const UsageSchema = z.object({ inputTokens: z.int(), outputTokens: z.int() });
 
-const AiSuggestionsSchema: z.ZodType<AiSuggestionsDoc> = z.object({
+const AiSuggestionsSchema: z.ZodType<ViewedSuggestions> = z.object({
   schemaVersion: z.literal(1),
   $id: z.literal('urn:widedoor:schema:ai-suggestions:v1'),
   label: z.literal(
@@ -481,7 +486,7 @@ export const previewSuggestions = async (
   );
 
 /** Asks the provider for fix suggestions; resolves with the suggestions document. */
-export const runSuggestions = async (findingIds?: readonly string[]): Promise<AiSuggestionsDoc> =>
+export const runSuggestions = async (findingIds?: readonly string[]): Promise<ViewedSuggestions> =>
   parsed(
     await call('/api/suggestions', { method: 'POST', json: suggestionsBody(findingIds, false) }),
     AiSuggestionsSchema,

@@ -25,7 +25,7 @@ export const SYSTEM_PROMPT = [
   'Answer only with JSON that matches the given schema, and nothing else.',
   'For a web element, give a kind "web-patch" answer: a short summary, replacement markup for the flagged element only in patch, and optional notes. Keep the original attributes and URLs; do not add scripts, event handlers, styles, iframes, forms or links to other sites.',
   'For a PDF problem, give a kind "pdf-steps" answer: steps in the source authoring tool (Word or InDesign) first, and Acrobat only when the source tool is unknown. Set tool to the tool the steps are for.',
-  'Never include a URL, web address, email address or Markdown link in the summary, notes or steps; naming a file such as index.html is fine. Write code names, such as document.title, in backticks.',
+  'Never include a URL, web address, email address or Markdown link in the summary, notes or steps; naming a file such as index.html is fine. Write code names, such as document.title, and script file names, such as app.js, in backticks.',
   `Limits: summary at most ${SUMMARY_MAX} characters, patch at most ${PATCH_MAX}, notes at most ${NOTES_MAX}, and 1 to ${STEPS_MAX} steps of at most ${STEP_MAX} characters each. Longer answers are refused.`,
 ].join('\n\n');
 
@@ -40,12 +40,14 @@ const CLOSE_TAG = '</widedoor-untrusted>';
 /** One labeled line: line breaks in a value cannot start a new label. */
 const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]+/g, ' ');
 
+/** No tag of the untrusted block's name; idempotent, so the sent record can hold it already applied. */
+export const escapeUntrustedTags = (text: string): string =>
+  text.replace(/<(\s*\/?\s*widedoor-untrusted)/gi, '&lt;$1');
+
 /** Scanned text made safe for the block: no tag of the block's name, no nonce. */
 function escapeUntrusted(text: string, nonce: string): string {
   const entities = [...nonce].map((ch) => `&#x${ch.codePointAt(0)?.toString(16)};`).join('');
-  return text
-    .replace(/<(\s*\/?\s*widedoor-untrusted)/gi, '&lt;$1')
-    .replace(new RegExp(nonce, 'gi'), entities);
+  return escapeUntrustedTags(text).replace(new RegExp(nonce, 'gi'), entities);
 }
 
 /** The user message for one request; see the module comment. The nonce comes from newNonce. */
@@ -64,6 +66,12 @@ export function buildUserMessage(sent: SentRecord, nonce: string): string {
   if (sent.structPath !== undefined) lines.push(`Structure path: ${oneLine(sent.structPath)}`);
 
   const untrusted: string[] = [];
+  if (sent.reportRule !== undefined)
+    untrusted.push(`Rule id as written in the report file: ${oneLine(sent.reportRule)}`);
+  if (sent.reportCriteria !== undefined)
+    untrusted.push(
+      `Other criteria as written in the report file: ${oneLine(sent.reportCriteria.join(', '))}`,
+    );
   if (sent.selector !== undefined) untrusted.push(`Selector: ${oneLine(sent.selector)}`);
   if (sent.snippet !== undefined) untrusted.push('Snippet:', sent.snippet);
   if (untrusted.length === 0) return lines.join('\n');

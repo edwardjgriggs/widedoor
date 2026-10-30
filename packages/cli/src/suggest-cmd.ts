@@ -1,13 +1,23 @@
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
+  OutputError,
   ReportFileError,
+  checkSidecarOut,
   loadConfig,
   onStop,
   readReport,
+  signedInMarked,
   type LoadedConfig,
 } from '@widedoor/server';
-import { AiWriteError, aiSettings, missingKey, runAiSuggestions, type AiHooks } from './ai.js';
+import {
+  AiWriteError,
+  SIGNED_IN_AI,
+  aiSettings,
+  missingKey,
+  runAiSuggestions,
+  type AiHooks,
+} from './ai.js';
 import { CONFIG_FILE, type SuggestArgs } from './args.js';
 import type { Io } from './main.js';
 import { EXIT_ERROR, EXIT_FAIL, EXIT_OK } from './policy.js';
@@ -62,6 +72,24 @@ export async function runSuggest(args: SuggestArgs, io: Io, hooks: AiHooks = {})
     return EXIT_ERROR;
   }
   const dir = resolve(io.cwd, args.out ?? dirname(reportFile));
+  const roots = [io.cwd, ...(loaded ? [loaded.dir] : [])];
+  // A signed-in scan's report: its marker (every platform) or its owner-only mode (POSIX).
+  const restricted = signedInMarked(reportFile) || reportIsPrivate(reportFile);
+  if (!settings.dryRun) {
+    // A private report is a signed-in scan's (it is the only signal a report file gives).
+    if (restricted && loaded?.config.ai?.allowSignedIn !== true) {
+      io.err(`widedoor: ${SIGNED_IN_AI}`);
+      return EXIT_ERROR;
+    }
+    // The folder is checked before anything is sent: a bad --out never costs a request.
+    try {
+      await checkSidecarOut(dir, roots);
+    } catch (e) {
+      if (!(e instanceof OutputError)) throw e;
+      io.err(`widedoor: the AI suggestions could not be written: ${safeText(e.message, 1000)}`);
+      return EXIT_FAIL;
+    }
+  }
   const stop = new AbortController();
   const dispose = (hooks.onStop ?? onStop)(
     (signal) => {
@@ -81,11 +109,7 @@ export async function runSuggest(args: SuggestArgs, io: Io, hooks: AiHooks = {})
     const written = await runAiSuggestions(
       report,
       settings,
-      {
-        dir,
-        restricted: reportIsPrivate(reportFile),
-        roots: [io.cwd, ...(loaded ? [loaded.dir] : [])],
-      },
+      { dir, restricted, roots },
       io,
       hooks,
       stop.signal,

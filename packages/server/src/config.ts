@@ -3,6 +3,8 @@ import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { z } from 'zod';
 import {
   ConfigError,
+  MODEL_ID,
+  MODEL_ID_RULE,
   PROFILE_IDS,
   formatIssues,
   getProfile,
@@ -90,7 +92,13 @@ export const AI_LIMIT_RANGES = {
   maxInputTokensTotal: { min: 1000, max: 5_000_000 },
 } as const;
 
-const AI_FIELDS = new Set(['enabled', 'provider', 'model', ...Object.keys(AI_LIMIT_RANGES)]);
+const AI_FIELDS = new Set([
+  'enabled',
+  'allowSignedIn',
+  'provider',
+  'model',
+  ...Object.keys(AI_LIMIT_RANGES),
+]);
 const KEY_SHAPED = /key|token|secret|passw|credential|auth|bearer/i;
 
 /** Every path in the ai block that names a credential: any unknown key-shaped name, at any depth. */
@@ -129,11 +137,13 @@ export const AiConfigSchema = z
   .pipe(
     z.strictObject({
       enabled: z.boolean().optional(),
+      /** AI for a signed-in scan (storage state): off unless set, since its snippets can hold personal data. */
+      allowSignedIn: z.boolean().optional(),
       provider: z.enum(['anthropic', 'openai']).optional(),
       model: z
         .string()
         .refine((m) => !keyShapedModel(m), { message: AI_KEY_IN_CONFIG, abort: true })
-        .regex(/^[A-Za-z0-9._:-]{1,100}$/, 'must be 1 to 100 letters, digits, ".", "_", ":" or "-"')
+        .regex(MODEL_ID, `must be ${MODEL_ID_RULE}`)
         .optional(),
       maxGroups: aiLimit('maxGroups'),
       maxRequestsPerMinute: aiLimit('maxRequestsPerMinute'),
@@ -144,6 +154,7 @@ export const AiConfigSchema = z
   );
 export type AiConfig = z.infer<typeof AiConfigSchema>;
 
+/** widedoor.config.yaml (spec section 6). Unknown keys are errors, so a typo never silently widens or narrows a scan. */
 export const ConfigSchema = z.strictObject({
   // YAML reads a bare 508 as a number.
   profile: z.preprocess((v) => (v === 508 ? '508' : v), z.enum(PROFILE_IDS)).optional(),

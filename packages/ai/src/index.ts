@@ -5,7 +5,6 @@ export * from './context.js';
 export * from './prompt.js';
 export * from './answer.js';
 export * from './provider.js';
-export * from './providers/fake.js';
 export * from './providers/anthropic.js';
 export * from './providers/openai.js';
 export * from './run.js';

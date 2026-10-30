@@ -300,6 +300,17 @@ describe('createAnthropicProvider: errors', () => {
       },
     ],
     [
+      // Final fix round 1 item 15: the shared helper honours retry-after-ms in both providers.
+      '429 with retry-after-ms: 1500',
+      apiError(429, 'rate_limit_error', { 'retry-after-ms': '1500', 'retry-after': '9' }),
+      {
+        reason: 'the Anthropic API rate limit was reached (429)',
+        fatal: false,
+        rateLimited: true,
+        retryAfterMs: 1500,
+      },
+    ],
+    [
       '400',
       apiError(400, 'invalid_request_error'),
       { reason: 'the Anthropic API rejected the request (400)', fatal: false },
@@ -416,6 +427,20 @@ describe('createAnthropicProvider: fix round 1', () => {
         expect(canned.sent).toHaveLength(0);
       }
     });
+  });
+
+  // Final fix round 1 item 15: the shared model-id rule, after the key check.
+  it('refuses a model that is not a model id before any request, the key check first', () => {
+    for (const model of ['bad model', 'a'.repeat(101), 'claude<script>']) {
+      const canned = cannedFetch(message());
+      expect(() => createAnthropicProvider({ apiKey: KEY, model, fetch: canned.fetch })).toThrow(
+        'the Anthropic provider needs a valid model id',
+      );
+      expect(() => createAnthropicProvider({ apiKey: '', model, fetch: canned.fetch })).toThrow(
+        'the Anthropic provider needs a key: set ANTHROPIC_API_KEY',
+      );
+      expect(canned.sent).toHaveLength(0);
+    }
   });
 
   it('records modelAnswered only when it looks like a model id', async () => {

@@ -91,11 +91,22 @@ export const SentRecordSchema = z.strictObject({
   criteria: z.array(nonEmpty),
   assetKind: z.enum(['web', 'pdf']),
   selector: nonEmpty.optional(),
-  /** The redacted snippet, byte for byte as sent. */
+  /**
+   * The redacted snippet, byte for byte as sent: context.ts applies the untrusted block's tag
+   * escape before it is recorded. The one difference possible is an occurrence of a request's
+   * own random 128-bit nonce, escaped in the message only (prompt.ts).
+   */
   snippet: nonEmpty.optional(),
   page: z.int().min(1).optional(),
   structPath: nonEmpty.optional(),
   plain: z.strictObject({ what: nonEmpty, fix: nonEmpty }).optional(),
+  /**
+   * The report file's rule id when it is not one Widedoor writes (ruleId is then
+   * "unrecognised"), and criteria Widedoor does not know: redacted, and sent only
+   * inside the untrusted block, since a report file can be crafted.
+   */
+  reportRule: nonEmpty.optional(),
+  reportCriteria: z.array(nonEmpty).optional(),
   redactions: z.array(z.strictObject({ kind: nonEmpty, count })),
 });
 export type SentRecord = z.infer<typeof SentRecordSchema>;

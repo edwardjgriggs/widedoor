@@ -3,10 +3,10 @@ import { join } from 'node:path';
 import { parse, type DefaultTreeAdapterMap } from 'parse5';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { loadStandardsData } from '@widedoor/core';
-import { loadPlainData } from '@widedoor/report';
+import { FindingSchema, findingId, loadStandardsData } from '@widedoor/core';
+import { aiSuggestable, loadPlainData, overriddenFails } from '@widedoor/report';
 import type { AiSuggestionsDoc } from '../../server/src/ai-types.ts';
-import { fixtureReport } from '../../report/test/fixture.ts';
+import { PAGE, fixtureReport } from '../../report/test/fixture.ts';
 import { ReportView } from '../src/ReportView.tsx';
 import { SuggestionsPanel, type SuggestionsPanelProps } from '../src/SuggestionsView.tsx';
 import type { UiData } from '../src/data.ts';
@@ -191,6 +191,44 @@ describe('SuggestionsPanel', () => {
     ]);
     expect(buttons.some((b) => /apply/i.test(b))).toBe(false);
   });
+
+  it('"What was sent" shows the plain text and what the report file said, as text', () => {
+    const entry = DOC.entries[0]!;
+    const sent: AiSuggestionsDoc = {
+      ...DOC,
+      entries: [
+        {
+          ...entry,
+          request: {
+            ...entry.request,
+            plain: { what: 'The image has no text alternative.', fix: 'Add an alt attribute.' },
+            reportRule: `img-alt ${HOSTILE}`,
+            reportCriteria: ['9.9.9', HOSTILE],
+          },
+        },
+      ],
+    };
+    const doc = parse(render(props({ result: sent })));
+    const [details] = find(doc, (e) => e.tagName === 'details');
+    const terms = find(details!, (e) => e.tagName === 'dt').map((e) => textOf(e));
+    const values = find(details!, (e) => e.tagName === 'dd').map((e) => textOf(e));
+    expect(terms).toEqual([
+      'Rule',
+      'Criteria',
+      'Selector',
+      'Rule id in the report file',
+      'Other criteria in the report file',
+      'What is wrong',
+      'How to fix',
+    ]);
+    expect(values.slice(3)).toEqual([
+      `img-alt ${HOSTILE}`,
+      `9.9.9, ${HOSTILE}`,
+      'The image has no text alternative.',
+      'Add an alt attribute.',
+    ]);
+    expect(find(doc, (e) => ['a', 'script'].includes(e.tagName))).toEqual([]);
+  });
 });
 
 describe('the per-finding button', () => {
@@ -225,6 +263,34 @@ describe('the per-finding button', () => {
     expect(fails).toBeGreaterThan(0);
     const withIt = view(() => {});
     expect(withIt.split('Suggest a fix (AI)').length - 1).toBe(fails);
+  });
+
+  // Final fix round 1 item 18: not where buildGroups would skip (aiSuggestable).
+  it('is not on a manual fail, which a run never sends', () => {
+    const manualFail = FindingSchema.parse({
+      schemaVersion: 1,
+      id: findingId(PAGE.uri, { selector: 'body' }, 'manual', 'keyboard'),
+      asset: PAGE,
+      location: { selector: 'body' },
+      source: { engine: 'manual', engineVersion: '0.0.0', ruleId: 'keyboard' },
+      criteria: { wcag: ['2.1.2'] },
+      outcome: 'fail',
+      review: {
+        reviewer: 'Reviewer',
+        date: '2026-10-21',
+        notes: 'Focus is trapped in the dialog.',
+        expiresOnChangeOf: PAGE.contentHash,
+      },
+    });
+    const withManual = { ...report, findings: [...report.findings, manualFail] };
+    const markup = renderToStaticMarkup(
+      <ReportView report={withManual} data={data} screenshots={new Map()} onSuggest={() => {}} />,
+    );
+    // The manual fail is listed, without a button.
+    expect(markup).toContain('Focus is trapped in the dialog.');
+    const automated = report.findings.filter(aiSuggestable(overriddenFails(report))).length;
+    expect(automated).toBe(report.findings.filter((f) => f.outcome === 'fail').length);
+    expect(suggestButtons(markup)).toHaveLength(automated);
   });
 
   // 3b.8 fix round 1 item 2.

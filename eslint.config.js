@@ -126,11 +126,11 @@ export default tseslint.config(
       ]),
     },
   },
-  // D16: AI suggestions run in the CLI and the local server only. This is the core rule, not the
-  // typescript-eslint one set above, so neither replaces the other; boundary.test.ts also catches
-  // import() and require.
+  // D16: AI suggestions run in the CLI only; the local server gets them as a capability the CLI
+  // injects. This is the core rule, not the typescript-eslint one set above, so neither replaces
+  // the other; boundary.test.ts also catches import() and require.
   {
-    files: ['packages/server/src/hosted/**', 'packages/ui/src/**', 'packages/web/**'],
+    files: ['packages/server/src/**', 'packages/ui/src/**', 'packages/web/**'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -139,7 +139,7 @@ export default tseslint.config(
             {
               group: ['@widedoor/ai', '@widedoor/ai/*'],
               message:
-                'D16: @widedoor/ai runs in the CLI and the local server only; the hosted tier, the UI bundle and the web engine never import it.',
+                'D16: @widedoor/ai is loaded by the CLI only; the server package (which the hosted image installs), the UI bundle and the web engine never import it.',
             },
           ],
         },

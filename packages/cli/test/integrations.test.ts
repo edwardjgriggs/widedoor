@@ -181,6 +181,14 @@ describe('docs/ai-fixes.md', () => {
     expect(AI_DOC).toContain(`${constant('CONSECUTIVE_ERRORS_LIMIT')} errors come in a row`);
     expect(AI_DOC).toContain(`at most ${SENT_SNIPPET_MAX} characters after redaction`);
     expect(AI_DOC).toContain(`the default model is \`${ANTHROPIC_DEFAULT_MODEL}\``);
+    // Budget stops and the second Ctrl+C of suggest, as the code has them (final fix round 1 item 14).
+    expect(run).toMatch(
+      /status: 'skipped-budget',\s*reason: 'the input token budget would be passed'/,
+    );
+    expect(AI_DOC).toContain('(its groups are marked "skipped-budget")');
+    const suggest = read('packages/cli/src/suggest-cmd.ts');
+    expect(suggest).toMatch(/dispose\(\);\s*process\.exit\(EXIT_ERROR\);/);
+    expect(AI_DOC).toContain('A second Ctrl+C stops it at once, with exit 2.');
     expect(AI_DOC).toContain('Read-Host -MaskInput');
     expect(AI_DOC).toContain('read -rs');
   });
@@ -208,7 +216,7 @@ describe('what redaction does not catch', () => {
     );
     expect(list).toContain('digit runs under 9 digits, and phone numbers under 7 digits');
     expect(list).toContain('`alt`, `title`, `aria-label` and `placeholder`');
-    expect(list).toContain('path segments written as plain words');
+    expect(list).toContain('path segments under 24 characters written as plain words');
     expect(list).toContain('host names written as text');
   });
 
@@ -223,6 +231,22 @@ describe('what redaction does not catch', () => {
     // Phone numbers: 7 or more digits with a separator.
     expect(masked('12-34-56')).toBe(false);
     expect(masked('123-4567')).toBe(true);
+    // URL path segments: 24 or more characters are masked in any case (final fix round 1 item 7).
+    expect(redactSnippet('<a href="/abcdefghijklmnopqrstuvw/x">a</a>').html).toContain(
+      'abcdefghijklmnopqrstuvw',
+    ); // 23
+    expect(redactSnippet('<a href="/abcdefghijklmnopqrstuvwx/x">a</a>').html).toContain(
+      '[redacted:path-segment]',
+    ); // 24
+    // Credential-named data-* and aria-* attributes are dropped (item 6); aria-keyshortcuts is not one.
+    for (const name of ['data-csrf', 'data-session-id', 'data-api-key', 'aria-token', 'data-nonce'])
+      expect(redactSnippet(`<div ${name}="x1">a</div>`).redactions, name).toContainEqual({
+        kind: 'credential-attribute',
+        count: 1,
+      });
+    expect(redactSnippet('<button aria-keyshortcuts="Alt+S">a</button>').html).toContain(
+      'aria-keyshortcuts',
+    );
     // Free text in a kept attribute stays.
     for (const attr of ['alt', 'title', 'aria-label', 'placeholder'])
       expect(redactSnippet(`<input ${attr}="Jane Smith, 12 Elm Road">`).html, attr).toContain(

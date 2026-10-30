@@ -17,7 +17,7 @@ import {
 } from '@widedoor/core';
 import { AttachmentLoader, buildAcr, type AcrMeta, type ScanReport } from '@widedoor/report';
 import type { AiAvailability, AiPreview, AiProviderId, AiSuggestionsDoc } from './ai-types.js';
-import { acrMeta } from './config.js';
+import { AI_LIMIT_RANGES, acrMeta } from './config.js';
 import { buildReport, type performScan } from './engine.js';
 import { Jobs } from './jobs.js';
 import { reportBodyOf, type CurrentReport } from './report-file.js';
@@ -123,10 +123,25 @@ export interface LocalAi {
   model: string;
   /** The most finding ids one request may name (ai.maxGroups). */
   maxGroups: number;
-  /** Suggests fixes for the report's fails, or only for findingIds; aborted through signal. */
+  /** ai.maxInputTokensTotal: also the cap on input tokens over the whole widedoor ui session. */
+  maxInputTokensTotal: number;
+  /** ai.allowSignedIn: AI may run on a signed-in scan's report. */
+  allowSignedIn: boolean;
+  /**
+   * Suggests fixes for the report's fails, or only for findingIds; aborted through
+   * signal. log gets the runner's fixed-shape lines (ai_stop, ai_run).
+   */
   suggest(
     report: ScanReport,
-    options: { findingIds?: readonly string[]; signal: AbortSignal },
+    options: {
+      findingIds?: readonly string[];
+      signal: AbortSignal;
+      log?: (line: string) => void;
+      /** The run's input token budget: what is left of the session cap (it never raises the limit). */
+      budget?: number;
+      /** Gets the run's budget measure (reported input tokens, else estimates), however it ended. */
+      onSpent?: (inputTokens: number) => void;
+    },
   ): Promise<AiSuggestionsDoc>;
   /** What suggest would send, without sending anything. */
   preview(report: ScanReport, options: { findingIds?: readonly string[] }): AiPreview;
@@ -152,7 +167,17 @@ export interface LocalState {
   aiRun?: AbortController | undefined;
   /** The last suggestions, for the current scan's report; a new scan drops them. */
   aiResult?: AiSuggestionsDoc | undefined;
+  /** Input tokens every AI run of this session used; a new run is refused at ai.maxInputTokensTotal. */
+  aiSpent?: number;
 }
+
+/** Why a run is refused once the session spend cap is reached. */
+export const AI_SPENT =
+  'AI fix suggestions have used the input token budget of this session (ai.maxInputTokensTotal). Restart widedoor ui to reset it.';
+
+/** Why AI is refused for a signed-in scan's report without the opt-in. */
+export const AI_SIGNED_IN =
+  'AI fix suggestions are off for a signed-in scan, because its snippets can hold personal data. Set ai.allowSignedIn: true in the config to allow them.';
 
 /** Why AI is off when the CLI gave no reason. */
 export const AI_OFF = 'AI fix suggestions are off.';
@@ -544,9 +569,12 @@ export function createLocalApp(options: LocalAppOptions): Hono {
 
   // AI fix suggestions: only when the CLI gave the server an AI capability (it holds the key).
   app.get('/api/ai', () => {
-    const body: AiAvailability = state.ai
-      ? { available: true, provider: state.ai.provider, model: state.ai.model }
-      : { available: false, reason: state.aiUnavailable ?? AI_OFF };
+    const signedInBlocked = state.ai && !state.ai.allowSignedIn && state.current?.signedIn === true;
+    const body: AiAvailability = !state.ai
+      ? { available: false, reason: state.aiUnavailable ?? AI_OFF }
+      : signedInBlocked
+        ? { available: false, reason: AI_SIGNED_IN }
+        : { available: true, provider: state.ai.provider, model: state.ai.model };
     return json(body);
   });
 
@@ -564,8 +592,13 @@ export function createLocalApp(options: LocalAppOptions): Hono {
     if (current === undefined) return refuse('there is no report yet; scan or open one first', 409);
     const ids = body.findingIds;
     if (ids !== undefined) {
+      // Checked by ids, before grouping (which is @widedoor/ai's): each finding can be its own group.
       if (ids.length > ai.maxGroups)
-        return refused('schema', `name at most ${ai.maxGroups} findings (ai.maxGroups)`, 400);
+        return refused(
+          'schema',
+          `name at most ${ai.maxGroups} findings: ai.maxGroups caps a run's groups, and each finding can be a group of its own`,
+          400,
+        );
       const known = new Set(current.report.findings.map((f) => f.id));
       const unknown = ids.find((id) => !known.has(id));
       if (unknown !== undefined)
@@ -576,21 +609,37 @@ export function createLocalApp(options: LocalAppOptions): Hono {
       const preview = ai.preview(current.report, options);
       return json({ dryRun: true, provider: ai.provider, model: ai.model, ...preview });
     }
+    if (!ai.allowSignedIn && current.signedIn === true) return refuse(AI_SIGNED_IN, 403);
     if (state.aiRun) return refuse('AI suggestions are already running; wait for them', 409);
+    // The run gets what is left of the session cap, and is refused below the smallest budget.
+    const remaining = ai.maxInputTokensTotal - (state.aiSpent ?? 0);
+    if (remaining < AI_LIMIT_RANGES.maxInputTokensTotal.min) return refuse(AI_SPENT, 429);
+    let used = 0;
     const run = new AbortController();
     state.aiRun = run;
-    // A closed tab stops the requests still to be sent; the partial result is not kept.
+    // A closed tab stops the requests still to be sent.
     const gone = () => run.abort();
     c.req.raw.signal.addEventListener('abort', gone, { once: true });
     try {
-      const doc = await ai.suggest(current.report, { ...options, signal: run.signal });
-      // Kept only for the report it was made for, and only when the run was not stopped.
-      if (!run.signal.aborted && state.current?.report.startedAt === current.report.startedAt)
-        state.aiResult = doc;
+      const doc = await ai.suggest(current.report, {
+        ...options,
+        signal: run.signal,
+        budget: remaining,
+        onSpent: (n) => (used = n),
+        // The runner's fixed lines (ai_stop, ai_run): what was sent is never lost from the log.
+        log: (line) => {
+          if (line.startsWith('ai_run ') || line.startsWith('ai_stop ')) log(line);
+        },
+      });
+      // Kept for the report it was made for, stopped or not: an aborted run's document still
+      // records what was sent. A new scan replaces the report, and with it the result.
+      if (state.current?.report.startedAt === current.report.startedAt) state.aiResult = doc;
       const ok = doc.entries.filter((e) => e.status === 'ok').length;
       log(`AI suggestions: ${doc.entries.length} groups, ${ok} with a suggestion`);
       return json(doc);
     } finally {
+      // Counted even when the run threw: what it sent was paid for.
+      state.aiSpent = (state.aiSpent ?? 0) + used;
       c.req.raw.signal.removeEventListener('abort', gone);
       if (state.aiRun === run) state.aiRun = undefined;
     }

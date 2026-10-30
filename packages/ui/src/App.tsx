@@ -18,8 +18,13 @@ import {
   type ImpactOrUnrated,
   type ScanReport,
 } from '@widedoor/report/browser';
-import type { AiAvailability } from '../../server/src/ai-types.ts';
-import { SESSION_ENDED, getAi, onSessionEnded, sessionEnded } from './api.js';
+import {
+  SESSION_ENDED,
+  getAi,
+  onSessionEnded,
+  sessionEnded,
+  type ViewedAvailability,
+} from './api.js';
 import { ChecklistView } from './ChecklistView.js';
 import { ExportView, ReviewsNote } from './ExportView.js';
 import { Initial } from './initial.js';
@@ -159,7 +164,7 @@ export function App({ data }: { data: UiData }) {
   // Scan results announced while another screen is shown.
   const [announcement, setAnnouncement] = useState('');
   // AI fix suggestions: whether the server offers them, and the last ask.
-  const [ai, setAi] = useState<AiAvailability>({ available: false });
+  const [ai, setAi] = useState<ViewedAvailability>({ available: false });
   const [suggest, setSuggest] = useState<SuggestionsRequest>();
   // While a suggestion is prepared, confirmed or run, the per-finding buttons are disabled.
   const [aiLocked, setAiLocked] = useState(false);
@@ -188,9 +193,12 @@ export function App({ data }: { data: UiData }) {
   };
 
   // Asked once the served report is there: a page opened without the server never asks.
-  const hasServed = served !== undefined;
+  // Asked again whenever the served report changes (a new scan, a loaded or replaced report):
+  // availability follows the report (a signed-in one needs ai.allowSignedIn). A review
+  // rebuild keeps the same report, and the answer.
+  const servedReport = served?.report.startedAt;
   useEffect(() => {
-    if (!hasServed) return;
+    if (servedReport === undefined) return;
     let live = true;
     getAi().then(
       (got) => live && setAi(got),
@@ -199,7 +207,7 @@ export function App({ data }: { data: UiData }) {
     return () => {
       live = false;
     };
-  }, [hasServed]);
+  }, [servedReport]);
 
   useEffect(() => {
     let live = true;

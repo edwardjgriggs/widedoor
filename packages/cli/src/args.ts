@@ -2,6 +2,8 @@ import { parseArgs } from 'node:util';
 import {
   CHECKLIST_STATUSES,
   MANUAL_OUTCOMES,
+  MODEL_ID,
+  MODEL_ID_RULE,
   PROFILE_IDS,
   type ChecklistItemStatus,
   type ManualOutcome,
@@ -51,6 +53,8 @@ export interface AiFlags {
 
 export const AI_PROVIDERS = ['anthropic', 'openai'] as const;
 export type AiProviderId = (typeof AI_PROVIDERS)[number];
+/** A key pasted as --ai-model: names the flag and never echoes the value. */
+export const AI_MODEL_FLAG_KEY = `--ai-model looks like an API key. ${AI_KEY_IN_CONFIG} or a flag`;
 
 export interface ScanArgs extends PlanArgs {
   command: 'scan';
@@ -401,9 +405,6 @@ function diffArgs(values: Values, files: string[]): DiffArgs {
   };
 }
 
-/** The same rule as the ai.model config field. */
-const MODEL_ID = /^[A-Za-z0-9._:-]{1,100}$/;
-
 function aiFlags(values: Values): Omit<AiFlags, 'fixes'> {
   const flags: Omit<AiFlags, 'fixes'> = { dryRun: values['ai-dry-run'] === true };
   const provider = values['ai-provider'];
@@ -411,9 +412,9 @@ function aiFlags(values: Values): Omit<AiFlags, 'fixes'> {
   const model = values['ai-model'];
   if (typeof model === 'string') {
     // A pasted key: refused without echoing it, before any other check.
-    if (keyShapedModel(model)) throw new UsageError(AI_KEY_IN_CONFIG);
-    if (!MODEL_ID.test(model))
-      throw new UsageError('--ai-model must be 1 to 100 letters, digits, ".", "_", ":" or "-"');
+    if (keyShapedModel(model)) throw new UsageError(AI_MODEL_FLAG_KEY);
+    // The same rule as the ai.model config field.
+    if (!MODEL_ID.test(model)) throw new UsageError(`--ai-model must be ${MODEL_ID_RULE}`);
     flags.model = model;
   }
   return flags;

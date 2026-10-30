@@ -41,7 +41,7 @@ function sentRecord(r: SentRecord): SafeHtml {
   return html`<section>
 <h4>What was sent</h4>
 <dl>
-${row('Rule', r.ruleId)}${row('Criteria', r.criteria.join(', '))}${row('Kind', r.assetKind === 'web' ? 'web page element' : 'PDF')}${row('Selector', r.selector)}${row('Page', r.page)}${row('Structure path', r.structPath)}${row('What is wrong', r.plain?.what)}${row('How to fix', r.plain?.fix)}${row('Removed before sending', removed)}</dl>
+${row('Rule', r.ruleId)}${row('Criteria', r.criteria.join(', '))}${row('Kind', r.assetKind === 'web' ? 'web page element' : 'PDF')}${row('Selector', r.selector)}${row('Page', r.page)}${row('Structure path', r.structPath)}${row('Rule id in the report file', r.reportRule)}${row('Other criteria in the report file', r.reportCriteria?.join(', '))}${row('What is wrong', r.plain?.what)}${row('How to fix', r.plain?.fix)}${row('Removed before sending', removed)}</dl>
 ${r.snippet !== undefined ? html`<p>Snippet, after redaction:</p>\n<pre>${r.snippet}</pre>\n` : ''}</section>\n`;
 }
 

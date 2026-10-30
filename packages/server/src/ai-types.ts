@@ -28,6 +28,9 @@ export interface AiSentRecord {
   page?: number | undefined;
   structPath?: string | undefined;
   plain?: { what: string; fix: string } | undefined;
+  /** Report-file text that is not a Widedoor id: sent only as untrusted data. */
+  reportRule?: string | undefined;
+  reportCriteria?: string[] | undefined;
   redactions: { kind: string; count: number }[];
 }
 
@@ -55,12 +58,15 @@ export interface AiLimitsShape {
   maxInputTokensTotal: number;
 }
 
-/** The suggestions document (@widedoor/ai AiSuggestions). */
-export interface AiSuggestionsDoc {
+/**
+ * The suggestions document (@widedoor/ai AiSuggestions). P is the provider id's type: the
+ * viewer checks it by shape only, so it reads AiSuggestionsDoc<string>.
+ */
+export interface AiSuggestionsDoc<P extends string = AiProviderId> {
   schemaVersion: 1;
   $id: 'urn:widedoor:schema:ai-suggestions:v1';
   label: 'AI-generated. Review before use. Suggestions do not change any result in the report.';
-  provider: AiProviderId;
+  provider: P;
   model: string;
   modelAnswered?: string | undefined;
   createdAt: string;
@@ -79,10 +85,10 @@ export interface AiPreview {
   skipped: number;
 }
 
-/** GET /api/ai. */
-export interface AiAvailability {
+/** GET /api/ai. P as in AiSuggestionsDoc. */
+export interface AiAvailability<P extends string = AiProviderId> {
   available: boolean;
-  provider?: AiProviderId | undefined;
+  provider?: P | undefined;
   model?: string | undefined;
   reason?: string | undefined;
 }

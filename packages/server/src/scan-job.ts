@@ -162,9 +162,10 @@ export async function runScanJob(
     finished = true;
     if (outcome.kind === 'error')
       return { status: 'failed', error: forPage(outcome.message), cause: outcome.message };
-    const { report, inputs } = outcome;
+    const { report, inputs, restricted } = outcome;
     // The screenshots stay in the work folder while the report is current.
     deps.setCurrent({
+      ...(restricted ? { signedIn: true } : {}),
       report,
       evidenceDir: evidence,
       body: reportBodyOf(report, evidence, plan.reviewDir, 'live'),

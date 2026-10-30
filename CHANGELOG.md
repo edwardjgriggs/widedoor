@@ -51,10 +51,17 @@ All notable changes to Widedoor are listed here. The format follows
   go to `ai-suggestions.json` and `ai-suggestions.html` beside the report, every entry labeled
   AI-generated; the report and the exit code never change. Ctrl+C during the suggestions
   writes what it has and keeps the scan's exit code. Model answers are untrusted: a strict
-  schema, no links, no unsafe markup, shown as text only.
-- AI suggestions in `widedoor ui`: a "Suggest a fix (AI)" button on each failed check and
+  schema, no links, no unsafe markup, shown as text only. `ai.enabled` in the config alone never
+  breaks a scan: without a usable provider it warns once and the scan goes on (`--ai-fixes`
+  makes it an error). A signed-in scan needs `ai.allowSignedIn: true`. A report file's own
+  rule ids and plain text are treated as untrusted data in the prompt. Every run logs one
+  `ai_run` line with what it sent and used.
+- AI suggestions in `widedoor ui`: a "Suggest a fix (AI)" button on each automated failed check and
   "Suggest fixes for all", with a confirm step that shows the provider, the model and exactly
   what will be sent. The local server gets the capability from the CLI and never sees the key.
+  `ai.maxInputTokensTotal` also caps the whole `widedoor ui` session, and a stopped run keeps
+  its document. Whether AI is offered follows the report shown, so a signed-in report hides
+  the buttons. `ai.model` and `--ai-model` take `@` and `/` in a model id, as the providers do.
 - `widedoor mcp` ([docs/mcp.md](docs/mcp.md)): an MCP server on stdio with four tools
   (`widedoor_scan_url`, `widedoor_scan_pdf`, `widedoor_read_report`, `widedoor_list_reports`).
   It speaks MCP 2026-07-28 (stateless, `server/discover`) and legacy 2025-11-25 through
@@ -66,8 +73,8 @@ All notable changes to Widedoor are listed here. The format follows
   HTML with no script, passing Widedoor's own scan, with a root `vercel.json` (strict CSP and
   security headers) and a deploy runbook ([docs/docs-site-deploy.md](docs/docs-site-deploy.md)).
   Not deployed.
-- Provider keys are kept out of every child process (veraPDF, Docker, Chromium and the browser
-  `widedoor ui` opens). The hosted API, agent and images never load the AI code.
+- Provider keys are kept out of every child process (veraPDF, Docker, Chromium, the browser
+  `widedoor ui` opens, and the CLI the GitHub Action runs). The hosted API, agent and images never load the AI code.
 
 ### Fixed
 

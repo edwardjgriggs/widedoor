@@ -15,14 +15,11 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FindingSchema, findingId, getProfile, type Asset, type Finding } from '@widedoor/core';
 import { buildScanReport, serializeJson } from '@widedoor/report';
 import { AI_LIMIT_RANGES } from '@widedoor/server';
-import {
-  AiLimitsSchema,
-  DEFAULT_AI_LIMITS,
-  createFakeProvider,
-  type ProviderAnswer,
-} from '@widedoor/ai';
+import { AiLimitsSchema, DEFAULT_AI_LIMITS, type ProviderAnswer } from '@widedoor/ai';
+// Test code only: the package index does not export the fake provider.
+import { createFakeProvider } from '../../ai/src/providers/fake.ts';
 import { main, type Io, type MainHooks } from '../src/main.ts';
-import type { AiModule } from '../src/ai.ts';
+import { SIGNED_IN_AI, type AiModule } from '../src/ai.ts';
 import { reportIsPrivate } from '../src/suggest-cmd.ts';
 import { ROOT } from './helpers.ts';
 
@@ -198,18 +195,25 @@ describe('scan with AI, before any scan starts', () => {
     expect(noKey.err.join('\n')).toContain('OPENAI_API_KEY');
   });
 
-  it('treats ai.enabled in the config like --ai-fixes (it no longer errors on its own)', async () => {
+  // Final fix round 1 item 1: ai.enabled alone never breaks a scan; a real scan with it is in
+  // ai.browser.test.ts. Here: --ai-fixes still stops a signed-in scan before it starts (item 5).
+  it('refuses --ai-fixes on a signed-in scan without ai.allowSignedIn, before the scan', async () => {
     const dir = join(root, `c${n++}`);
     mkdirSync(dir);
-    writeFileSync(
-      join(dir, 'widedoor.config.yaml'),
-      'web:\n  urls: [https://127.0.0.1:1/]\nai:\n  enabled: true\n',
-    );
+    writeFileSync(join(dir, 'auth.json'), '{"cookies":[],"origins":[]}');
+    process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+    const s = seams();
     const r = io(dir);
-    expect(await main(['scan'], r.io)).toBe(2);
-    expect(r.err).toEqual([
-      'widedoor: AI fix suggestions need ANTHROPIC_API_KEY in the environment (or use --ai-dry-run, which sends nothing)',
-    ]);
+    expect(
+      await main(
+        ['scan', 'https://127.0.0.1:1/', '--storage-state', 'auth.json', '--ai-fixes'],
+        r.io,
+        s.hooks,
+      ),
+    ).toBe(2);
+    expect(r.err).toEqual([`widedoor: ${SIGNED_IN_AI}`]);
+    expect(s.loads()).toBe(0);
+    expect(s.provider.calls).toHaveLength(0);
   });
 
   it('refuses a bad --ai-provider or --ai-model', async () => {
@@ -222,6 +226,12 @@ describe('scan with AI, before any scan starts', () => {
       const r = io(root);
       expect(await main(argv, r.io), argv.join(' ')).toBe(2);
     }
+    // Final fix round 1 item 15: the message names the flag and the shared rule.
+    const r = io(root);
+    await main(['scan', '--ai-model', 'bad model'], r.io);
+    expect(r.err.join('\n')).toContain(
+      '--ai-model must be 1 to 100 letters, digits, ".", "_", ":", "@", "/" or "-"',
+    );
   });
 
   // 3b.7 fix round 1 item 2: a key pasted as the model (CWE-532).
@@ -231,7 +241,7 @@ describe('scan with AI, before any scan starts', () => {
         const r = io(root);
         expect(await main([...command, '--ai-model', model], r.io), model).toBe(2);
         expect(r.err.join('\n')).toContain(
-          'API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file',
+          '--ai-model looks like an API key. API keys come from ANTHROPIC_API_KEY or OPENAI_API_KEY, never the config file or a flag',
         );
         expect([...r.out, ...r.err].join('\n')).not.toContain('SECRET');
       }
@@ -295,7 +305,7 @@ describe('widedoor suggest', () => {
     );
   });
 
-  it('never prints or writes the key', async () => {
+  it('keeps the key out of the terminal, the report folder and the messages sent, after a key refusal too', async () => {
     const { dir, file } = reportFolder();
     process.env.ANTHROPIC_API_KEY = FAKE_KEY;
     const s = seams((user) =>
@@ -325,15 +335,22 @@ describe('widedoor suggest', () => {
     expect(
       await main(['suggest', '--report', file, '--out', elsewhere], io(dir).io, seams().hooks),
     ).toBe(0);
-    expect(readdirSync(elsewhere).sort()).toEqual(['ai-suggestions.html', 'ai-suggestions.json']);
+    // A folder suggest creates gets the marker (final fix round 1 item 22).
+    expect(readdirSync(elsewhere).sort()).toEqual([
+      '.widedoor-report',
+      'ai-suggestions.html',
+      'ai-suggestions.json',
+    ]);
 
+    // A file at --out is refused before anything is loaded or sent (item 2).
     const blocked = join(dir, 'a-file');
     writeFileSync(blocked, 'not a folder');
     const r1 = io(dir);
-    expect(await main(['suggest', '--report', file, '--out', blocked], r1.io, seams().hooks)).toBe(
-      1,
-    );
-    expect(r1.err.join('\n')).toContain('could not be written');
+    const s1 = seams();
+    expect(await main(['suggest', '--report', file, '--out', blocked], r1.io, s1.hooks)).toBe(1);
+    expect(r1.err.join('\n')).toMatch(/could not be written: .*not a folder/);
+    expect(s1.loads()).toBe(0);
+    expect(s1.provider.calls).toHaveLength(0);
 
     const bad = join(dir, 'bad.json');
     writeFileSync(bad, '{"not":"a report"}');
@@ -385,6 +402,12 @@ describe('widedoor suggest', () => {
     expect(r.err.join('\n')).toContain(
       'widedoor: interrupted (SIGINT); finishing the suggestions document.',
     );
+    // The run line records what was sent, however the run ended (final fix round 1 item 4).
+    expect(r.err).toContainEqual(
+      expect.stringMatching(
+        /^widedoor: ai_run status=aborted sent=1 input_tokens=\d+ output_tokens=\d+$/,
+      ),
+    );
     const doc = JSON.parse(readFileSync(join(dir, 'ai-suggestions.json'), 'utf8')) as {
       entries: { status: string; reason?: string }[];
     };
@@ -398,6 +421,41 @@ describe('widedoor suggest', () => {
 });
 
 // 3b.7 fix round 1 item 3: suggest keeps a private report's privacy (CWE-732).
+// Final fix round 1 item 5: a private report counts as a signed-in scan's.
+describe('widedoor suggest on a signed-in report', () => {
+  it('refuses a private report without ai.allowSignedIn; a dry run still works', async () => {
+    if (process.platform === 'win32') return;
+    const { dir, file } = reportFolder();
+    chmodSync(file, 0o600);
+    process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+    const s = seams();
+    const r = io(dir);
+    expect(await main(['suggest', '--report', file], r.io, s.hooks)).toBe(2);
+    expect(r.err).toEqual([`widedoor: ${SIGNED_IN_AI}`]);
+    expect(s.provider.calls).toHaveLength(0);
+    expect(await main(['suggest', '--report', file, '--ai-dry-run'], io(dir).io, s.hooks)).toBe(0);
+    writeFileSync(join(dir, 'widedoor.config.yaml'), 'ai:\n  allowSignedIn: true\n');
+    expect(await main(['suggest', '--report', file], io(dir).io, s.hooks)).toBe(0);
+    expect(s.provider.calls.length).toBeGreaterThan(0);
+  });
+});
+
+// Final fix round 1 item 25: the marker works on every platform, Windows included.
+describe('widedoor suggest beside the signed-in marker', () => {
+  it('refuses the report without ai.allowSignedIn, and allows it with', async () => {
+    const { dir, file } = reportFolder();
+    writeFileSync(join(dir, '.widedoor-signed-in'), 'signed in\n');
+    process.env.ANTHROPIC_API_KEY = FAKE_KEY;
+    const s = seams();
+    const r = io(dir);
+    expect(await main(['suggest', '--report', file], r.io, s.hooks)).toBe(2);
+    expect(r.err).toEqual([`widedoor: ${SIGNED_IN_AI}`]);
+    expect(s.provider.calls).toHaveLength(0);
+    writeFileSync(join(dir, 'widedoor.config.yaml'), 'ai:\n  allowSignedIn: true\n');
+    expect(await main(['suggest', '--report', file], io(dir).io, s.hooks)).toBe(0);
+  });
+});
+
 describe('reportIsPrivate', () => {
   const mode = (m: number) => () => ({ mode: 0o100000 | m });
   it('is true on POSIX for a report with no group or other bits', () => {

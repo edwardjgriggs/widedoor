@@ -245,15 +245,16 @@ function patchProblem(patch: string, snippet: string | undefined): string | unde
 
 // The prose fields.
 
-/** File extensions a step or note may name ("index.html", "report.docx") without it reading as a host. */
+/**
+ * File extensions a step or note may name in plain prose ("index.html", "report.docx")
+ * without it reading as a host. Script files (.js, .ts, .jsx, .tsx) are not on it: in
+ * prose, "run setup.js" reads as an instruction to run code, so a script name passes
+ * only inside a backtick code span, as the prompt asks for code names.
+ */
 const FILE_EXTENSIONS = new Set([
   'html',
   'htm',
   'css',
-  'js',
-  'ts',
-  'tsx',
-  'jsx',
   'json',
   'pdf',
   'docx',

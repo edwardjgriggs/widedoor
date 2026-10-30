@@ -12,7 +12,13 @@ import {
   type AcrMeta,
   type ScanReport,
 } from '@widedoor/report';
-import { evidencePath, reportName, reportPath, writeReport } from './output.js';
+import {
+  evidencePath,
+  reportName,
+  reportPath,
+  writeReport,
+  writeSignedInMarker,
+} from './output.js';
 import { ACR_FORMATS, type Format } from './settings.js';
 
 /*
@@ -87,6 +93,9 @@ export async function writeReports(
     evidenceDir: evidencePath(plan.out),
     reviewDir: plan.reviewDir,
   });
+  // A signed-in scan's reports carry the marker, so AI knows them on every platform. Written
+  // before any report, so a failed or interrupted write never leaves one of them unmarked.
+  if (restricted) await writeSignedInMarker(plan.out);
   const written: string[] = [];
   for (const file of files) {
     await writeReport(plan.out, file.format, file.data, restricted);

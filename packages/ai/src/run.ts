@@ -1,3 +1,4 @@
+import { MODEL_ID } from '@widedoor/core';
 import type { ScanReport } from '@widedoor/report';
 import { ANSWER_JSON_SCHEMAS, parseAnswer } from './answer.js';
 import { buildGroups, type FixGroup } from './context.js';
@@ -38,8 +39,6 @@ const CUT_OFF_WINDOW = 5;
 /** Errors of any class in a row that stop the run (a retried 429 is not one). */
 const CONSECUTIVE_ERRORS_LIMIT = 6;
 const WINDOW_MS = 60_000;
-/** The same rule as modelAnswered: a model id as an API reports it. */
-const MODEL_ID = /^[A-Za-z0-9._:@/-]{1,100}$/;
 
 /** The nonce previewFixes shows: a valid nonce shape that is plainly not a real one. */
 export const PREVIEW_NONCE = '0'.repeat(32);
@@ -93,8 +92,18 @@ export interface SuggestFixesOptions {
   signal?: AbortSignal;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
-  /** Fixed-shape lines only: "ai_request group=<id> status=<s>", "ai_stop reason=<fixed text>". */
+  /**
+   * Fixed-shape lines only: "ai_request group=<id> status=<s>", "ai_stop reason=<fixed text>",
+   * and at the end of every run "ai_run status=<done|aborted|stopped|failed> sent=<n>
+   * input_tokens=<n> output_tokens=<n>" (failed: a worker rejected or the final document failed
+   * its schema, so the run returned none; neither should ever happen).
+   */
   log?: (line: string) => void;
+  /**
+   * Gets the run's budget measure at the end, however the run ended: each request's
+   * reported input tokens, else its estimate. widedoor ui adds it to its session total.
+   */
+  onSpent?: (inputTokens: number) => void;
   /** A fresh 128-bit hex nonce per request; tests inject a sequence. */
   nonce?: () => string;
 }
@@ -310,12 +319,30 @@ export async function suggestFixes(options: SuggestFixesOptions): Promise<AiSugg
     };
   }
 
+  /** The entry of a group whose request could not be built: nothing left the machine. */
+  const unbuilt = (i: number, group: FixGroup) => {
+    entries[i] = {
+      ...base(group),
+      delivered: false,
+      status: 'error',
+      reason: 'the request could not be built',
+    };
+    log(`ai_request group=${group.id} status=error`);
+  };
+
   async function runGroup(i: number, group: FixGroup): Promise<void> {
-    const estimate = estimateTokens(
-      SYSTEM_PROMPT,
-      buildUserMessage(group.request, PREVIEW_NONCE),
-      schemaFor(group),
-    );
+    // Nothing the estimate throws may escape Promise.all: such a group is recorded, not sent.
+    let estimate: number;
+    try {
+      estimate = estimateTokens(
+        SYSTEM_PROMPT,
+        buildUserMessage(group.request, PREVIEW_NONCE),
+        schemaFor(group),
+      );
+    } catch {
+      unbuilt(i, group);
+      return;
+    }
     if (spent + reserved + estimate > limits.maxInputTokensTotal) {
       halt({
         status: 'skipped-budget',
@@ -328,15 +355,9 @@ export async function suggestFixes(options: SuggestFixesOptions): Promise<AiSugg
     try {
       let answer = await call(group);
       if (answer === 'skipped') return;
+      // Kept: call builds the message again with a fresh nonce, and that build can fail too.
       if (answer === 'unbuilt') {
-        // Nothing left the machine.
-        entries[i] = {
-          ...base(group),
-          delivered: false,
-          status: 'error',
-          reason: 'the request could not be built',
-        };
-        log(`ai_request group=${group.id} status=error`);
+        unbuilt(i, group);
         return;
       }
       if (rateLimited(answer) && !cancelled()) {
@@ -372,34 +393,49 @@ export async function suggestFixes(options: SuggestFixesOptions): Promise<AiSugg
     }
   }
 
-  const workers = Math.max(1, Math.min(limits.concurrency, groups.length));
-  await Promise.all(Array.from({ length: workers }, worker));
-  if (cancelled()) halt({ status: 'not-sent', reason: 'cancelled', log: 'cancelled' });
+  // From the first worker on: whatever ends the run (a rejected worker or a failed parse
+  // included), what was spent is reported and the run line is logged. Either of those two is
+  // a failed run: it returns no document.
+  let failed = false;
+  try {
+    const workers = Math.max(1, Math.min(limits.concurrency, groups.length));
+    await Promise.all(Array.from({ length: workers }, worker));
+    if (cancelled()) halt({ status: 'not-sent', reason: 'cancelled', log: 'cancelled' });
 
-  const finished = groups.map(
-    (group, i): SuggestionEntry =>
-      entries[i] ?? {
-        ...base(group),
-        delivered: false,
-        status: stop?.status ?? 'not-sent',
-        reason: toReason(stop?.reason ?? 'cancelled'),
-      },
-  );
-  const modelAnswered = answeredBy.find((m) => m !== undefined);
-  // Parsed, so a document this function returns always matches the schema (pairings included).
-  return AiSuggestionsSchema.parse({
-    schemaVersion: 1,
-    $id: AI_SUGGESTIONS_SCHEMA_ID,
-    label: AI_LABEL,
-    provider: provider.id,
-    model: provider.model,
-    ...(modelAnswered !== undefined ? { modelAnswered } : {}),
-    createdAt,
-    report: { startedAt: report.startedAt, findings: report.findings.length },
-    limits,
-    entries: finished,
-    totals: { ...totals, skippedGroups: skipped },
-  });
+    const finished = groups.map(
+      (group, i): SuggestionEntry =>
+        entries[i] ?? {
+          ...base(group),
+          delivered: false,
+          status: stop?.status ?? 'not-sent',
+          reason: toReason(stop?.reason ?? 'cancelled'),
+        },
+    );
+    const modelAnswered = answeredBy.find((m) => m !== undefined);
+    // Parsed, so a document this function returns always matches the schema (pairings included).
+    return AiSuggestionsSchema.parse({
+      schemaVersion: 1,
+      $id: AI_SUGGESTIONS_SCHEMA_ID,
+      label: AI_LABEL,
+      provider: provider.id,
+      model: provider.model,
+      ...(modelAnswered !== undefined ? { modelAnswered } : {}),
+      createdAt,
+      report: { startedAt: report.startedAt, findings: report.findings.length },
+      limits,
+      entries: finished,
+      totals: { ...totals, skippedGroups: skipped },
+    });
+  } catch (e) {
+    failed = true;
+    throw e;
+  } finally {
+    options.onSpent?.(spent);
+    // One fixed line for every run, however it ended: what was sent and what it cost.
+    log(
+      `ai_run status=${failed ? 'failed' : cancelled() ? 'aborted' : stop ? 'stopped' : 'done'} sent=${totals.requests} input_tokens=${totals.inputTokens} output_tokens=${totals.outputTokens}`,
+    );
+  }
 }
 
 /**

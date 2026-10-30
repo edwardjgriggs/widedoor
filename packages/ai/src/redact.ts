@@ -31,6 +31,8 @@ export const REDACTION_KINDS = {
   attribute: 'An attribute not on the allowlist, or with a token-shaped name: dropped.',
   comment: 'An HTML comment: dropped.',
   'contact-url': 'A mailto:, tel:, sms: or callto: URL: masked whole.',
+  'credential-attribute':
+    'A data-* or aria-* attribute whose name says it holds a key, token, secret, password, session, CSRF value or nonce: dropped.',
   'data-json': 'A data-* attribute that holds JSON: dropped.',
   'data-url': 'A data: URL: masked whole.',
   email: 'An email address: masked.',
@@ -42,6 +44,7 @@ export const REDACTION_KINDS = {
   jwt: 'A JSON Web Token: masked.',
   number: 'A long number, such as an account or card number: masked.',
   phone: 'A phone number: masked.',
+  'path-segment': 'A URL path segment of 24 or more characters, in any case: masked.',
   'query-string': 'The ?query of a URL, or query parameters in text: masked.',
   'script-body': 'The body of a script element: dropped.',
   'script-url': 'A javascript: or vbscript: URL: masked whole.',
@@ -58,6 +61,12 @@ export const REDACTION_KINDS = {
 } as const;
 
 export type RedactionKind = keyof typeof REDACTION_KINDS;
+
+/**
+ * An attribute name that says it holds a credential: the config's key-shape test
+ * (key, token, secret, passw, credential, auth, bearer) plus csrf, xsrf, session and nonce.
+ */
+const CREDENTIAL_NAME = /key|token|secret|passw|credential|auth|bearer|csrf|xsrf|session|nonce/i;
 
 /** Redaction counts by kind; callers share one map across a snippet, its selector and its text. */
 export type Counts = Map<string, number>;
@@ -378,7 +387,26 @@ export function maskUrl(raw: string, counts: Counts): string {
     count(counts, out[mark] === '?' ? 'query-string' : 'fragment');
     out = `${out.slice(0, mark + 1)}${MASKED}`;
   }
-  return redactText(out, counts);
+  return maskLongSegments(redactText(out, counts), counts);
+}
+
+/** A path segment this long is masked even in one case: an id or a key in a path, not a word. */
+export const LONG_SEGMENT = 24;
+
+/**
+ * The URL with every path segment of LONG_SEGMENT or more path characters masked. It runs
+ * after the text masks, so a host or query is already masked; a segment holding a mask, a
+ * colon or an @ (a scheme, a host, user info) is never a plain path segment and stays.
+ */
+function maskLongSegments(url: string, counts: Counts): string {
+  return url
+    .split(/([\\/])/)
+    .map((part) =>
+      part.length >= LONG_SEGMENT && /^[A-Za-z0-9._~%+=-]+$/.test(part)
+        ? (count(counts, 'path-segment'), mask('path-segment'))
+        : part,
+    )
+    .join('');
 }
 
 function maskSrcset(raw: string, counts: Counts): string {
@@ -467,6 +495,13 @@ export function redactAttribute(
   if (n === 'value') return { drop: 'value' };
   if (n.startsWith('on')) return { drop: 'event-handler' };
   if (n === 'style') return { drop: 'style' };
+  // A data-* or aria-* name that says it holds a credential (aria-keyshortcuts is a real one).
+  if (
+    (n.startsWith('data-') || n.startsWith('aria-')) &&
+    n !== 'aria-keyshortcuts' &&
+    CREDENTIAL_NAME.test(n)
+  )
+    return { drop: 'credential-attribute' };
   const clean = stripControls(value);
   if (n === 'srcset') return { value: maskSrcset(clean, counts) };
   if (URL_ATTRS.has(n)) return { value: maskUrl(clean, counts) };

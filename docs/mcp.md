@@ -108,7 +108,9 @@ temporary folders the system provides.)
 
 By default, a scan reaches only public hosts on ports 80 and 443. Every URL is checked before
 the scan, and the scan itself runs behind the same egress proxy the hosted scanner uses, so a
-redirect to a local address is refused too. A refused URL gets an error that names the policy.
+redirect to a local address is refused too. A refused URL gets an error that names the policy, and the server logs one line on stderr,
+`mcp_refused reason=policy tool=<tool>` (a refused path logs `reason=path`), with no URL or path
+in it.
 
 Start the server with `--allow-local` to scan `localhost`, a dev server or a private host. The
 server then logs one line on stderr saying so.

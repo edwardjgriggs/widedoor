@@ -255,6 +255,19 @@ describe('writeSidecars', () => {
     expect(existsSync(join(out, 'ai-suggestions.html'))).toBe(false);
   });
 
+  // Final fix round 1 item 22: a folder that is not Widedoor's loses nothing but the two names.
+  it('in a folder without the marker, deletes nothing and writes only the two files', async () => {
+    const { dir } = fresh();
+    const foreign = join(dir, 'theirs');
+    mkdirSync(foreign);
+    writeFileSync(join(foreign, '.ai-suggestions.json.0123456789ab.tmp'), 'theirs');
+    writeFileSync(join(foreign, 'notes.txt'), 'theirs');
+    await writeSidecars(foreign, pair('1'), false, [dir]);
+    expect(readdirSync(foreign).sort()).toEqual(
+      ['.ai-suggestions.json.0123456789ab.tmp', ...AI_SIDECARS, 'notes.txt'].sort(),
+    );
+  });
+
   it('sweeps stale sidecar temps, and leaves a report temp to prepareOut', async () => {
     const { dir, out } = fresh();
     await prepareOut(out, false, [dir]);
@@ -273,7 +286,8 @@ describe('writeSidecars', () => {
   it('creates a missing folder, and refuses a link at either name with the target untouched', async () => {
     const t = fresh();
     await writeSidecars(join(t.dir, 'new'), pair('1'), false, [t.dir]);
-    expect(readdirSync(join(t.dir, 'new')).sort()).toEqual([...AI_SIDECARS].sort());
+    // A folder writeSidecars creates gets the marker (final fix round 1 item 22).
+    expect(readdirSync(join(t.dir, 'new')).sort()).toEqual([MARKER, ...AI_SIDECARS].sort());
     for (const name of AI_SIDECARS) {
       const out = join(t.dir, `linked-${name}`);
       await prepareOut(out, false, [t.dir]);

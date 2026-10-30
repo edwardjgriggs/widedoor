@@ -117,6 +117,20 @@ describe('createOpenAiProvider: configuration', () => {
     }
   });
 
+  // Final fix round 1 item 15: the shared model-id rule, after the key check.
+  it('refuses a model that is not a model id before any request, the key check first', () => {
+    for (const model of ['bad model', 'a'.repeat(101), 'gpt<script>']) {
+      const canned = cannedFetch(response());
+      expect(() => createOpenAiProvider({ apiKey: KEY, model, fetch: canned.fetch })).toThrow(
+        'the OpenAI provider needs a valid model id',
+      );
+      expect(() => createOpenAiProvider({ apiKey: '', model, fetch: canned.fetch })).toThrow(
+        'the OpenAI provider needs a key: set OPENAI_API_KEY',
+      );
+      expect(canned.sent).toHaveLength(0);
+    }
+  });
+
   it('refuses a missing or blank key before any request, even with OPENAI_API_KEY set', async () => {
     await withEnv({ OPENAI_API_KEY: 'sk-env-key' }, async () => {
       for (const apiKey of [undefined, '', '   '] as unknown as string[]) {

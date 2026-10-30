@@ -35,6 +35,7 @@ import {
   moreSkippedText,
   notEvaluated,
   notTestedText,
+  aiSuggestable,
   overriddenFails,
   overrideEntries,
   overrideNotes,
@@ -83,8 +84,9 @@ export interface ReportViewProps {
   findings?: readonly Finding[];
   /**
    * Given only when AI fix suggestions are available for this report: each
-   * failed finding then gets a "Suggest a fix (AI)" button. The HTML report
-   * has no such button, so render.test.tsx renders without it.
+   * automated fail no reviewer overrode (aiSuggestable) gets a "Suggest a
+   * fix (AI)" button. The HTML report has no such button, so render.test.tsx
+   * renders without it.
    */
   onSuggest?: (finding: Finding) => void;
   /** The "Suggest a fix (AI)" buttons are disabled while a suggestion is being prepared, confirmed or run. */
@@ -353,6 +355,8 @@ function Assets({
 }) {
   const titles = new Map(report.titles.map((x) => [x.uri, x.title]));
   const { unscanned, skippedOver } = unscannedAssets(report);
+  // Only where a run would send something: not on a manual fail or an overridden one.
+  const suggestable = aiSuggestable(overridden);
   if (report.assets.length === 0 && unscanned.length === 0) return <p>{TEXT.noAssets}</p>;
   const section = (uri: string, kind: string, i: number, note?: ReactNode) => {
     // The counts describe the page, so they come from every finding, not the filtered list.
@@ -367,7 +371,7 @@ function Assets({
               f={f}
               data={data}
               screenshots={screenshots}
-              onSuggest={onSuggest}
+              onSuggest={suggestable(f) ? onSuggest : undefined}
               suggestDisabled={suggestDisabled}
             />
           ))}

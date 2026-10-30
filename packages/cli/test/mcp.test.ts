@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  truncateSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -988,5 +996,68 @@ describe('fix round 2', () => {
     // The key's text, if the reason names it, is only in the detail block.
     expect(`${blocks[0]}\n${blocks[1]}`).not.toContain('MARK');
     expect(h.logs.join('\n')).not.toContain('MARK');
+  });
+});
+
+// Phase 3b final fix round 1, items 9 to 11.
+describe('final fix round 1', () => {
+  it.skipIf(process.platform === 'win32')(
+    'plans a PDF path from its realpath, never as a URL, even under a folder named https: (item 9)',
+    async () => {
+      const h = harness();
+      mkdirSync(join(h.root, 'https:'));
+      writeFileSync(join(h.root, 'https:', 'a.pdf'), '%PDF-1.7');
+      const r = await h.rpc(call(500, 'widedoor_scan_pdf', { path: 'https:/a.pdf' }));
+      structured('widedoor_scan_pdf', r);
+      expect(h.scans[0]!.plan.pdf).toEqual({
+        baseDir: h.root,
+        files: ['https:/a.pdf'],
+        include: [],
+        urls: [],
+      });
+      expect(h.scans[0]!.plan.web).toBeUndefined();
+    },
+  );
+
+  it('plans a PDF path inside the root as that file, with no URL (item 9)', async () => {
+    const h = harness();
+    writeFileSync(join(h.root, 'b.pdf'), '%PDF-1.7');
+    structured('widedoor_scan_pdf', await h.rpc(call(501, 'widedoor_scan_pdf', { path: 'b.pdf' })));
+    expect(h.scans[0]!.plan.pdf).toEqual({
+      baseDir: h.root,
+      files: ['b.pdf'],
+      include: [],
+      urls: [],
+    });
+  });
+
+  it('refuses a report over the loader limit with the fixed sentence (item 10)', async () => {
+    const h = harness();
+    const big = join(h.root, 'huge.json');
+    writeFileSync(big, '{');
+    truncateSync(big, 100 * 1024 * 1024 + 1);
+    const r = await h.rpc(call(510, 'widedoor_read_report', { path: 'huge.json' }));
+    expect(errorText(r).split('\n')[0]).toBe('That file is not a usable Widedoor report.');
+    expect(JSON.parse(r.result?.content?.[2]?.text ?? 'null')).toMatchObject({
+      untrustedPageContent: { reportError: 'it is over 100 MiB' },
+    });
+    // Reads that arrive together are served one after the other, each in full.
+    writeFileSync(join(h.root, 'r.json'), serializeJson(REPORT));
+    h.send(call(511, 'widedoor_read_report', { path: 'r.json' }));
+    h.send(call(512, 'widedoor_read_report', { path: 'r.json' }));
+    for (const id of [511, 512]) structured('widedoor_read_report', await h.reply(id));
+  });
+
+  it('logs one fixed line per policy or path refusal, with no URL or path (item 11)', async () => {
+    const h = harness();
+    await h.rpc(call(520, 'widedoor_scan_url', { urls: ['http://127.0.0.1/secret-path'] }));
+    await h.rpc(call(521, 'widedoor_scan_pdf', { path: '../outside-secret.pdf' }));
+    await h.rpc(call(522, 'widedoor_read_report', { path: 'C:secret.json' }));
+    expect(h.logs.filter((l) => l.startsWith('mcp_refused'))).toEqual([
+      'mcp_refused reason=policy tool=widedoor_scan_url',
+      'mcp_refused reason=path tool=widedoor_scan_pdf',
+      'mcp_refused reason=path tool=widedoor_read_report',
+    ]);
+    expect(h.logs.join('\n')).not.toMatch(/secret/);
   });
 });

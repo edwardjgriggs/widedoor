@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Browser, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createFakeProvider } from '@widedoor/ai';
+// Test code only: the package index does not export the fake provider.
+import { createFakeProvider } from '../../ai/src/providers/fake.ts';
 import { AiConfigSchema, loadStaticFiles, startLocalServer, type UiServer } from '@widedoor/server';
 import { launchChromium } from '@widedoor/web';
 import { localAi } from '../src/ai.ts';

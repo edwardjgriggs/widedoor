@@ -1,5 +1,6 @@
+import { lstatSync } from 'node:fs';
 import { chmod, lstat, mkdir, readdir, rm } from 'node:fs/promises';
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { writeFileReplacing } from '@widedoor/web';
 import { FORMATS, type Format } from './settings.js';
 
@@ -32,6 +33,30 @@ const MARKER_TEXT =
 const STALE_TEMP = /^\.(?:report\.[\w.]+|ai-suggestions\.(?:json|html))\.[0-9a-f]{12}\.tmp$/;
 /** The same, for the sidecars only: writeSidecars sweeps these and leaves a report's alone. */
 const STALE_SIDECAR_TEMP = /^\.ai-suggestions\.(?:json|html)\.[0-9a-f]{12}\.tmp$/;
+
+/**
+ * Beside the reports of a signed-in scan (storage state): widedoor suggest and widedoor ui read
+ * it on every platform, so AI stays off for those reports without ai.allowSignedIn. A report
+ * copied without it is not known as signed-in (off Windows its owner-only mode still is).
+ */
+export const SIGNED_IN_MARKER = '.widedoor-signed-in';
+const SIGNED_IN_TEXT =
+  'These reports come from a signed-in scan: their snippets can hold personal data. AI fix suggestions need ai.allowSignedIn for them.\n';
+
+/** Whether the folder of a report holds the signed-in marker (a plain file, not a link). */
+export function signedInMarked(reportFile: string): boolean {
+  try {
+    return lstatSync(join(dirname(reportFile), SIGNED_IN_MARKER)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/** Writes the signed-in marker into a report folder prepareOut made ready. */
+export async function writeSignedInMarker(out: string) {
+  await checkFileName(join(out, SIGNED_IN_MARKER));
+  await writeFileReplacing(out, SIGNED_IN_MARKER, SIGNED_IN_TEXT, 0o600);
+}
 
 /** The AI suggestions sidecar files (@widedoor/ai writes them through the CLI; the server never loads it). */
 export const AI_SIDECARS = ['ai-suggestions.json', 'ai-suggestions.html'] as const;
@@ -118,6 +143,7 @@ export async function prepareOut(out: string, restricted: boolean, roots: readon
     await checkFileName(join(out, MARKER));
     for (const format of FORMATS) await checkFileName(reportPath(out, format));
     for (const name of AI_SIDECARS) await checkFileName(join(out, name));
+    await checkFileName(join(out, SIGNED_IN_MARKER));
     await checkFolder(evidence);
     const names = await readdir(out);
     if (!names.includes(MARKER)) {
@@ -130,6 +156,8 @@ export async function prepareOut(out: string, restricted: boolean, roots: readon
       for (const format of FORMATS) await rm(reportPath(out, format), { force: true });
       // A sidecar from an earlier run would sit beside a report it does not describe.
       for (const name of AI_SIDECARS) await rm(join(out, name), { force: true });
+      // Each run says afresh whether it was signed in.
+      await rm(join(out, SIGNED_IN_MARKER), { force: true });
       for (const name of names)
         if (STALE_TEMP.test(name) && (await statOf(join(out, name)))?.isFile())
           await rm(join(out, name), { force: true });
@@ -176,9 +204,11 @@ export async function writeReport(
  * Writes the two AI suggestions sidecars into a report folder without
  * following links: the folder is created when missing (its components
  * checked against the roots, as prepareOut does), and a report beside them
- * is left as it is. Stale sidecar temps and both old sidecars are removed
- * first, so an interrupted write leaves at most a new JSON without its HTML,
- * never a new file beside an old one.
+ * is left as it is. A folder it creates gets the marker. In a folder with
+ * the marker, stale sidecar temps and both old sidecars are removed first, so
+ * an interrupted write leaves at most a new JSON without its HTML, never a
+ * new file beside an old one; a folder without it (not Widedoor's) loses
+ * nothing but the two names it writes.
  */
 export async function writeSidecars(
   out: string,
@@ -186,17 +216,30 @@ export async function writeSidecars(
   restricted: boolean,
   roots: readonly string[],
 ) {
-  await checkComponents(out, roots);
+  await checkSidecarOut(out, roots);
+  const mode = restricted ? 0o600 : 0o644;
   if (!(await checkFolder(out))) {
     await mkdirOrFail(out, true, restricted ? 0o700 : undefined);
     await checkComponents(out, roots);
     if (!(await checkFolder(out))) throw new OutputError(`${out} cannot be created`);
+    await writeFileReplacing(out, MARKER, MARKER_TEXT, mode);
   }
-  for (const name of AI_SIDECARS) await checkFileName(join(out, name));
-  for (const name of await readdir(out))
-    if (STALE_SIDECAR_TEMP.test(name) && (await statOf(join(out, name)))?.isFile())
-      await rm(join(out, name), { force: true });
-  for (const name of AI_SIDECARS) await rm(join(out, name), { force: true });
-  for (const name of AI_SIDECARS)
-    await writeFileReplacing(out, name, files[name], restricted ? 0o600 : 0o644);
+  if ((await statOf(join(out, MARKER)))?.isFile()) {
+    for (const name of await readdir(out))
+      if (STALE_SIDECAR_TEMP.test(name) && (await statOf(join(out, name)))?.isFile())
+        await rm(join(out, name), { force: true });
+    for (const name of AI_SIDECARS) await rm(join(out, name), { force: true });
+  }
+  for (const name of AI_SIDECARS) await writeFileReplacing(out, name, files[name], mode);
+}
+
+/**
+ * The checks writeSidecars makes before it writes, without writing: no link
+ * at any component, out a folder (or missing), and neither sidecar name a
+ * link or a folder. widedoor suggest runs it before any request is paid for.
+ * Throws OutputError.
+ */
+export async function checkSidecarOut(out: string, roots: readonly string[]) {
+  await checkComponents(out, roots);
+  if (await checkFolder(out)) for (const name of AI_SIDECARS) await checkFileName(join(out, name));
 }

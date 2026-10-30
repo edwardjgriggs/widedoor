@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { appendFileSync, existsSync, lstatSync, readFileSync, rmSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withoutProviderEnv } from '@widedoor/core';
 
 /*
  * Entry point of the GitHub Action (packages/action/action.yml). The composite
@@ -284,7 +285,8 @@ export async function run(options: RunOptions = {}): Promise<number> {
 `,
       );
     clearReports(p.reportDir);
-    const childEnv = { ...env };
+    // No provider key reaches the CLI: a CI run never sends to an AI provider by accident.
+    const childEnv: NodeJS.ProcessEnv = withoutProviderEnv(env);
     for (const key of [...Object.values(INPUT_ENV), ...Object.values(CONTEXT_ENV)])
       delete childEnv[key];
     const code = await new Promise<number>((done) => {

@@ -1,8 +1,21 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { loadReviews } from '@widedoor/core';
-import { ConfigError, buildPlan, loadConfig, type LoadedConfig } from '@widedoor/server';
-import { aiSettings, missingKey, type AiHooks } from './ai.js';
+import {
+  ConfigError,
+  buildPlan,
+  isRestricted,
+  loadConfig,
+  type LoadedConfig,
+} from '@widedoor/server';
+import {
+  CONFIG_AI_SKIPPED,
+  SIGNED_IN_AI,
+  aiSettings,
+  missingKey,
+  type AiHooks,
+  type AiSettings,
+} from './ai.js';
 import { CONFIG_FILE, USAGE, UsageError, parseCommand } from './args.js';
 import { EXIT_ERROR, EXIT_OK } from './policy.js';
 import { safeText } from './text.js';
@@ -86,12 +99,33 @@ export async function main(
     }
     const loaded: LoadedConfig | undefined = configPath ? loadConfig(configPath) : undefined;
     const plan = buildPlan(command, loaded, io.cwd);
-    const ai = aiSettings(command.ai, loaded?.config.ai);
-    // A missing key stops the run before the scan, not after it.
+    // An explicit --ai-fixes or --ai-dry-run makes an AI problem an error before the scan;
+    // ai.enabled in the config alone only warns and leaves the scan as it would be.
+    const explicit = command.ai.fixes || command.ai.dryRun;
+    let ai: AiSettings | undefined;
+    try {
+      ai = aiSettings(command.ai, loaded?.config.ai);
+    } catch (e) {
+      if (!(e instanceof UsageError) || explicit) throw e;
+      io.err(CONFIG_AI_SKIPPED);
+    }
     const missing = ai ? missingKey(ai) : undefined;
     if (missing !== undefined) {
-      io.err(`widedoor: ${missing}`);
-      return EXIT_ERROR;
+      if (explicit) {
+        io.err(`widedoor: ${missing}`);
+        return EXIT_ERROR;
+      }
+      io.err(CONFIG_AI_SKIPPED);
+      ai = undefined;
+    }
+    // A signed-in scan's snippets can hold personal data: AI needs ai.allowSignedIn (a dry run sends nothing).
+    if (ai && !ai.dryRun && isRestricted(plan) && loaded?.config.ai?.allowSignedIn !== true) {
+      if (explicit) {
+        io.err(`widedoor: ${SIGNED_IN_AI}`);
+        return EXIT_ERROR;
+      }
+      io.err(`widedoor: warning: ${SIGNED_IN_AI} The scan goes on without them.`);
+      ai = undefined;
     }
     const { reviews } = await loadReviews(plan.reviewDir);
     const { runScan } = await import('./run.js');

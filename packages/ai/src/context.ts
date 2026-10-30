@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
-import type { Finding, Impact } from '@widedoor/core';
+import { loadStandardsData, type Finding, type Impact } from '@widedoor/core';
 import {
+  aiSuggestable,
   loadPlainData,
   overriddenFails,
-  plainFor,
   type PlainData,
   type ScanReport,
 } from '@widedoor/report';
 import { SentRecordSchema, type AiLimits, type SentRecord } from './model.js';
+import { escapeUntrustedTags } from './prompt.js';
 import {
   redactSelector,
   redactSnippet,
@@ -123,30 +124,83 @@ export function standardStructPath(path: string, counts: Counts): string {
     .join('/');
 }
 
-const criteriaOf = (f: Finding): string[] => [
-  ...(f.criteria.wcag ?? []).map((id) => `WCAG ${id}`),
-  ...(f.criteria.section508 ?? []).map((id) => `Section 508 ${id}`),
-];
+/** An engine or rule id as Widedoor writes them; anything else in a report file is untrusted. */
+const TRUSTED_ID = /^[\w.:-]{1,100}$/;
+/** The rule id sent when the report's own is not trusted. */
+export const UNRECOGNISED_RULE = 'unrecognised';
+
+let known: { wcag: ReadonlySet<string>; section508: ReadonlySet<string> } | undefined;
+/** The WCAG criteria and Section 508 provisions Widedoor knows. */
+const knownCriteria = () => {
+  if (!known) {
+    const data = loadStandardsData();
+    known = {
+      wcag: new Set(data.wcag.criteria.map((c) => c.id)),
+      section508: new Set(data.section508.provisions.map((p) => p.id)),
+    };
+  }
+  return known;
+};
+
+/** The finding's criteria Widedoor knows, labelled, and the rest as written (untrusted). */
+function criteriaOf(f: Finding): { trusted: string[]; other: string[] } {
+  const k = knownCriteria();
+  const wcag = f.criteria.wcag ?? [];
+  const s508 = f.criteria.section508 ?? [];
+  return {
+    trusted: [
+      ...wcag.filter((id) => k.wcag.has(id)).map((id) => `WCAG ${id}`),
+      ...s508.filter((id) => k.section508.has(id)).map((id) => `Section 508 ${id}`),
+    ],
+    other: [
+      ...wcag.filter((id) => !k.wcag.has(id)).map((id) => `WCAG ${id}`),
+      ...s508.filter((id) => !k.section508.has(id)).map((id) => `Section 508 ${id}`),
+    ],
+  };
+}
 
 /** The request for one finding, with every scanned string redacted. */
 function requestFor(f: Finding, plain: PlainData): SentRecord {
   const counts: Counts = new Map();
-  const text = plainFor(f, plain);
+  // A report file can be crafted (security M1): the rule id is trusted only as an id
+  // Widedoor writes for one of its engines, and the plain text comes from Widedoor's own
+  // data by it, never from finding.plain. The rest is sent only as untrusted data.
+  const engine = f.source.engine;
+  // Trusted only as an id that exists: the id shape, a known engine, and a rule in its data
+  // (an id-shaped "SYSTEM:override" under axe-core is not one).
+  const rules =
+    engine !== 'manual' && Object.hasOwn(plain, engine)
+      ? plain[engine as keyof PlainData]
+      : undefined;
+  const trusted =
+    TRUSTED_ID.test(f.source.ruleId) && rules !== undefined && rules.has(f.source.ruleId);
+  const text = trusted ? rules?.get(f.source.ruleId) : undefined;
+  const criteria = criteriaOf(f);
+  // Everything bound for the untrusted block is recorded with its tag escape already applied,
+  // so the record matches the bytes sent (prompt.ts escapeUntrustedTags is idempotent).
+  const reportRule = trusted
+    ? undefined
+    : escapeUntrustedTags(redactText(f.source.ruleId, counts).slice(0, 300));
+  const reportCriteria = criteria.other.map((c) =>
+    escapeUntrustedTags(redactText(c, counts).slice(0, 100)),
+  );
   const base = {
-    ruleId: f.source.ruleId,
-    criteria: criteriaOf(f),
+    ruleId: trusted ? f.source.ruleId : UNRECOGNISED_RULE,
+    criteria: criteria.trusted,
     assetKind: f.asset.kind,
+    ...(reportRule ? { reportRule } : {}),
+    ...(reportCriteria.length > 0 ? { reportCriteria } : {}),
   };
   const plainText = text
     ? { plain: { what: redactText(text.what, counts), fix: redactText(text.fix, counts) } }
     : {};
   let located: Partial<SentRecord>;
   if ('selector' in f.location) {
-    const selector = redactSelector(f.location.selector, counts);
+    const selector = escapeUntrustedTags(redactSelector(f.location.selector, counts));
     let snippet = '';
     if (f.evidence?.snippet) {
       const redacted = redactSnippet(f.evidence.snippet);
-      snippet = redacted.html;
+      snippet = escapeUntrustedTags(redacted.html);
       for (const r of redacted.redactions) counts.set(r.kind, (counts.get(r.kind) ?? 0) + r.count);
     }
     located = { ...(selector ? { selector } : {}), ...(snippet ? { snippet } : {}) };
@@ -172,6 +226,9 @@ function requestFor(f: Finding, plain: PlainData): SentRecord {
  * part is an empty string. NUL cannot occur in a rule id.
  */
 function groupKey(r: SentRecord): string {
+  // An unrecognised rule keeps its own groups: its report text is part of the key.
+  if (r.reportRule !== undefined)
+    return `${r.ruleId}\u0000${r.reportRule}\u0000${r.snippet ?? ''}\u0000${r.selector ?? ''}\u0000${r.structPath ?? ''}`;
   if (r.assetKind === 'pdf') return `${r.ruleId}\u0000${r.structPath ?? ''}`;
   const cut = r.redactions.some((x) => x.kind === 'unparsed' || x.kind === 'truncated');
   if (r.snippet && !cut) return `${r.ruleId}\u0000${r.snippet}`;
@@ -191,13 +248,13 @@ export function buildGroups(
   options: { plain?: PlainData } = {},
 ): { groups: FixGroup[]; skipped: number } {
   const plain = options.plain ?? loadPlainData();
-  const overridden = overriddenFails(report);
+  const wanted = aiSuggestable(overriddenFails(report));
   const groups = new Map<
     string,
     { lead: Finding; request: SentRecord; ids: Set<string>; rank: number }
   >();
   for (const f of report.findings) {
-    if (f.outcome !== 'fail' || f.source.engine === 'manual' || overridden(f)) continue;
+    if (!wanted(f)) continue;
     const request = requestFor(f, plain);
     const id = sha16(groupKey(request));
     const rank = f.impact ? IMPACT_RANK[f.impact] : NO_IMPACT;

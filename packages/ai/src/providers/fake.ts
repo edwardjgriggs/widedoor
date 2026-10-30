@@ -1,7 +1,10 @@
 import type { ProviderId } from '../model.js';
 import type { FixProvider, ProviderAnswer } from '../provider.js';
 
-/** A provider for tests: answers from a script, records every call, never touches the network. */
+/**
+ * A provider for tests: answers from a script, records every call, never touches the network.
+ * Not exported from the package index: tests import this file.
+ */
 export function createFakeProvider(
   script: (user: string) => ProviderAnswer | Promise<ProviderAnswer>,
   options: { id?: ProviderId; model?: string } = {},

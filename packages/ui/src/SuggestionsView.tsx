@@ -1,16 +1,14 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { plural, visibleText } from '@widedoor/report/browser';
-import type {
-  AiAvailability,
-  AiSuggestionEntry,
-  AiSuggestionsDoc,
-} from '../../server/src/ai-types.ts';
+import type { AiSuggestionEntry } from '../../server/src/ai-types.ts';
 import {
   download,
   failure,
   previewSuggestions,
   runSuggestions,
   type SuggestionsPreview,
+  type ViewedAvailability,
+  type ViewedSuggestions,
 } from './api.js';
 
 /*
@@ -34,11 +32,11 @@ export interface SuggestionsRequest {
 }
 
 export interface SuggestionsPanelProps {
-  availability: AiAvailability;
+  availability: ViewedAvailability;
   /** The dry run waiting for a decision, and what it covers. */
   confirm?: { preview: SuggestionsPreview; scope: string } | undefined;
   busy: boolean;
-  result?: AiSuggestionsDoc | undefined;
+  result?: ViewedSuggestions | undefined;
   error?: string | undefined;
   status: string;
   cancelRef?: RefObject<HTMLButtonElement | null>;
@@ -110,6 +108,26 @@ function Entry({ e, label }: { e: AiSuggestionEntry; label: string }) {
               <>
                 <dt>Structure path</dt>
                 <dd>{t(r.structPath)}</dd>
+              </>
+            )}
+            {r.reportRule !== undefined && (
+              <>
+                <dt>Rule id in the report file</dt>
+                <dd>{t(r.reportRule)}</dd>
+              </>
+            )}
+            {r.reportCriteria !== undefined && (
+              <>
+                <dt>Other criteria in the report file</dt>
+                <dd>{t(r.reportCriteria.join(', '))}</dd>
+              </>
+            )}
+            {r.plain !== undefined && (
+              <>
+                <dt>What is wrong</dt>
+                <dd>{t(r.plain.what)}</dd>
+                <dt>How to fix</dt>
+                <dd>{t(r.plain.fix)}</dd>
               </>
             )}
           </dl>
@@ -254,7 +272,7 @@ export function SuggestionsView({
   onRequest,
   onLock,
 }: {
-  availability: AiAvailability;
+  availability: ViewedAvailability;
   request?: SuggestionsRequest | undefined;
   onRequest: (request: SuggestionsRequest) => void;
   /** Told when a suggestion starts being prepared, confirmed or run (true) and when that ends. */
@@ -263,7 +281,7 @@ export function SuggestionsView({
   const [confirm, setConfirm] = useState<SuggestionsPanelProps['confirm']>();
   const [asked, setAsked] = useState<readonly string[] | undefined>();
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<AiSuggestionsDoc>();
+  const [result, setResult] = useState<ViewedSuggestions>();
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState('');
   const [focusTo, setFocusTo] = useState<'opener' | 'status' | 'results' | 'error'>();

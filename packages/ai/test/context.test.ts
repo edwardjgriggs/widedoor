@@ -215,8 +215,9 @@ describe('buildGroups', () => {
       impact: 'critical',
       evidence: { snippet: '<img alt="" src="/media/campaigns/2026/autumn/hero-banner-wide-b...' },
     });
-    const bareA = record(PAGE_B, { selector: 'div.a' }, 'region', {});
-    const bareB = record(PAGE_B, { selector: 'div.b' }, 'region', {});
+    // A mapped rule with plain text: an unmapped one would be "unrecognised" (final fix round 1 item 26).
+    const bareA = record(PAGE_B, { selector: 'div.a' }, 'link-name', {});
+    const bareB = record(PAGE_B, { selector: 'div.b' }, 'link-name', {});
     const r = report([cutA, cutB, bareA, bareB], []);
     const a = groupOf(r, cutA.id);
     expect(a?.request.snippet).toBe('<img alt="">');
@@ -224,7 +225,7 @@ describe('buildGroups', () => {
     const preimage = `image-alt\u0000<img alt="">\u0000img.hero-a`;
     expect(a?.id).toBe(createHash('sha256').update(preimage).digest('hex').slice(0, 16));
     expect(groupOf(r, bareA.id)?.id).not.toBe(groupOf(r, bareB.id)?.id);
-    const bare = `region\u0000\u0000div.a`;
+    const bare = `link-name\u0000\u0000div.a`;
     expect(groupOf(r, bareA.id)?.id).toBe(
       createHash('sha256').update(bare).digest('hex').slice(0, 16),
     );

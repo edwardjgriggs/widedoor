@@ -176,6 +176,17 @@
                 ],
                 "additionalProperties": false
               },
+              "reportRule": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reportCriteria": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
               "redactions": {
                 "type": "array",
                 "items": {

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { MODEL_ID_RULE } from '@widedoor/core';
 import {
   ConfigError,
   buildPlan,
@@ -185,6 +186,17 @@ describe('loadConfig', () => {
         '  temperature: 0.2',
       ])
         expect(problems(yaml('ai:', line)).length, line).toBeGreaterThan(0);
+    });
+
+    // Final fix round 1 item 15: ai.model, --ai-model, the runner and the providers share one rule.
+    it('takes the model ids the providers take, with "@" and "/", and names the rule', () => {
+      for (const model of ['anthropic/claude-opus-5-5', 'claude-opus-5-5@2026-10-01'])
+        expect(loadConfig(configFile(yaml('ai:', `  model: ${model}`))).config.ai?.model).toBe(
+          model,
+        );
+      expect(problems(yaml('ai:', '  model: "bad model"')).join(' ')).toContain(
+        `must be ${MODEL_ID_RULE}`,
+      );
     });
   });
 

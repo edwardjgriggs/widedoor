@@ -22,6 +22,8 @@ Each way writes `ai-suggestions.json` and `ai-suggestions.html` next to the repo
 In `widedoor ui`, set `ai.enabled: true` in the config of the root folder and start
 `widedoor ui` with the key in its environment. The Report screen then has a
 "Suggest a fix (AI)" button on each failed check and a "Suggest fixes for all" button.
+The page keeps only the latest suggestions, and a new scan discards them, so download
+`ai-suggestions.json` or `ai-suggestions.html` first if you want to keep them.
 
 ```yaml
 # widedoor.config.yaml
@@ -35,6 +37,29 @@ ai:
 The flags `--ai-provider anthropic|openai` and `--ai-model <id>` override `ai.provider` and
 `ai.model`. With `anthropic`, the default model is `claude-opus-5-5`. With `openai`, there is no
 default: set `ai.model` or `--ai-model`.
+
+`ai.enabled` alone never breaks a scan. If the key is missing, or `openai` has no model, the
+scan prints one warning, runs without suggestions and keeps its own exit code. With
+`--ai-fixes` (or `widedoor suggest`), the same problem is an error before the scan (exit 2).
+
+The GitHub Action removes `ANTHROPIC_*` and `OPENAI_*` variables before it runs the scan, so a
+CI run never sends anything to a provider, even with `ai.enabled` in the config.
+
+### Signed-in scans
+
+A scan with a storage state (signed-in pages) can have personal data in its snippets. AI fix
+suggestions are off for it unless the config sets `ai.allowSignedIn: true`. With `--ai-fixes`
+the scan stops before it starts (exit 2) and says why; with `ai.enabled` alone it warns and
+runs without suggestions. `--ai-dry-run` is always allowed, since it sends nothing.
+`widedoor suggest --report <file>` and `widedoor ui --report <file>` apply the same rule to the
+report they read, and `widedoor ui` to the report of each scan it runs.
+
+They know a signed-in report two ways. A signed-in scan writes a `.widedoor-signed-in` file
+beside its reports, on every platform. On Linux and macOS it also writes the reports so only
+their owner can read them, and a report file with that mode counts as signed-in too. A report
+copied somewhere else without its `.widedoor-signed-in` file (or, off Windows, with its mode
+changed) is not known as signed-in, and AI treats it as an ordinary report. Copy the marker with
+the report, or keep signed-in reports in their own folder.
 
 ## Keys
 
@@ -96,35 +121,37 @@ Every snippet and selector passes through the redactor before anything is sent. 
 allowlist of attributes and fails closed: markup it cannot follow is dropped with everything
 after it.
 
-| Kind             | What happens                                                                             |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `attribute`      | An attribute not on the allowlist, or with a token-shaped name: dropped.                 |
-| `comment`        | An HTML comment: dropped.                                                                |
-| `contact-url`    | A mailto:, tel:, sms: or callto: URL: masked whole.                                      |
-| `data-json`      | A data-* attribute that holds JSON: dropped.                                             |
-| `data-url`       | A data: URL: masked whole.                                                               |
-| `email`          | An email address: masked.                                                                |
-| `event-handler`  | An on* event handler attribute: dropped.                                                 |
-| `field`          | Text in a form field, such as a textarea or a hidden, password or sign-in input: masked. |
-| `fragment`       | The #fragment of a URL: masked (a same-page id link stays).                              |
-| `hex-token`      | A long run of hex digits: masked.                                                        |
-| `host`           | The host of a URL: masked. No page address is ever sent.                                 |
-| `jwt`            | A JSON Web Token: masked.                                                                |
-| `number`         | A long number, such as an account or card number: masked.                                |
-| `phone`          | A phone number: masked.                                                                  |
-| `query-string`   | The ?query of a URL, or query parameters in text: masked.                                |
-| `script-body`    | The body of a script element: dropped.                                                   |
-| `script-url`     | A javascript: or vbscript: URL: masked whole.                                            |
-| `structure-type` | A non-standard PDF structure type name: sent as Custom.                                  |
-| `style`          | A style attribute: dropped.                                                              |
-| `style-body`     | The body of a style element: dropped.                                                    |
-| `token`          | A token-shaped word (letters with digits, or mixed case): masked.                        |
-| `truncated`      | The snippet was cut (by the scan or at the size limit): the rest is not sent.            |
-| `unparsed`       | Markup the redactor cannot follow: dropped with everything after it.                     |
-| `url`            | A URL in a selector attribute match: masked.                                             |
-| `userinfo`       | A user name or password inside a URL: masked.                                            |
-| `uuid`           | A UUID: masked.                                                                          |
-| `value`          | A value attribute: dropped.                                                              |
+| Kind                   | What happens                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `attribute`            | An attribute not on the allowlist, or with a token-shaped name: dropped.                                                     |
+| `comment`              | An HTML comment: dropped.                                                                                                    |
+| `contact-url`          | A mailto:, tel:, sms: or callto: URL: masked whole.                                                                          |
+| `credential-attribute` | A data-* or aria-* attribute whose name says it holds a key, token, secret, password, session, CSRF value or nonce: dropped. |
+| `data-json`            | A data-* attribute that holds JSON: dropped.                                                                                 |
+| `data-url`             | A data: URL: masked whole.                                                                                                   |
+| `email`                | An email address: masked.                                                                                                    |
+| `event-handler`        | An on* event handler attribute: dropped.                                                                                     |
+| `field`                | Text in a form field, such as a textarea or a hidden, password or sign-in input: masked.                                     |
+| `fragment`             | The #fragment of a URL: masked (a same-page id link stays).                                                                  |
+| `hex-token`            | A long run of hex digits: masked.                                                                                            |
+| `host`                 | The host of a URL: masked. No page address is ever sent.                                                                     |
+| `jwt`                  | A JSON Web Token: masked.                                                                                                    |
+| `number`               | A long number, such as an account or card number: masked.                                                                    |
+| `path-segment`         | A URL path segment of 24 or more characters, in any case: masked.                                                            |
+| `phone`                | A phone number: masked.                                                                                                      |
+| `query-string`         | The ?query of a URL, or query parameters in text: masked.                                                                    |
+| `script-body`          | The body of a script element: dropped.                                                                                       |
+| `script-url`           | A javascript: or vbscript: URL: masked whole.                                                                                |
+| `structure-type`       | A non-standard PDF structure type name: sent as Custom.                                                                      |
+| `style`                | A style attribute: dropped.                                                                                                  |
+| `style-body`           | The body of a style element: dropped.                                                                                        |
+| `token`                | A token-shaped word (letters with digits, or mixed case): masked.                                                            |
+| `truncated`            | The snippet was cut (by the scan or at the size limit): the rest is not sent.                                                |
+| `unparsed`             | Markup the redactor cannot follow: dropped with everything after it.                                                         |
+| `url`                  | A URL in a selector attribute match: masked.                                                                                 |
+| `userinfo`             | A user name or password inside a URL: masked.                                                                                |
+| `uuid`                 | A UUID: masked.                                                                                                              |
+| `value`                | A value attribute: dropped.                                                                                                  |
 
 ### What redaction does not catch
 
@@ -134,7 +161,7 @@ The redactor masks shapes, not meaning. It does not catch:
 - digit runs under 9 digits, and phone numbers under 7 digits;
 - names, addresses and other free text, in the visible text and in kept attributes such as
   `alt`, `title`, `aria-label` and `placeholder`;
-- path segments written as plain words;
+- path segments under 24 characters written as plain words;
 - host names written as text.
 
 Run `--ai-dry-run` first to see exactly what a request holds.
@@ -166,13 +193,23 @@ the `ai` block of the config.
 
 A run also stops early, and records why in the sidecar file, when:
 
-- the next request would pass the input token budget;
+- the next request would pass the input token budget (its groups are marked "skipped-budget");
 - 3 errors of the same kind come in a row;
 - 3 of the last 5 answers were cut off;
 - 6 errors come in a row;
 - the provider reports an error that cannot be retried, such as a bad key.
 
-Groups that were not sent are marked "not-sent" with the reason.
+Groups that were not sent are marked "not-sent", or "skipped-budget" after a budget stop, with the reason.
+
+Every run, however it ends, logs one line on stderr:
+`ai_run status=<done|aborted|stopped|failed> sent=<n> input_tokens=<n> output_tokens=<n>`.
+`aborted` means cancelled (Ctrl+C or a new scan), `stopped` means an early stop such as the
+budget, and `failed` means the run itself broke (a Widedoor bug); the counts are still right.
+
+In `widedoor ui`, `ai.maxInputTokensTotal` also caps the whole session: once the runs of one
+`widedoor ui` have used that many input tokens, the page refuses a new run. Restart
+`widedoor ui` to reset it. A stopped or cancelled run in the page keeps what it sent, and it can
+be downloaded like a finished one.
 
 ## Stopping a run
 
@@ -180,7 +217,7 @@ Press Ctrl+C during the suggestions. Widedoor stops sending new requests, still 
 suggestions file for what it has, and ends with the scan's own exit code. The reports were
 already written. Press Ctrl+C again to stop at once.
 
-`widedoor suggest` does the same: it writes both files and exits 0.
+`widedoor suggest` does the same: it writes both files and exits 0. A second Ctrl+C stops it at once, with exit 2.
 
 ## Prompt injection
 
