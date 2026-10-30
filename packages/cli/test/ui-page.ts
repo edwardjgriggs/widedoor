@@ -121,6 +121,26 @@ export async function expectAxeClean(page: Page, state: string): Promise<void> {
   expect(await axeViolations(page), state).toEqual([]);
 }
 
+/**
+ * What makes the page scroll sideways (WCAG 1.4.10 reflow): [] when it does not, else the
+ * elements that reach past its width. Inner regions that scroll on their own, and their
+ * content, do not count.
+ */
+export const scrollsSideways = (page: Page): Promise<string[]> =>
+  page.evaluate(() => {
+    const root = document.scrollingElement ?? document.documentElement;
+    if (root.scrollWidth <= root.clientWidth) return [];
+    const scrolls = (el: Element | null): boolean =>
+      el !== null &&
+      el !== document.body &&
+      (['auto', 'scroll'].includes(getComputedStyle(el).overflowX) || scrolls(el.parentElement));
+    return [...document.body.querySelectorAll('*')]
+      .filter((el) => el.getBoundingClientRect().right > root.clientWidth + 1)
+      .filter((el) => !scrolls(el.parentElement))
+      .slice(0, 8)
+      .map((el) => `${el.tagName.toLowerCase()}.${el.className} ${el.textContent?.slice(0, 40)}`);
+  });
+
 /** A nav button. */
 export const navButton = (page: Page, name: string): Locator =>
   page.getByRole('navigation', { name: 'Screens' }).getByRole('button', { name, exact: true });

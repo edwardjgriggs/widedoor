@@ -35,6 +35,8 @@ beforeAll(async () => {
   dist = join(dir, 'dist');
   mkdirSync(join(dist, 'assets'), { recursive: true });
   writeFileSync(join(dist, 'index.html'), '<!doctype html><title>viewer</title>');
+  // The hosted scanner's page is in the same build; widedoor ui never serves it.
+  writeFileSync(join(dist, 'hosted.html'), '<!doctype html><title>hosted</title>');
   writeFileSync(join(dist, 'assets', 'app.js'), 'console.log(1);');
   writeFileSync(join(dist, 'assets', 'app.css'), 'body{}');
   writeFileSync(join(dist, 'assets', 'notes.txt'), 'not a served type');
@@ -269,6 +271,7 @@ describe('widedoor ui server', () => {
     '/assets/link.js',
     '/index.html/',
     '/INDEX.HTML',
+    '/hosted.html',
     '/favicon.ico',
     '//127.0.0.1/index.html',
   ])('answers 404 with the headers for %s', async (path) => {
@@ -331,6 +334,7 @@ describe('server helpers', () => {
     expect([...loadStaticFiles(dist).keys()].sort()).toEqual([
       '/assets/app.css',
       '/assets/app.js',
+      '/hosted.html',
       '/index.html',
     ]);
   });

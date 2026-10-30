@@ -370,6 +370,64 @@ describe('skipped pages', () => {
     );
   });
 
+  it('words a robots.txt skip as plain text, not as a redirect', () => {
+    const page = renderHtml(
+      skippedReport([
+        {
+          url: 'https://example.com/<b>private</b>',
+          finalUrl: 'https://example.com/<b>private</b>',
+          reason: 'robots-disallowed',
+        },
+      ]),
+    );
+    expectInert(page);
+    const text = textOf(parse(page));
+    expect(text).toContain(
+      'Not scanned: the robots.txt of the site disallows it for Widedoor (robots-disallowed).',
+    );
+    expect(text).toContain('https://example.com/<b>private</b>: the robots.txt of the site');
+    expect(text).not.toContain('it went to');
+  });
+
+  it('words an unreadable robots.txt as its own reason', () => {
+    const page = renderHtml(
+      skippedReport([
+        {
+          url: 'https://example.com/a',
+          finalUrl: 'https://example.com/a',
+          reason: 'robots-unreachable',
+        },
+      ]),
+    );
+    expectInert(page);
+    const text = textOf(parse(page));
+    expect(text).toContain(
+      "Not scanned: the site's robots.txt could not be read, so the page was not scanned (robots-unreachable).",
+    );
+    expect(text).toContain('https://example.com/a: the site');
+    expect(text).not.toContain('disallows it');
+    expect(text).not.toContain('it went to');
+  });
+
+  it('words a URL too long for robots.txt checking as its own reason, escaped', () => {
+    const page = renderHtml(
+      skippedReport([
+        {
+          url: 'https://example.com/<i>long</i>',
+          finalUrl: 'https://example.com/<i>long</i>',
+          reason: 'robots-unchecked',
+        },
+      ]),
+    );
+    expectInert(page);
+    const text = textOf(parse(page));
+    expect(text).toContain(
+      'Not scanned: the address is too long to check against robots.txt, so the page was not scanned (robots-unchecked).',
+    );
+    expect(text).toContain('https://example.com/<i>long</i>: the address is too long');
+    expect(text).not.toContain('disallows it');
+  });
+
   it('lists at most 20 skipped pages and counts the rest', () => {
     const many = Array.from({ length: 45 }, (_, i) => ({
       url: `https://example.com/f/${i}.pdf`,
@@ -523,5 +581,43 @@ describe('screenshots', () => {
     const outside = renderHtml(report, { evidenceDir: join(root, 'outside') });
     expect(expectInert(outside).images).toEqual([]);
     expect(outside).toContain('Screenshot left out: the file is not in the evidence folder.');
+  });
+});
+
+describe('page sections', () => {
+  /** Each section's accessible name: the text of the elements its aria-labelledby names. */
+  function landmarkNames(markup: string): string[] {
+    const doc = parse(markup);
+    const all: Element[] = [];
+    const visit = (n: Node) => {
+      if ('tagName' in n) all.push(n);
+      if ('childNodes' in n) n.childNodes.forEach(visit);
+    };
+    visit(doc);
+    const byId = new Map(
+      all.flatMap((e) => {
+        const id = e.attrs.find((a) => a.name === 'id')?.value;
+        return id === undefined ? [] : [[id, e] as const];
+      }),
+    );
+    return all
+      .filter((e) => e.tagName === 'section')
+      .map((e) =>
+        (e.attrs.find((a) => a.name === 'aria-labelledby')?.value ?? '')
+          .split(' ')
+          .map((id) => textOf(byId.get(id) as Node).trim())
+          .join(' '),
+      );
+  }
+
+  it('have unique names when pages share a title', () => {
+    const report = fixtureReport();
+    expect(report.assets.length).toBeGreaterThan(1);
+    const same = { ...report, titles: report.assets.map((a) => ({ uri: a.uri, title: 'Home' })) };
+    const page = renderHtml(same);
+    expectInert(page);
+    const names = landmarkNames(page);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toContain(`Home ${report.assets[0]?.uri}`);
   });
 });

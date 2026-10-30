@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;sha256-CQoxWh2fLtA486fJvIfQOc5B7bSUElm1RUh0rQZEISw=&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;sha256-V1OVebcWX1Z4HtbLxipHl5degiWEiJ8PjyCB9yeYoTo=&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
@@ -41,6 +41,10 @@ dt { font-weight: 700; margin-top: 0.75rem; }
 dd { margin-left: 0; }
 .disclaimer { border: 2px solid var(--ink); padding: 1rem; font-weight: 700; }
 a { color: var(--link); }
+@media (max-width: 48rem) {
+  table { table-layout: fixed; }
+  th, td { overflow-wrap: anywhere; padding: 0.3rem; }
+}
 </style>
 </head>
 <body>
@@ -195,9 +199,9 @@ a { color: var(--link); }
 </section>
 <section aria-labelledby="by-asset">
 <h2 id="by-asset">Results by page and file</h2>
-<section aria-labelledby="asset-1">
+<section aria-labelledby="asset-1 asset-1-uri">
 <h3 id="asset-1">Contact us &lt;/style&gt;&lt;/textarea&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(2)&gt;</h3>
-<p class="uri">https://example.com/contact?q=&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;</p>
+<p class="uri" id="asset-1-uri">https://example.com/contact?q=&quot;&gt;&lt;script&gt;alert(3)&lt;/script&gt;</p>
 <p class="lead">Web page. 4 problems, 1 item to check by hand.</p>
 <ol class="findings">
 <li class="finding">

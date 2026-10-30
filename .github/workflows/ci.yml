@@ -106,6 +106,9 @@ jobs:
       - name: Browser tests
         run: npm run test:browser
 
+      - name: SSRF suite
+        run: npm run test:ssrf
+
       # veraPDF runs in its pinned image. Pull by digest so a re-pushed tag
       # cannot change what runs; the tag is added locally because the adapter
       # refers to the image as tag@digest and never pulls itself. Bump the

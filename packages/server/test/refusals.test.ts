@@ -45,7 +45,7 @@ describe('Refusals', () => {
     for (const kind of [...REFUSAL_KINDS].reverse()) refusals.count(kind);
     refusals.flush();
     expect(lines.at(-1)).toBe(
-      'refused 7 requests since the last line (1 Host, 1 token, 1 Origin, 1 content type, 1 size, 1 schema, 1 rate (429))',
+      'refused 8 requests since the last line (1 Host, 1 token, 1 Origin, 1 content type, 1 size, 1 schema, 1 timeout (408), 1 rate (429))',
     );
   });
 

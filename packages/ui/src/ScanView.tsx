@@ -12,6 +12,7 @@ import {
   type Job,
 } from './api.js';
 import { Initial } from './initial.js';
+import { PROFILES } from './profiles.js';
 
 /*
  * The Scan screen: URLs and PDF files to scan with a profile, as a scan job
@@ -26,13 +27,7 @@ import { Initial } from './initial.js';
 
 const t = (value: unknown) => visibleText(value);
 
-/** The profile choices; '' leaves the profile to widedoor.config.yaml (and its default). */
-export const PROFILES: readonly { id: ProfileId | ''; label: string }[] = [
-  { id: '', label: 'As in widedoor.config.yaml' },
-  { id: '508+wcag21aa', label: 'Section 508 and WCAG 2.1 AA (508+wcag21aa)' },
-  { id: '508', label: 'Section 508 (508)' },
-  { id: 'wcag21aa', label: 'WCAG 2.1 AA (wcag21aa)' },
-];
+export { PROFILES };
 
 /** How often a running scan is asked for its progress. */
 export const POLL_MS = 1000;

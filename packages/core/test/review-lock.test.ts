@@ -117,9 +117,15 @@ const readOr = (path: string) => {
     return '';
   }
 };
+// One snapshot decides: the file system changes on libuv's threads, so a second read of the
+// same state, even right after, can see a later one.
 const until = async (done: () => boolean) => {
-  for (let i = 0; i < 400 && !done(); i++) await new Promise((r) => setTimeout(r, 10));
-  expect(done()).toBe(true);
+  let ok = done();
+  for (let i = 0; i < 400 && !ok; i++) {
+    await new Promise((r) => setTimeout(r, 10));
+    ok = done();
+  }
+  expect(ok).toBe(true);
 };
 
 describe('the review file lock', () => {
@@ -169,12 +175,14 @@ describe('the review file lock', () => {
       return undefined;
     };
     const writing = record(dir, { item: itemId('2.1.1') });
-    // The fresh lock is linked back, the moved copy removed, and this writer waits.
+    // The fresh lock is linked back, the moved copy removed, and this writer waits. The
+    // takeover is over only once its claim is gone too: removing the claim moves it aside
+    // to a .stale name for a moment, after the lock is back.
     await until(
       () =>
         replaced &&
         readOr(lock) === 'fresh\n' &&
-        !readdirSync(folder).some((f) => f.endsWith('.stale')),
+        !readdirSync(folder).some((f) => f.endsWith('.stale') || f.endsWith('.claim')),
     );
     expect(existsSync(join(folder, FILE))).toBe(false);
     rmSync(lock); // the other writer finishes

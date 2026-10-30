@@ -151,18 +151,48 @@ describe('lint disables in the viewer', () => {
       });
   }
 
-  it('are exactly the three checked sinks: SafeLink, the validated screenshot and attachment', () => {
-    const found = disables();
-    expect(found.map((d) => d.file.replace(/\\/g, '/'))).toEqual([
-      'ReportView.tsx',
-      'ReportView.tsx',
-      'ReportView.tsx',
-    ]);
-    for (const d of found)
+  it('are exactly the four checked sinks: SafeLink, the validated screenshot and attachment, and the hosted SiteLink', () => {
+    const all = disables();
+    const found = all.filter((d) => d.file === 'ReportView.tsx');
+    const hosted = all.filter((d) => d.file !== 'ReportView.tsx');
+    expect(found).toHaveLength(3);
+    expect(hosted.map((d) => d.file.replace(/\\/g, '/'))).toEqual(['hosted/SiteLink.tsx']);
+    for (const d of all)
       expect(d.comment).toMatch(/eslint-disable-next-line no-restricted-syntax -- \S/);
     expect(found[0]?.next).toMatch(/^return isWebUrl\(href\) \? <a href=\{href\}>/);
     expect(found[1]?.next).toMatch(/^<img className="shot" src=\{image\.dataUri\}/);
     expect(found[2]?.next).toMatch(/^<img key=\{i\} className="shot" src=\{image\.dataUri\}/);
+    expect(hosted[0]?.next).toMatch(/^return isSitePath\(href\) \? <a href=\{href\}>/);
+  });
+
+  it('cover the hosted page, whose links reach only the fixed site paths', async () => {
+    const file = 'packages/ui/src/hosted/probe.tsx';
+    expect(await banned('export const A = (p: { s: string }) => <a href={p.s}>x</a>;', file)).toBe(
+      true,
+    );
+    expect(
+      await nodeImport(
+        "import { readFileSync } from 'node:fs';\nexport const r = readFileSync;",
+        file,
+      ),
+    ).toBe(true);
+    const { isSitePath } = await import('../src/hosted/SiteLink.tsx');
+    for (const ok of [
+      `/api/scans/${'a'.repeat(32)}/report.json`,
+      `/api/scans/${'a'.repeat(32)}/report.html`,
+      '/about-scanner',
+      '/THIRD-PARTY-LICENSES.txt',
+    ])
+      expect(isSitePath(ok), ok).toBe(true);
+    for (const bad of [
+      'javascript:alert(1)',
+      'https://evil.example/',
+      '//evil.example/',
+      `/api/scans/${'a'.repeat(32)}/report.html?x`,
+      '/api/scans/../report.json',
+      '/index.html',
+    ])
+      expect(isSitePath(bad), bad).toBe(false);
   });
 
   it('are reported when they no longer suppress anything', async () => {

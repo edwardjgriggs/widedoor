@@ -7,3 +7,4 @@ packages/report/vendor/** -text
 packages/report/schema/report.v1.json -text
 packages/report/test/__snapshots__/** -text
 packages/core/schema/finding.v1.json -text
+docker/*.sh text eol=lf

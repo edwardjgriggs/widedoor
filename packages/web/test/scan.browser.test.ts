@@ -20,8 +20,10 @@ import {
 import {
   WebScanner,
   chromiumLaunchOptions,
+  createFetcher,
   createHardenedContext,
   launchChromium,
+  robotsPolicy,
   scanWeb,
 } from '../src/index.ts';
 import { reviewHashOf } from '../src/review-hash.ts';
@@ -62,6 +64,12 @@ beforeAll(async () => {
         `<a href="/b.html">b</a> <a href="/c.html">c</a> <a href="/a.html#frag">self</a> <a href="${o}/c.html#x">c again</a> <a href="${other.origin}/x.html">other</a> <a href="mailto:x@example.com">mail</a>`,
       ),
     },
+    '/gate.html': {
+      body: page('Gate', '<a href="/walled/in.html">in</a> <a href="/d.html">d</a>'),
+    },
+    '/walled/in.html': { body: page('Walled', '<p>walled</p>') },
+    '/walled/via.html': { body: page('Via', '<p>via</p>') },
+    '/open': { status: 302, body: '', headers: { location: '/walled/via.html' } },
     '/b.html': { body: page('B', '<a href="/d.html">d</a> <a href="/e.html">e</a>') },
     '/c.html': { body: page('C', '<a href="/download">download</a>') },
     '/d.html': { body: page('D', '<p>d</p>') },
@@ -312,6 +320,141 @@ describe('scope and crawl', () => {
           url: `${site.origin}/to-other`,
           finalUrl: `${other.origin}/x.html`,
           reason: 'redirect-off-origin',
+        },
+      ]);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'records a crawled link that the page policy disallows and never requests it',
+    async () => {
+      const asked: string[] = [];
+      const r = await scanWeb(
+        { urls: [`${site.origin}/gate.html`], crawl: { maxPages: 5 } },
+        {
+          ...base,
+          pagePolicy: async (url) => {
+            asked.push(new URL(url).pathname);
+            return new URL(url).pathname.startsWith('/walled') ? 'robots-disallowed' : 'scan';
+          },
+        },
+      );
+      expect(scanned(r).sort()).toEqual(['/d.html', '/gate.html']);
+      expect(r.skipped).toEqual([
+        {
+          url: `${site.origin}/walled/in.html`,
+          finalUrl: `${site.origin}/walled/in.html`,
+          reason: 'robots-disallowed',
+        },
+      ]);
+      expect(asked).toContain('/walled/in.html');
+      expect(hitsOf(site, '/walled/in.html')).toBe(0);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'skips a listed page that a robots.txt policy disallows without requesting it',
+    async () => {
+      const robots = await serve(() => ({
+        '/robots.txt': { type: 'text/plain', body: 'User-agent: Widedoor\nDisallow: /secret\n' },
+        '/secret/a.html': { body: page('Secret', '<p>secret</p>') },
+        '/open.html': { body: page('Open', '<p>open</p>') },
+      }));
+      try {
+        const r = await scanWeb(
+          { urls: [`${robots.origin}/secret/a.html`, `${robots.origin}/open.html`] },
+          { ...base, pagePolicy: robotsPolicy(createFetcher(), 'Widedoor') },
+        );
+        expect(scanned(r)).toEqual(['/open.html']);
+        expect(r.skipped.map((s) => [new URL(s.url).pathname, s.reason])).toEqual([
+          ['/secret/a.html', 'robots-disallowed'],
+        ]);
+        expect(hitsOf(robots, '/secret/a.html')).toBe(0);
+        expect(hitsOf(robots, '/robots.txt')).toBe(1);
+      } finally {
+        await robots.close();
+      }
+    },
+    TIMEOUT,
+  );
+
+  const walled = async (url: string) =>
+    new URL(url).pathname.startsWith('/walled')
+      ? ('robots-disallowed' as const)
+      : ('scan' as const);
+
+  it(
+    'drops a page whose redirect ends on a disallowed URL, with its findings, and records both URLs',
+    async () => {
+      const r = await scanWeb(
+        { urls: [`${site.origin}/open`, `${site.origin}/d.html`], crawl: { maxPages: 5 } },
+        { ...base, concurrency: 1, pagePolicy: walled },
+      );
+      expect(scanned(r)).toEqual(['/d.html']);
+      expect(r.assets.map((a) => new URL(a.uri).pathname)).toEqual(['/d.html']);
+      expect(r.skipped).toEqual([
+        {
+          url: `${site.origin}/open`,
+          finalUrl: `${site.origin}/walled/via.html`,
+          reason: 'robots-disallowed',
+        },
+      ]);
+      // The redirect was followed by Chromium before the policy could see it.
+      expect(hitsOf(site, '/walled/via.html')).toBe(1);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'records an unreadable robots.txt as robots-unreachable and stops after maxPolicySkips',
+    async () => {
+      const r = await scanWeb(
+        {
+          urls: [1, 2, 3, 4]
+            .map((i) => `${site.origin}/walled/stop${i}.html`)
+            .concat(`${site.origin}/d.html`),
+        },
+        {
+          ...base,
+          maxPolicySkips: 2,
+          pagePolicy: async (url) =>
+            new URL(url).pathname.endsWith('stop1.html') ? 'robots-unreachable' : walled(url),
+        },
+      );
+      expect(r.skipped.map((s) => [new URL(s.url).pathname, s.reason])).toEqual([
+        ['/walled/stop1.html', 'robots-unreachable'],
+        ['/walled/stop2.html', 'robots-disallowed'],
+      ]);
+      expect(r.pages).toEqual([]);
+      expect(r.scopeGaps).toEqual([expect.stringMatching(/stopped after 2 pages were skipped/)]);
+      expect(r.truncated).toBe(true);
+      expect(hitsOf(site, '/walled/stop3.html')).toBe(0);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'records a rejecting page policy as a scan error for that page and scans the rest',
+    async () => {
+      const r = await scanWeb(
+        { urls: [`${site.origin}/e.html`, `${site.origin}/d.html`] },
+        {
+          ...base,
+          concurrency: 1,
+          pagePolicy: async (url) => {
+            if (url.endsWith('/e.html')) throw new Error('policy exploded');
+            return 'scan';
+          },
+        },
+      );
+      expect(scanned(r)).toEqual(['/d.html']);
+      expect(r.errors).toEqual([
+        {
+          uri: `${site.origin}/e.html`,
+          code: 'scan-failed',
+          message: 'page policy failed: policy exploded',
         },
       ]);
     },

@@ -15,6 +15,9 @@ import {
   isInside,
   scanWeb,
   withFetchedPdfs,
+  type Fetcher,
+  type PagePolicy,
+  type RequestGuard,
   type ScanProgress,
   type WebScanResult,
 } from '@widedoor/web';
@@ -55,6 +58,44 @@ export interface ScanRequest {
    * its file name (home as ~). Otherwise (the CLI) only temp paths are.
    */
   hideAllPaths?: boolean;
+}
+
+/**
+ * A hosted scan (ledger R5): no screenshots (no evidence folder), the network
+ * and limits of `hosted`, and report text that names every absolute path by
+ * its file name.
+ */
+export interface HostedScanRequest {
+  plan: ScanPlan;
+  reviews: readonly Finding[];
+  hosted: HostedScanSettings;
+}
+
+/**
+ * How a hosted scan reaches the network and what it may take: every request
+ * leaves through the egress proxy, pages are asked of robots.txt first, and
+ * report text names every absolute path by its file name.
+ */
+export interface HostedScanSettings {
+  /** The egress proxy for every browser request (an IP literal URL). */
+  proxy: { server: string };
+  /** The early browser check in front of the proxy (guardedRequestGuard). */
+  requestGuard: RequestGuard;
+  /** Every Node fetch (robots.txt, PDFs by URL): each hop checked, sent through the proxy. */
+  fetcher: Fetcher;
+  /** The browser's user agent: names Widedoor and a contact URL. */
+  userAgent: string;
+  /** Asked before each page (robotsPolicy). */
+  pagePolicy: PagePolicy;
+  /** Pages the policy may skip before the crawl stops. */
+  maxPolicySkips: number;
+  /** PDFs with more pages are not scanned (too-many-pages). */
+  pdfMaxPages: number;
+  /**
+   * Fetch the PDFs a crawl finds linked. Plan ruling 5: hosted scans do not;
+   * a PDF is scanned only as the target. The links left out are a scope gap.
+   */
+  linkedPdfs: boolean;
 }
 
 /** Signed-in pages put the user's data in screenshots and reports: those are kept private (mode 0600 and 0700). */
@@ -151,6 +192,18 @@ function webStartError(e: unknown): string {
   return safeText(line);
 }
 
+/**
+ * A web run without the PDFs it found by link (plan ruling 5): only those in
+ * scope by name stay, and the rest are counted in a scope gap.
+ */
+function withoutLinkedPdfs(web: WebScanResult): WebScanResult {
+  const pdfs = web.pdfs.filter((p) => p.listed);
+  const dropped = web.pdfs.length - pdfs.length;
+  if (dropped === 0) return web;
+  const gap = `${dropped} linked PDF(s) were not scanned: the hosted scanner scans a PDF only when it is the target (scan linked PDFs with the CLI)`;
+  return { ...web, pdfs, scopeGaps: [...web.scopeGaps, gap], warnings: [...web.warnings, gap] };
+}
+
 /** Scan errors may quote the storage state path (Playwright names the file): the report names the setting instead. */
 function hideStorageState(web: WebScanResult, path: string): WebScanResult {
   const hide = (message: string) => message.split(path).join('web.auth.storageState');
@@ -222,11 +275,25 @@ function scopeOf(plan: ScanPlan): ReportScope {
 }
 
 /** Runs the scan a plan describes and returns its report (what widedoor scan does, minus writing and printing). */
-export async function performScan(
-  request: ScanRequest,
+export function performScan(request: ScanRequest, hooks: ScanHooks = {}): Promise<ScanOutcome> {
+  return runScan(request, hooks);
+}
+
+/** performScan for the hosted scanner: the same engine with its network, limits and no evidence. */
+export function performHostedScan(
+  request: HostedScanRequest,
   hooks: ScanHooks = {},
 ): Promise<ScanOutcome> {
-  const { plan, reviews, evidenceDir } = request;
+  return runScan(request, hooks);
+}
+
+async function runScan(
+  request: ScanRequest | HostedScanRequest,
+  hooks: ScanHooks,
+): Promise<ScanOutcome> {
+  const { plan, reviews } = request;
+  const hosted = 'hosted' in request ? request.hosted : undefined;
+  const evidenceDir = 'evidenceDir' in request ? request.evidenceDir : undefined;
   const { signal } = hooks;
   const log = hooks.log ?? (() => undefined);
   const tracker = new ProcessTracker();
@@ -287,10 +354,20 @@ export async function performScan(
             maxPages: plan.web.maxPages,
           },
           {
-            evidenceDir,
+            ...(evidenceDir !== undefined ? { evidenceDir } : {}),
             concurrency: plan.concurrency,
             ...(plan.unsafeNoSandbox ? { unsafeNoSandbox: true } : {}),
             ...(plan.web.storageState !== undefined ? { storageState: plan.web.storageState } : {}),
+            ...(hosted
+              ? {
+                  proxy: hosted.proxy,
+                  requestGuard: hosted.requestGuard,
+                  userAgent: hosted.userAgent,
+                  fetcher: hosted.fetcher,
+                  pagePolicy: hosted.pagePolicy,
+                  maxPolicySkips: hosted.maxPolicySkips,
+                }
+              : {}),
             ...(signal ? { signal } : {}),
             onProgress: (p) => progress(p, 'web'),
           },
@@ -302,6 +379,7 @@ export async function performScan(
         });
       }
       if (plan.web.storageState !== undefined) web = hideStorageState(web, plan.web.storageState);
+      if (hosted && !hosted.linkedPdfs) web = withoutLinkedPdfs(web);
     }
 
     const pdfUrls = pdfUrlsOf(plan.pdf?.urls ?? [], web?.pdfs ?? []);
@@ -326,8 +404,12 @@ export async function performScan(
           readerSpawn: tracker.spawn,
           inspectMaxRssMb: memory,
           inspectHeapMb: Math.max(128, Math.floor(memory * 0.6)),
+          ...(hosted ? { maxPages: hosted.pdfMaxPages, maxFileBytes: plan.pdfMaxBytes } : {}),
         });
-        const decision = pdfFetchDecision(plan.pdfFetch, inImage(scanner.runner));
+        // A hosted scan machine is thrown away after the scan: fetching there is the point, not a risk to warn about.
+        const decision: { fetch: boolean; warning?: string } = hosted
+          ? { fetch: true }
+          : pdfFetchDecision(plan.pdfFetch, inImage(scanner.runner));
         if (decision.warning) {
           log(`warning: ${decision.warning}`);
           pdfWarnings.push(decision.warning);
@@ -339,6 +421,7 @@ export async function performScan(
           toFetch.map((p) => p.url),
           {
             maxBytes: plan.pdfMaxBytes,
+            ...(hosted ? { fetcher: hosted.fetcher } : {}),
             onTempDir: (dir) => (pdfTemp = dir),
             ...(signal ? { signal } : {}),
           },
@@ -395,22 +478,28 @@ export async function performScan(
           : {}),
       },
       plan.reviewDir,
-      request.hideAllPaths
-        ? {
-            // A PDF folder outside the root is a stage (widedoor ui copies uploads into one).
-            folders: [
-              tmpdir(),
-              ...(plan.pdf?.baseDir !== undefined &&
-              resolve(plan.pdf.baseDir) !== resolve(plan.reviewDir) &&
-              !isInside(plan.reviewDir, plan.pdf.baseDir)
-                ? [plan.pdf.baseDir]
-                : []),
-            ],
-            home: homedir(),
+      hosted
+        ? // The report leaves the machine: every path is named by its file name, home included.
+          {
+            folders: [tmpdir(), ...(plan.pdf ? [plan.pdf.baseDir] : [])],
             others: 'name',
           }
-        : // The CLI's user typed the other paths; only temp copies are named by their name.
-          { folders: [tmpdir()], others: 'keep' },
+        : 'hideAllPaths' in request && request.hideAllPaths
+          ? {
+              // A PDF folder outside the root is a stage (widedoor ui copies uploads into one).
+              folders: [
+                tmpdir(),
+                ...(plan.pdf?.baseDir !== undefined &&
+                resolve(plan.pdf.baseDir) !== resolve(plan.reviewDir) &&
+                !isInside(plan.reviewDir, plan.pdf.baseDir)
+                  ? [plan.pdf.baseDir]
+                  : []),
+              ],
+              home: homedir(),
+              others: 'name',
+            }
+          : // The CLI's user typed the other paths; only temp copies are named by their name.
+            { folders: [tmpdir()], others: 'keep' },
     );
     let report: ScanReport;
     try {

@@ -144,7 +144,7 @@ export interface LocalAppOptions {
 /** Wrong access codes are logged at most once in this long; the next line counts the rest. */
 export const WRONG_CODE_LOG_MS = 10_000;
 
-type Status = 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500;
+type Status = 400 | 401 | 403 | 404 | 408 | 409 | 413 | 415 | 422 | 429 | 500;
 
 const text = (body: string, status: Status) =>
   new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
@@ -152,9 +152,9 @@ const text = (body: string, status: Status) =>
 /** A refusal whose message may quote a request or a file: escaped, one line. */
 const refusal = (message: string, status: Status) => text(safeText(message, 1000), status);
 
-/** The check a refused body failed, by its status. */
-const bodyRefusal = (status: 400 | 413 | 415): RefusalKind =>
-  status === 415 ? 'type' : status === 413 ? 'size' : 'schema';
+/** The check a refused body failed, by its status (no body here is read with a deadline yet). */
+const bodyRefusal = (status: RequestError['status']): RefusalKind =>
+  status === 415 ? 'type' : status === 413 ? 'size' : status === 408 ? 'timeout' : 'schema';
 
 /** JSON with every unsafe character of scanned or review-file text escaped (safeJson). */
 const json = (value: unknown, status: 200 | 201 | 202 = 200) =>
@@ -531,7 +531,8 @@ export function createLocalApp(options: LocalAppOptions): Hono {
   app.get('*', (c: Context) => {
     const path = new URL(c.req.url).pathname;
     const file = files.get(path === '/' ? '/index.html' : path);
-    if (!file) return text('Not found.', 404);
+    // The build also holds the hosted scanner's page, which is not served here.
+    if (!file || path === '/hosted.html') return text('Not found.', 404);
     return new Response(file.body, { headers: { 'content-type': file.type } });
   });
   app.notFound(() => text('Not found.', 404));

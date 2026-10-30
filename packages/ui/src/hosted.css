@@ -1,0 +1,28 @@
+/* Hosted page additions to ui.css (loaded by hosted.html only). */
+input[type='url'] {
+  font: inherit;
+  width: 100%;
+  max-width: 40rem;
+}
+input[aria-invalid='true'] {
+  border: 2px solid var(--fail);
+}
+.copyable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+}
+.copyable code {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+summary {
+  cursor: pointer;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+footer .downloads {
+  margin-top: 1rem;
+}

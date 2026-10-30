@@ -1,4 +1,5 @@
 import { firstLine, safeText } from '@widedoor/core';
+import type { BlockReason } from './egress/policy.js';
 
 /*
  * The adapter's only HTTP client outside the browser (sitemaps and PDFs by URL). Every
@@ -12,14 +13,23 @@ import { firstLine, safeText } from '@widedoor/core';
 /**
  * Why a hop was refused. A caller may treat off-origin differently (a crawled
  * PDF link that redirects away is a scope gap); a hook (Phase 3's SSRF guard)
- * picks its own reason, "policy" by default.
+ * picks its own reason, "policy" by default. "proxy" is the hosted egress proxy
+ * refusing a hop it was asked for; it never says why.
  */
-export type EgressRefusal = 'off-origin' | 'redirect-limit' | 'scheme' | 'policy';
+export type EgressRefusal = 'off-origin' | 'redirect-limit' | 'scheme' | 'policy' | 'proxy';
+
+/**
+ * Which hosted egress rule refused the hop: an address class, or a host-level rule.
+ * Kept out of the message so logs can carry it as a field.
+ */
+export type EgressBlockReason =
+  BlockReason | 'host-name' | 'port' | 'scheme' | 'credentials' | 'unresolved' | 'host-limit';
 
 export class EgressRefusedError extends Error {
   constructor(
     message: string,
     readonly reason: EgressRefusal = 'policy',
+    readonly blockReason?: EgressBlockReason,
   ) {
     super(message);
     this.name = 'EgressRefusedError';
@@ -76,6 +86,37 @@ export function createFetcher(options: FetcherOptions = {}): Fetcher {
       current = new URL(location, current);
     }
   };
+}
+
+/**
+ * Reads a body into memory, stopping once it passes the cap. `cap` may be a
+ * function of the first chunk (a gzip body gets another limit). When the body is
+ * over the cap, `over` is true and `bytes` holds exactly the first `cap` bytes;
+ * the rest of the stream is cancelled unread.
+ */
+export async function readCapped(
+  response: Response,
+  cap: number | ((first: Uint8Array) => number),
+): Promise<{ bytes: Uint8Array; over: boolean; cap: number }> {
+  const reader = response.body?.getReader();
+  if (!reader)
+    return { bytes: new Uint8Array(), over: false, cap: typeof cap === 'number' ? cap : 0 };
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  let limit = typeof cap === 'number' ? cap : 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (total === 0 && typeof cap === 'function') limit = cap(value);
+    if (total + value.byteLength > limit) {
+      await reader.cancel();
+      chunks.push(value.subarray(0, limit - total));
+      return { bytes: Buffer.concat(chunks), over: true, cap: limit };
+    }
+    total += value.byteLength;
+    chunks.push(value);
+  }
+  return { bytes: Buffer.concat(chunks), over: false, cap: limit };
 }
 
 /** Largest PDF fetched by URL (spec config `pdf.maxBytes`), in bytes. */

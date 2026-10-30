@@ -33,7 +33,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   h2: ['id'],
   h3: ['id', 'class'],
   h4: [],
-  p: ['class'],
+  p: ['class', 'id'],
   span: ['class'],
   ol: ['class'],
   ul: ['class'],

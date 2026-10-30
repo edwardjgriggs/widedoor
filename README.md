@@ -465,6 +465,16 @@ the `org.opencontainers.image.licenses` label names the main licenses. Building 
 locally is fine. Before an image is published, a source offer (or the corresponding source)
 for the GPL components must go with it.
 
+## Hosted scanner
+
+A hosted version runs on Fly.io (not deployed yet): anyone can scan one public page and up to 5
+same-origin pages linked from it, or upload one PDF, and a site owner who verifies a host can
+crawl up to 200 pages of it. Scans run in a throwaway machine each, locked down so that every
+request goes through an egress proxy that refuses private, loopback, link-local, CGNAT,
+multicast and cloud metadata addresses. Nothing is stored past 1 hour. How it works, its
+limits and what it refuses: [docs/hosted.md](docs/hosted.md). Deploying it:
+[docs/hosted-runbook.md](docs/hosted-runbook.md).
+
 ## GitHub Action
 
 `packages/action` is a composite action. It builds the CLI from the action's own checkout

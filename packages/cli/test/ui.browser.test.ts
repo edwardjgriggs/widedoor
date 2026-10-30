@@ -29,6 +29,7 @@ import {
 } from './helpers.ts';
 import {
   axeViolations,
+  scrollsSideways,
   startUi,
   stopUi,
   watchedPage,
@@ -191,16 +192,19 @@ afterAll(async () => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-/** The bundle of a viewer build: its one script. */
+/**
+ * The bundle of a viewer build: its scripts, joined (the viewer's and the hosted page's
+ * entries share a chunk that holds React and the report view).
+ */
 const scriptOf = (folder: string) => {
-  if (!existsSync(join(folder, 'index.html')))
+  if (!existsSync(join(folder, 'index.html')) || !existsSync(join(folder, 'hosted.html')))
     throw new Error(
       `${folder} has no viewer build: run "npm run build" before "npm run test:browser"`,
     );
   const assets = join(folder, 'assets');
-  const [js] = readdirSync(assets).filter((f) => f.endsWith('.js'));
-  if (!js) throw new Error(`no script in ${assets}`);
-  return readFileSync(join(assets, js), 'utf8');
+  const scripts = readdirSync(assets).filter((f) => f.endsWith('.js'));
+  if (scripts.length === 0) throw new Error(`no script in ${assets}`);
+  return scripts.map((js) => readFileSync(join(assets, js), 'utf8')).join('\n');
 };
 
 describe('viewer builds', () => {
@@ -292,7 +296,7 @@ describe('widedoor ui --report', () => {
   );
 
   it(
-    'says what the HTML report of the same scan says, section by section',
+    'says what the HTML report of the same scan says, section by section, and both reflow at 320 px',
     async () => {
       const w = await openViewer(ui);
       const html = await (await browser.newContext()).newPage();
@@ -301,6 +305,14 @@ describe('widedoor ui --report', () => {
         const want = await sectionText(html, id);
         expect(want?.blocks.length, id).toBeGreaterThan(0);
         expect(await sectionText(w.page, id), id).toEqual(want);
+      }
+      // Both reflow at 320 CSS pixels (the shared report style wraps table cells).
+      for (const [name, page] of [
+        ['report.html', html],
+        ['the viewer', w.page],
+      ] as const) {
+        await page.setViewportSize({ width: 320, height: 800 });
+        expect(await scrollsSideways(page), `${name} at 320 px`).toEqual([]);
       }
       await html.context().close();
       await w.page.context().close();

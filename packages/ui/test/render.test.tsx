@@ -282,3 +282,28 @@ describe('ReportView on a scan with manual reviews, an override, the errata and 
     expect(view(report)).toContain('left out: no attachments folder was given.');
   });
 });
+
+describe('page sections', () => {
+  /** Each section's accessible name: the text of the elements its aria-labelledby names. */
+  function landmarkNames(markup: string): string[] {
+    const doc = parse(`<!doctype html><html><body>${markup}</body></html>`);
+    const ids = new Map(
+      find(doc, (e) => attr(e, 'id') !== undefined).map((e) => [attr(e, 'id'), e]),
+    );
+    return find(doc, (e) => e.tagName === 'section').map((s) =>
+      (attr(s, 'aria-labelledby') ?? '')
+        .split(' ')
+        .map((id) => norm(textOf(ids.get(id) as Node)))
+        .join(' '),
+    );
+  }
+
+  it('have unique names when pages share a title, the same as the HTML report', () => {
+    const report = fixtureReport();
+    const same = { ...report, titles: report.assets.map((a) => ({ uri: a.uri, title: 'Home' })) };
+    const names = landmarkNames(view(same));
+    expect(new Set(names).size).toBe(names.length);
+    const body = /<body>([\s\S]*)<\/body>/.exec(renderHtml(same))?.[1] ?? '';
+    expect(names).toEqual(landmarkNames(body));
+  });
+});

@@ -18,6 +18,7 @@
     "check:data": "npm run check:data -w @widedoor/core",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
+    "test:ssrf": "vitest run --project ssrf",
     "test:docker": "vitest run --project docker",
     "test:image": "tsc -b && vitest run --project image",
     "format": "prettier --write .",

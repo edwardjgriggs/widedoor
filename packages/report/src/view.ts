@@ -308,6 +308,17 @@ export const TEXT = {
   pdfUrlSkip:
     'Not scanned: the Widedoor version that wrote this report did not fetch PDFs by URL (pdf-url).',
   pdfUrlItem: ': a PDF link, not fetched by that version (pdf-url)',
+  robotsSkip:
+    'Not scanned: the robots.txt of the site disallows it for Widedoor (robots-disallowed).',
+  robotsUnreachableSkip:
+    "Not scanned: the site's robots.txt could not be read, so the page was not scanned (robots-unreachable).",
+  robotsUnreachableItem:
+    ": the site's robots.txt could not be read, so the page was not scanned (robots-unreachable)",
+  robotsUncheckedSkip:
+    'Not scanned: the address is too long to check against robots.txt, so the page was not scanned (robots-unchecked).',
+  robotsUncheckedItem:
+    ': the address is too long to check against robots.txt, so the page was not scanned (robots-unchecked)',
+  robotsItem: ': the robots.txt of the site disallows it for Widedoor (robots-disallowed)',
   emptyTitle: '(empty page title)',
   standardsAndRule: 'Standards and rule',
   whoAffects: 'Who this affects:',
