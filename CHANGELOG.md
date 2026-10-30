@@ -38,6 +38,37 @@ All notable changes to Widedoor are listed here. The format follows
   minute (per client network, per control route), each with one count line after the minute;
   each scan machine ends with an `egress_summary` line counting its refusals by reason.
 
+#### Phase 3b: AI fix suggestions, the MCP server and the docs site
+
+- AI fix suggestions, off by default ([docs/ai-fixes.md](docs/ai-fixes.md)): `--ai-fixes` on
+  `widedoor scan`, `ai.enabled` in the config, and `widedoor suggest --report <file>` for an
+  existing report. Claude (default model `claude-opus-5-5`) or OpenAI (`ai.model` required),
+  with the key from `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` only. Only failed checks are sent,
+  grouped by rule and redacted snippet, with no page URL, host, form value, query string or PDF
+  text; the redactor fails closed. `--ai-dry-run` prints exactly what would be sent and sends
+  nothing. Limits (`ai.maxGroups`, `ai.maxRequestsPerMinute`, `ai.concurrency`,
+  `ai.maxOutputTokens`, `ai.maxInputTokensTotal`) and early stops cap the cost. The results
+  go to `ai-suggestions.json` and `ai-suggestions.html` beside the report, every entry labeled
+  AI-generated; the report and the exit code never change. Ctrl+C during the suggestions
+  writes what it has and keeps the scan's exit code. Model answers are untrusted: a strict
+  schema, no links, no unsafe markup, shown as text only.
+- AI suggestions in `widedoor ui`: a "Suggest a fix (AI)" button on each failed check and
+  "Suggest fixes for all", with a confirm step that shows the provider, the model and exactly
+  what will be sent. The local server gets the capability from the CLI and never sees the key.
+- `widedoor mcp` ([docs/mcp.md](docs/mcp.md)): an MCP server on stdio with four tools
+  (`widedoor_scan_url`, `widedoor_scan_pdf`, `widedoor_read_report`, `widedoor_list_reports`).
+  It speaks MCP 2026-07-28 (stateless, `server/discover`) and legacy 2025-11-25 through
+  `initialize`. Public hosts only by default, behind the hosted egress proxy; `--allow-local`
+  for local hosts. Paths and reports stay inside the root folder. Scanned text arrives only in
+  `untrustedPageContent`. It never calls an AI provider and takes no credentials.
+- A Claude Code skill and an example MCP config (`integrations/claude-code/`).
+- The docs site (`packages/docs`, `npm run docs:build`): `README.md` and `docs/*.md` as static
+  HTML with no script, passing Widedoor's own scan, with a root `vercel.json` (strict CSP and
+  security headers) and a deploy runbook ([docs/docs-site-deploy.md](docs/docs-site-deploy.md)).
+  Not deployed.
+- Provider keys are kept out of every child process (veraPDF, Docker, Chromium and the browser
+  `widedoor ui` opens). The hosted API, agent and images never load the AI code.
+
 ### Fixed
 
 - Hotfix: the scan machine's firewall is now one native nftables ruleset (`table inet widedoor`,

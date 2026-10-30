@@ -78,6 +78,12 @@ jobs:
       - name: Test
         run: npm test
 
+      # The docs site as Vercel builds it (packages/docs; not part of npm run build). Its unit
+      # tests ran in npm test above, and its browser test (Widedoor's own scan of every page)
+      # runs with the browser tests below.
+      - name: Build the docs site
+        run: npm run docs:build
+
       # Audit before the browser tests, so a known-bad dependency fails the job before it runs.
       - name: Audit dependencies
         run: npm audit --audit-level=high

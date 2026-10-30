@@ -120,6 +120,16 @@ export type ReviewArgs = ReviewListArgs | ReviewRecordArgs;
 export const DIFF_FORMATS = ['text', 'json'] as const;
 export type DiffFormat = (typeof DIFF_FORMATS)[number];
 
+/** widedoor mcp: an MCP server on stdio (Task 3b.9). */
+export interface McpArgs {
+  command: 'mcp';
+  /** The folder reports go under and paths resolve in (default: the current folder). */
+  root?: string;
+  config?: string;
+  /** Lets scans reach localhost and private hosts (the default is public only, Decision 6). */
+  allowLocal: boolean;
+}
+
 export interface DiffArgs {
   command: 'diff';
   /** The two JSON reports, as given. */
@@ -137,7 +147,8 @@ export type Command =
   | UiArgs
   | ReviewArgs
   | DiffArgs
-  | SuggestArgs;
+  | SuggestArgs
+  | McpArgs;
 
 export const USAGE = `Usage: widedoor scan [urls and PDF files...] [options]
        widedoor ui [--report <file>] [--root <dir> | --config <file>] [--no-open]
@@ -149,6 +160,7 @@ export const USAGE = `Usage: widedoor scan [urls and PDF files...] [options]
        widedoor diff <before.json> <after.json> [--format text|json] [--fail-on-new]
        widedoor suggest --report <file> [--out <dir>] [--config <file>]
                         [--ai-provider anthropic|openai] [--ai-model <id>] [--ai-dry-run]
+       widedoor mcp [--root <dir>] [--config <file>] [--allow-local]
 
 Scans web pages (http and https URLs), PDFs by URL (a URL ending in .pdf) and
 local PDF files against Section 508 and WCAG 2.1 AA and writes reports. Without
@@ -247,6 +259,20 @@ diff options:
   --format <format>     text or json (default: text)
   --fail-on-new         exit 1 when the after report has a new failed check
 
+widedoor mcp runs an MCP server on stdin and stdout for an AI coding agent. Its
+tools scan web pages and PDFs, read the findings of a report and list the
+reports in the root folder. Reports go to widedoor-report/mcp/<time>/ in the root,
+and paths resolve only inside it. It scans public hosts only, unless
+--allow-local is given; it takes no signed-in session and never calls an AI
+provider. Page text in its results is marked as untrusted data. It runs until
+the client closes stdin.
+
+mcp options:
+  --root <dir>          the root folder (default: the current folder)
+  --config <file>       config file (default: widedoor.config.yaml in the root, when present)
+  --allow-local         let scans reach localhost, private and other local hosts (for a
+                        dev server); without it they are refused
+
 Exit codes:
   0  no failed check at or above --fail-on
   1  a failed check at or above --fail-on (needs-review results never count)
@@ -278,6 +304,7 @@ export function parseFormats(flag: string, value: string): Format[] {
 }
 
 const UI_ONLY = ['report', 'root', 'no-open'] as const;
+const MCP_OPTIONS: readonly string[] = ['root', 'config', 'allow-local'];
 const SUGGEST_OPTIONS: readonly string[] = [
   'report',
   'out',
@@ -414,6 +441,24 @@ function suggestArgs(values: Values, rest: string[]): SuggestArgs {
   return args;
 }
 
+function mcpArgs(values: Values, targets: string[]): McpArgs {
+  if (targets.length > 0)
+    throw new UsageError(`widedoor mcp takes no targets; got "${targets[0]}"`);
+  for (const [flag, value] of Object.entries(values))
+    if (value !== undefined && !MCP_OPTIONS.includes(flag))
+      throw new UsageError(`--${flag} is not an option of widedoor mcp`);
+  const args: McpArgs = { command: 'mcp', allowLocal: values['allow-local'] === true };
+  if (typeof values.root === 'string') {
+    if (values.root === '') throw new UsageError('--root needs a folder');
+    args.root = values.root;
+  }
+  if (typeof values.config === 'string') {
+    if (values.config === '') throw new UsageError('--config needs a file');
+    args.config = values.config;
+  }
+  return args;
+}
+
 function uiArgs(values: Values, targets: string[]): UiArgs {
   if (targets.length > 0)
     throw new UsageError(`widedoor ui takes no targets; got "${targets[0]}". Use --report <file>`);
@@ -474,6 +519,7 @@ export function parseCommand(argv: readonly string[]): Command {
         'ai-dry-run': { type: 'boolean' },
         'ai-provider': { type: 'string' },
         'ai-model': { type: 'string' },
+        'allow-local': { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -487,15 +533,18 @@ export function parseCommand(argv: readonly string[]): Command {
   const [command, ...targets] = positionals;
   if (command === undefined) throw new UsageError('no command given', true);
   if (command === 'ui') return uiArgs(values, targets);
+  if (command === 'mcp') return mcpArgs(values, targets);
   if (command === 'review') return reviewArgs(values, targets);
   if (command === 'diff') return diffArgs(values, targets);
   if (command === 'suggest') return suggestArgs(values, targets);
   if (command !== 'scan')
     throw new UsageError(
-      `unknown command "${command}"; expected scan, ui, review, diff or suggest`,
+      `unknown command "${command}"; expected scan, ui, review, diff, suggest or mcp`,
     );
   for (const flag of UI_ONLY)
     if (values[flag] !== undefined) throw new UsageError(`--${flag} is an option of widedoor ui`);
+  if (values['allow-local'] !== undefined)
+    throw new UsageError('--allow-local is an option of widedoor mcp');
   for (const flag of DIFF_ONLY)
     if (values[flag] !== undefined) throw new UsageError(`--${flag} is an option of widedoor diff`);
   for (const flag of [...REVIEW_LIST_ONLY, ...REVIEW_RECORD_ONLY])

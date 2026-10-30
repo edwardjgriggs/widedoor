@@ -9,3 +9,4 @@ packages/report/test/__snapshots__/** -text
 packages/core/schema/finding.v1.json -text
 packages/ai/schema/ai-suggestions.v1.json -text
 docker/*.sh text eol=lf
+Dockerfile text eol=lf

@@ -8,7 +8,14 @@ import {
   type ScanReport,
 } from '@widedoor/report';
 import { SentRecordSchema, type AiLimits, type SentRecord } from './model.js';
-import { redactSelector, redactSnippet, redactText, toRedactions, type Counts } from './redact.js';
+import {
+  redactSelector,
+  redactSnippet,
+  redactText,
+  toRedactions,
+  type Counts,
+  type RedactionKind,
+} from './redact.js';
 
 /*
  * What is sent: one request per group of identical problems (ruling 3).
@@ -109,7 +116,8 @@ export function standardStructPath(path: string, counts: Counts): string {
       // PDF 2.0 allows headings past H6 (Hn).
       if (m && (STANDARD_STRUCTURE_TYPES.has(m[1] ?? '') || /^H[1-9]\d*$/.test(m[1] ?? '')))
         return step;
-      counts.set('structure-type', (counts.get('structure-type') ?? 0) + 1);
+      const kind: RedactionKind = 'structure-type';
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
       return m?.[2] !== undefined ? `Custom[${m[2]}]` : 'Custom';
     })
     .join('/');

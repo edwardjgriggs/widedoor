@@ -99,7 +99,7 @@ describe('parseCommand', () => {
 
   it.each([
     [[], /no command given/],
-    [['audit'], /unknown command "audit"; expected scan, ui, review, diff or suggest/],
+    [['audit'], /unknown command "audit"; expected scan, ui, review, diff, suggest or mcp/],
     [['scan', '--bogus'], /Unknown option '--bogus'/],
     [['scan', '--profile', '2.2'], /--profile must be one of 508, wcag21aa, 508\+wcag21aa/],
     [['scan', '--format', 'pdf'], /--format must be one of html, json, sarif, junit/],

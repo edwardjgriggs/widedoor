@@ -21,6 +21,44 @@ export const SENT_SNIPPET_MAX = 2000;
 /** The marker the web engine appends to a snippet it cut (packages/web truncateSnippet). */
 const ENGINE_CUT = '...';
 
+/**
+ * Every kind of redaction, with what it removes or masks: the one list the
+ * code counts by (count and mask take only these, so TypeScript refuses a
+ * kind missing here) and the table docs/ai-fixes.md shows (a test checks the
+ * page against it). structure-type is counted in context.ts.
+ */
+export const REDACTION_KINDS = {
+  attribute: 'An attribute not on the allowlist, or with a token-shaped name: dropped.',
+  comment: 'An HTML comment: dropped.',
+  'contact-url': 'A mailto:, tel:, sms: or callto: URL: masked whole.',
+  'data-json': 'A data-* attribute that holds JSON: dropped.',
+  'data-url': 'A data: URL: masked whole.',
+  email: 'An email address: masked.',
+  'event-handler': 'An on* event handler attribute: dropped.',
+  field: 'Text in a form field, such as a textarea or a hidden, password or sign-in input: masked.',
+  fragment: 'The #fragment of a URL: masked (a same-page id link stays).',
+  'hex-token': 'A long run of hex digits: masked.',
+  host: 'The host of a URL: masked. No page address is ever sent.',
+  jwt: 'A JSON Web Token: masked.',
+  number: 'A long number, such as an account or card number: masked.',
+  phone: 'A phone number: masked.',
+  'query-string': 'The ?query of a URL, or query parameters in text: masked.',
+  'script-body': 'The body of a script element: dropped.',
+  'script-url': 'A javascript: or vbscript: URL: masked whole.',
+  'structure-type': 'A non-standard PDF structure type name: sent as Custom.',
+  style: 'A style attribute: dropped.',
+  'style-body': 'The body of a style element: dropped.',
+  token: 'A token-shaped word (letters with digits, or mixed case): masked.',
+  truncated: 'The snippet was cut (by the scan or at the size limit): the rest is not sent.',
+  unparsed: 'Markup the redactor cannot follow: dropped with everything after it.',
+  url: 'A URL in a selector attribute match: masked.',
+  userinfo: 'A user name or password inside a URL: masked.',
+  uuid: 'A UUID: masked.',
+  value: 'A value attribute: dropped.',
+} as const;
+
+export type RedactionKind = keyof typeof REDACTION_KINDS;
+
 /** Redaction counts by kind; callers share one map across a snippet, its selector and its text. */
 export type Counts = Map<string, number>;
 
@@ -29,11 +67,11 @@ export interface Redacted {
   redactions: { kind: string; count: number }[];
 }
 
-const count = (counts: Counts, kind: string, n = 1) =>
+const count = (counts: Counts, kind: RedactionKind, n = 1) =>
   counts.set(kind, (counts.get(kind) ?? 0) + n);
 
 const merge = (into: Counts, from: Counts) => {
-  for (const [kind, n] of from) count(into, kind, n);
+  for (const [kind, n] of from) into.set(kind, (into.get(kind) ?? 0) + n);
 };
 
 /** Redaction kinds in a fixed (alphabetical) order. */
@@ -43,7 +81,7 @@ export const toRedactions = (counts: Counts): Redacted['redactions'] =>
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([kind, n]) => ({ kind, count: n }));
 
-const mask = (kind: string) => `[redacted:${kind}]`;
+const mask = (kind: RedactionKind) => `[redacted:${kind}]`;
 const MASKED = '[redacted]';
 
 // Entities.
@@ -220,7 +258,7 @@ const NUMBER_RUN = /\+?\(?\d[\d ().-]{5,}\d|\d{9,}/g;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A run of 24 or more token characters with a digit and a letter, or mixed case. */
-function tokenKind(run: string): string | undefined {
+function tokenKind(run: string): RedactionKind | undefined {
   if (/^[0-9a-fA-F]+$/.test(run)) return 'hex-token';
   const hit = (/[A-Za-z]/.test(run) && /\d/.test(run)) || (/[a-z]/.test(run) && /[A-Z]/.test(run));
   return hit ? 'token' : undefined;
@@ -234,7 +272,7 @@ const tokenShaped = (name: string) =>
  * A phone number (7 to 15 digits with a separator or a leading +), or a
  * number: an unbroken run of 9 or more digits, or 16 or more with separators.
  */
-function numberKind(run: string): string | undefined {
+function numberKind(run: string): RedactionKind | undefined {
   if (DATE.test(run)) return undefined;
   const digits = run.replace(/\D/g, '').length;
   const separated = /[ ().+-]/.test(run);
@@ -246,7 +284,7 @@ function numberKind(run: string): string | undefined {
 
 /** The masks that need no URL shape: JWTs, emails, UUIDs, tokens and numbers. */
 function maskShapes(text: string, counts: Counts, email = true): string {
-  const hit = (kind: string) => (count(counts, kind), mask(kind));
+  const hit = (kind: RedactionKind) => (count(counts, kind), mask(kind));
   return (email ? text.replace(EMAIL, () => hit('email')) : text)
     .replace(JWT, () => hit('jwt'))
     .replace(UUID, () => hit('uuid'))
@@ -423,7 +461,7 @@ export function redactAttribute(
   name: string,
   value: string,
   counts: Counts,
-): { value: string } | { drop: string } {
+): { value: string } | { drop: RedactionKind } {
   const n = name.toLowerCase();
   if (tokenShaped(n)) return { drop: 'attribute' };
   if (n === 'value') return { drop: 'value' };
@@ -469,7 +507,7 @@ const VOID = new Set([
   'wbr',
 ]);
 /** Raw text bodies: dropped with the kind given. textarea holds a field value. */
-const RAW: Record<string, string> = {
+const RAW: Record<string, RedactionKind> = {
   script: 'script-body',
   style: 'style-body',
   textarea: 'field',

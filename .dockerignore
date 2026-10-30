@@ -12,6 +12,7 @@
 corpus
 packages/*/test
 sbom.json
+vercel.json
 **/widedoor-report
 **/widedoor-review
 **/evidence

@@ -125,6 +125,23 @@ describe('Dockerfile', () => {
     expect(cli).toContain('COPY --from=build /src/packages/ai/dist packages/ai/dist');
   });
 
+  // Task 3b.11 ruling 2: the docs site is in no image.
+  it('keeps the docs site out of every image', () => {
+    const deps = stage('deps');
+    expect(deps).toContain('rm -rf .npmrc packages/ai packages/docs node_modules/@widedoor/docs');
+    expect(deps).toContain('test ! -e node_modules/@widedoor/docs');
+    expect(stage('deps-cli')).toContain('rm -rf .npmrc packages/docs node_modules/@widedoor/docs');
+    for (const name of ['base', 'scan', 'hosted', 'cli']) {
+      expect(stage(name), name).not.toContain('packages/docs');
+      expect(stage(name), name).not.toContain('@widedoor/docs');
+    }
+    // And no Widedoor package the images ship depends on it.
+    for (const p of ['core', 'web', 'pdf', 'report', 'ai', 'server', 'cli', 'ui']) {
+      const json = readFileSync(join(ROOT, 'packages', p, 'package.json'), 'utf8');
+      expect(json, p).not.toContain('@widedoor/docs');
+    }
+  });
+
   it('copies the build output of the CLI and every Widedoor package it depends on', () => {
     const deps = (name: string): string[] => {
       const json = JSON.parse(

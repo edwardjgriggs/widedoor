@@ -58,6 +58,23 @@ export interface ScanRequest {
    * its file name (home as ~). Otherwise (the CLI) only temp paths are.
    */
   hideAllPaths?: boolean;
+  /**
+   * The public-only network policy of widedoor mcp (Decision 6): every browser
+   * request goes through the egress proxy behind requestGuard, and every Node
+   * fetch (PDFs by URL) through fetcher, each hop checked. Absent, the scan
+   * reaches the network as widedoor scan does.
+   */
+  egress?: ScanEgress;
+}
+
+/** How a local scan is held to the public-only egress policy (an in-process egress proxy). */
+export interface ScanEgress {
+  /** The egress proxy for every browser request (an IP literal URL). */
+  proxy: { server: string };
+  /** The early browser check in front of the proxy (guardedRequestGuard). */
+  requestGuard: RequestGuard;
+  /** Every Node fetch: each hop checked by the policy and the pinned resolver. */
+  fetcher: Fetcher;
 }
 
 /**
@@ -294,6 +311,7 @@ async function runScan(
   const { plan, reviews } = request;
   const hosted = 'hosted' in request ? request.hosted : undefined;
   const evidenceDir = 'evidenceDir' in request ? request.evidenceDir : undefined;
+  const egress = 'egress' in request ? request.egress : undefined;
   const { signal } = hooks;
   const log = hooks.log ?? (() => undefined);
   const tracker = new ProcessTracker();
@@ -367,7 +385,13 @@ async function runScan(
                   pagePolicy: hosted.pagePolicy,
                   maxPolicySkips: hosted.maxPolicySkips,
                 }
-              : {}),
+              : egress
+                ? {
+                    proxy: egress.proxy,
+                    requestGuard: egress.requestGuard,
+                    fetcher: egress.fetcher,
+                  }
+                : {}),
             ...(signal ? { signal } : {}),
             onProgress: (p) => progress(p, 'web'),
           },
@@ -421,7 +445,7 @@ async function runScan(
           toFetch.map((p) => p.url),
           {
             maxBytes: plan.pdfMaxBytes,
-            ...(hosted ? { fetcher: hosted.fetcher } : {}),
+            ...(hosted ? { fetcher: hosted.fetcher } : egress ? { fetcher: egress.fetcher } : {}),
             onTempDir: (dir) => (pdfTemp = dir),
             ...(signal ? { signal } : {}),
           },

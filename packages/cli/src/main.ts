@@ -63,6 +63,11 @@ export async function main(
       const { runDiff } = await import('./diff-cmd.js');
       return runDiff(command, io);
     }
+    if (command.command === 'mcp') {
+      // Never loads @widedoor/ai: the MCP server calls no AI provider (ruling 7).
+      const { runMcp } = await import('./mcp/server.js');
+      return await runMcp(command, io);
+    }
     if (command.command === 'suggest') {
       const { runSuggest } = await import('./suggest-cmd.js');
       return await runSuggest(command, io, hooks.ai);

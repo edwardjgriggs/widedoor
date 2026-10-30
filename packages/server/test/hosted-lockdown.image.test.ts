@@ -484,7 +484,7 @@ describe('the scan image', () => {
   it('keeps @widedoor/ai and the provider SDKs out of the scan and hosted images (D16)', () => {
     // Lists what each image holds; only the CLI image may carry AI fix suggestions.
     const LIST =
-      'for p in /app/packages/ai /app/node_modules/@widedoor/ai /app/node_modules/@anthropic-ai /app/node_modules/openai; do test -e $p && echo $p; done; ls /app/node_modules/@widedoor; echo end';
+      'for p in /app/packages/ai /app/node_modules/@widedoor/ai /app/node_modules/@anthropic-ai /app/node_modules/openai /app/packages/docs /app/node_modules/@widedoor/docs; do test -e $p && echo $p; done; ls /app/node_modules/@widedoor; echo end';
     const list = (image: string) =>
       docker(['run', '--rm', '--label', LABEL, '--entrypoint', 'sh', image, '-c', LIST])
         .stdout.trim()
@@ -499,7 +499,8 @@ describe('the scan image', () => {
       expect(held, image).not.toContain('ai');
       expect(held, image).toContain('server');
     }
-    expect(list(CLI)).toEqual(
+    const cli = list(CLI);
+    expect(cli).toEqual(
       expect.arrayContaining([
         '/app/packages/ai',
         '/app/node_modules/@widedoor/ai',
@@ -508,6 +509,9 @@ describe('the scan image', () => {
         'ai',
       ]),
     );
+    // The docs site is in no image (Task 3b.11 ruling 2).
+    for (const held of [list(SCAN), list(HOSTED), cli])
+      expect(held.filter((l) => l.includes('docs'))).toEqual([]);
   });
 
   it(

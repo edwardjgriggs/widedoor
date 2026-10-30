@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FindingSchema, findingId, getProfile, type Asset, type Finding } from '@widedoor/core';
 import { buildScanReport, serializeJson } from '@widedoor/report';
@@ -431,7 +431,10 @@ describe('loading @widedoor/ai (ruling 6)', () => {
   it('the CLI imports it nowhere but the one dynamic import in ai.ts', () => {
     const dir = join(ROOT, 'packages', 'cli', 'src');
     const hits: string[] = [];
-    for (const name of readdirSync(dir)) {
+    // Every source file, src/mcp/ included (the MCP server calls no AI provider, ruling 7).
+    for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      const name = relative(dir, join(entry.parentPath, entry.name)).split(sep).join('/');
       const text = readFileSync(join(dir, name), 'utf8');
       for (const line of text.split('\n'))
         if (/['"]@widedoor\/ai['"]/.test(line) && !/^import type /.test(line.trim()))
