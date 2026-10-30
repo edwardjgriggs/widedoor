@@ -27,6 +27,7 @@ export default defineConfig({
       { find: /^@widedoor\/pdf$/, replacement: src('pdf/src/index.ts') },
       { find: /^@widedoor\/report$/, replacement: src('report/src/index.ts') },
       { find: /^@widedoor\/report\/browser$/, replacement: src('report/src/browser.ts') },
+      { find: /^@widedoor\/ai$/, replacement: src('ai/src/index.ts') },
       { find: /^@widedoor\/server$/, replacement: src('server/src/index.ts') },
     ],
   },
@@ -42,6 +43,8 @@ export default defineConfig({
           name: 'unit',
           include,
           exclude: [browser, docker, image, ssrf, modules],
+          // Turns the network off for the packages/ai tests (it checks the test file path).
+          setupFiles: ['packages/ai/test/setup-no-network.ts'],
           testTimeout: 30_000,
         },
       },

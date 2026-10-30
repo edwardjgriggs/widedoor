@@ -25,6 +25,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/web/package.json packages/web/
 COPY packages/pdf/package.json packages/pdf/
 COPY packages/report/package.json packages/report/
+COPY packages/ai/package.json packages/ai/
 COPY packages/server/package.json packages/server/
 COPY packages/cli/package.json packages/cli/
 COPY packages/ui/package.json packages/ui/
@@ -42,6 +43,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/web/package.json packages/web/
 COPY packages/pdf/package.json packages/pdf/
 COPY packages/report/package.json packages/report/
+COPY packages/ai/package.json packages/ai/
 COPY packages/server/package.json packages/server/
 COPY packages/cli/package.json packages/cli/
 COPY packages/ui/package.json packages/ui/

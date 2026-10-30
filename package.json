@@ -14,7 +14,7 @@
   "scripts": {
     "lint": "eslint .",
     "build": "tsc -b && npm run build -w @widedoor/ui",
-    "typecheck": "tsc -b && tsc -p packages/core/tsconfig.dev.json && tsc -p packages/web/tsconfig.dev.json && tsc -p packages/pdf/tsconfig.dev.json && tsc -p packages/report/tsconfig.dev.json && tsc -p packages/server/tsconfig.dev.json && tsc -p packages/cli/tsconfig.dev.json && tsc -p packages/action/tsconfig.dev.json && tsc -p corpus && tsc -p packages/ui",
+    "typecheck": "tsc -b && tsc -p packages/core/tsconfig.dev.json && tsc -p packages/web/tsconfig.dev.json && tsc -p packages/pdf/tsconfig.dev.json && tsc -p packages/report/tsconfig.dev.json && tsc -p packages/ai/tsconfig.dev.json && tsc -p packages/server/tsconfig.dev.json && tsc -p packages/cli/tsconfig.dev.json && tsc -p packages/action/tsconfig.dev.json && tsc -p corpus && tsc -p packages/ui",
     "check:data": "npm run check:data -w @widedoor/core",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
