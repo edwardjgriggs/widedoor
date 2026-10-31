@@ -483,6 +483,7 @@ export function HostedApp({ data, env = browserEnv }: HostedAppProps) {
               <div className="actions">
                 <button
                   type="button"
+                  className="primary"
                   aria-disabled={sending !== undefined || gate.waiting}
                   onClick={() => void submit()}
                 >

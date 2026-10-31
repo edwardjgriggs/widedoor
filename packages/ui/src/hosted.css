@@ -3,9 +3,22 @@ input[type='url'] {
   font: inherit;
   width: 100%;
   max-width: 40rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--field);
+  border-radius: 4px;
+  padding: 0.5rem 0.65rem;
 }
 input[aria-invalid='true'] {
   border: 2px solid var(--fail);
+}
+/* The status line stays rendered while empty (a live region must exist before it speaks). */
+.progress {
+  color: var(--muted);
+  font-weight: 600;
+}
+.progress:empty {
+  margin: 0;
 }
 .copyable {
   display: flex;
@@ -24,5 +37,5 @@ summary {
   margin: 0.5rem 0;
 }
 footer .downloads {
-  margin-top: 1rem;
+  margin-top: 0;
 }

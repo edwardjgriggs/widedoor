@@ -1,12 +1,133 @@
-/* Viewer additions to the HTML report style sheet (virtual:widedoor-report.css). */
+/*
+ * Viewer additions to the HTML report style sheet (virtual:widedoor-report.css), and the
+ * viewer's own theme: the docs site's civic look (a navy header band, a warm paper page,
+ * serif headings) with dark following the system setting. The theme overrides the report's
+ * colour variables here, in the viewer only: a downloaded HTML report keeps its own look.
+ * System fonts only: the CSP loads nothing from elsewhere.
+ */
+
+/*
+ * Light. On the paper #f8f6f1 (and the panel #ffffff): text #1b1e24 15.5:1, muted #4a4f57
+ * 7.6:1, links #0b4f8a 7.8:1, fail #a4161a 7.2:1, review #7a4b00 6.9:1, accent #9a4512 6.0:1,
+ * field borders #6b655b 5.4:1. On the navy #0b2545: white 15.4:1, lead #d6deea 11.4:1,
+ * rule #f2b880 8.8:1. White on the accent button 6.5:1.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: #f8f6f1;
+  --panel: #ffffff;
+  --ink: #1b1e24;
+  --muted: #4a4f57;
+  --line: #d9d3c4;
+  --link: #0b4f8a;
+  --fail: #a4161a;
+  --review: #7a4b00;
+  --accent: #9a4512;
+  --on-accent: #ffffff;
+  --field: #6b655b;
+  --navy: #0b2545;
+  --on-navy: #ffffff;
+  --on-navy-soft: #d6deea;
+  --on-navy-rule: #f2b880;
+  --serif:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, Charter, 'Book Antiqua', Georgia, serif;
+}
+
+/*
+ * Dark. On the paper #0e141c (and the panel #151d28): text #e7e4dc 14.6:1, muted #b3aea3
+ * 8.4:1, links #8ec5ff 10.2:1, fail #ff9a94 9.1:1, review #f0b45a 10.0:1, accent #f0a868
+ * 9.3:1, field borders #7d8ca0 5.0:1. On the header #070d16: white 19.5:1. Paper on the
+ * accent button 9.3:1.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e141c;
+    --panel: #151d28;
+    --ink: #e7e4dc;
+    --muted: #b3aea3;
+    --line: #2c3a4c;
+    --link: #8ec5ff;
+    --fail: #ff9a94;
+    --review: #f0b45a;
+    --accent: #f0a868;
+    --on-accent: #0e141c;
+    --field: #7d8ca0;
+    --navy: #070d16;
+  }
+}
+
+body {
+  line-height: 1.6;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+h2 {
+  border-bottom-width: 1px;
+  padding-bottom: 0.25rem;
+}
+a {
+  text-underline-offset: 0.18em;
+}
+
+/* The header: a navy band the full width of the window, its content on the page's column. */
+#root > header {
+  max-width: none;
+  padding: 1.5rem max(1.25rem, calc(50% - 30rem + 1.25rem)) 1.75rem;
+  background: var(--navy);
+  color: var(--on-navy);
+  border-bottom: 4px solid var(--on-navy-rule);
+}
+#root > header h1 {
+  font-size: 2.1rem;
+  line-height: 1.2;
+  margin: 0.5rem 0;
+}
+#root > header .lead {
+  color: var(--on-navy-soft);
+  font-size: 1.1rem;
+  max-width: 44rem;
+  margin: 0.5rem 0 0;
+}
+#root > header :focus-visible {
+  outline-color: var(--on-navy);
+}
+#root > header button {
+  background: transparent;
+  color: var(--on-navy);
+  border-color: var(--on-navy-soft);
+}
+#root > header button[aria-current='page'] {
+  background: var(--on-navy);
+  color: var(--navy);
+  border-color: var(--on-navy);
+}
+
+#root > main {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+}
+#root > footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.95rem;
+  padding-top: 1.25rem;
+  padding-bottom: 2.5rem;
+}
+
 .tools {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0 1rem 1rem;
-  margin: 1rem 0;
+  border-radius: 8px;
+  padding: 0 1.25rem 1.25rem;
+  margin: 1rem 0 1.5rem;
+  background: var(--panel);
 }
 .tools h2 {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 .fields {
   display: flex;
@@ -21,31 +142,64 @@
 label {
   display: block;
   font-weight: 700;
-  margin: 0.5rem 0 0.25rem;
+  margin: 1rem 0 0.25rem;
 }
 select,
+textarea,
+input[type='text'],
 input[type='file'] {
   font: inherit;
   max-width: 100%;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--field);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+}
+input[type='file'] {
+  padding: 0.3rem;
+}
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: -0.15rem;
 }
 .error {
   color: var(--fail);
   font-weight: 700;
 }
+.error:empty {
+  margin: 0;
+}
 textarea,
 input[type='text'] {
-  font: inherit;
   width: 100%;
   max-width: 40rem;
 }
 button {
   font: inherit;
-  padding: 0.3rem 0.9rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
   border: 1px solid var(--ink);
   border-radius: 4px;
-  background: var(--bg);
+  background: var(--panel);
   color: var(--ink);
   cursor: pointer;
+}
+button:hover {
+  background: var(--bg);
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  padding: 0.55rem 1.4rem;
+}
+button.primary:hover {
+  background: var(--accent);
+  text-decoration: underline;
 }
 button[aria-current='page'] {
   background: var(--ink);
@@ -54,6 +208,7 @@ button[aria-current='page'] {
 button[aria-disabled='true'] {
   border-style: dashed;
   cursor: not-allowed;
+  opacity: 0.85;
 }
 :focus-visible {
   outline: 3px solid var(--link);
@@ -63,21 +218,31 @@ button[aria-disabled='true'] {
 .downloads {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.5rem 1.25rem;
   list-style: none;
   padding: 0;
   margin: 0.5rem 0;
 }
+#root > header .nav {
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 .note {
   border-left: 4px solid var(--review);
   background: var(--panel);
   padding: 0.5rem 0.75rem;
+}
+.disclaimer {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--panel);
 }
 .items {
   list-style: none;
@@ -85,10 +250,14 @@ button[aria-disabled='true'] {
 }
 .item {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 1rem;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
   margin: 0 0 1rem;
   background: var(--panel);
+}
+.card,
+.finding {
+  border-radius: 8px;
 }
 .review {
   border-top: 1px solid var(--line);
@@ -98,9 +267,14 @@ fieldset {
   border: 1px solid var(--line);
   border-radius: 6px;
   margin: 1rem 0 0;
+  padding: 0.5rem 1rem 0.75rem;
 }
 legend {
   font-weight: 700;
+  padding: 0 0.25rem;
+}
+.choice {
+  margin: 0.35rem 0;
 }
 .choice label {
   display: inline;
