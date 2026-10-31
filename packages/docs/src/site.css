@@ -38,7 +38,8 @@
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
   --measure: 46rem;
-  --wide: 76rem;
+  --wide: 84rem;
+  --toc: 13rem;
 }
 
 /*
@@ -277,6 +278,10 @@ nav {
   text-transform: uppercase;
 }
 
+nav ul + .nav-title {
+  margin-top: 1.5rem;
+}
+
 nav ul {
   list-style: none;
   margin: 0;
@@ -333,6 +338,122 @@ main {
   flex: 1 1 30rem;
   min-width: 0;
   max-width: var(--measure);
+}
+
+/*
+ * "On this page": a box under the h1 on narrow screens; on wide ones a column to the right
+ * of the doc that stays in view.
+ */
+.toc {
+  margin: 0 0 2rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.92rem;
+}
+
+.toc-title {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc li {
+  margin: 0;
+}
+
+.toc a {
+  display: block;
+  padding: 0.2rem 0;
+  line-height: 1.4;
+}
+
+@media (min-width: 72rem) {
+  main.has-toc {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) var(--toc);
+    column-gap: 2.5rem;
+    align-items: start;
+    max-width: calc(var(--measure) + var(--toc) + 2.5rem);
+  }
+
+  main.has-toc > h1,
+  main.has-toc > .doc {
+    grid-column: 1;
+  }
+
+  main.has-toc > .toc {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 1.5rem;
+    margin: 0;
+    padding: 0 0 0 1rem;
+    background: none;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+  }
+}
+
+/* The cards of the home page. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+}
+
+.cards li {
+  margin: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  border-top-color: var(--accent);
+}
+
+.card:hover .card-title {
+  text-decoration: underline;
+}
+
+.card-title {
+  color: var(--link);
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.card-text {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 /* The doc. */

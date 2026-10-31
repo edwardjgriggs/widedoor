@@ -1,6 +1,8 @@
 # Widedoor
 
-Widedoor is an open source accessibility checker that lets a developer or a small business without an accessibility specialist test websites and PDFs against Section 508 and WCAG 2.1 AA. It produces a plain-language report of what is wrong, who it affects, and how to fix it, and a per-criterion summary that never claims conformance it did not test. Each criterion gets one level. It reads "Not Applicable" when the profile, or a manual review that gives a reason, rules it out for every asset in scope. Otherwise, it reads "Partially Supports" when some applicable assets fail it and others pass, and "Does Not Support" when some fail and none pass. It reads "Supports" only when every applicable asset passes through a deciding automated rule, a recorded manual result that is still current, or, for WCAG 4.1.1 Parsing alone, the errata basis: the WCAG 2.0 and 2.1 errata (recorded with their sources in `packages/core/data/errata.yaml`) say 4.1.1 is always satisfied, so a scan with no failure on it reports 4.1.1 Supports on that basis, and every report says so in its reason. Everything else reads "Not Evaluated," including a scan with no assets in scope. An incomplete scope (a truncated crawl, an unreadable sitemap, or a page or file that could not be scanned) turns Supports, and a Not Applicable that rests on a manual review, into "Not Evaluated." Manual results are recorded with `widedoor review` or on the Checklist screen of `widedoor ui` (see Usage), the ACR formats write an Accessibility Conformance Report (ACR) in OpenACR YAML and as HTML and DOCX in the VPAT® 2.5Rev Section 508 layout, and `widedoor diff` compares two reports.
+Widedoor is an open source accessibility checker that lets a developer or a small business without an accessibility specialist test websites and PDFs against Section 508 and WCAG 2.1 AA. It produces a plain-language report of what is wrong, who it affects, and how to fix it, and a per-criterion summary that never claims conformance it did not test.
+
+It also records manual reviews, writes an Accessibility Conformance Report (ACR) in OpenACR YAML and as HTML and DOCX in the VPAT® 2.5Rev Section 508 layout, and compares two reports with `widedoor diff`. [What is and is not automated](#what-is-and-is-not-automated) says how each criterion gets its level.
 
 ## Status
 
@@ -56,10 +58,27 @@ Not automated:
 - An automated pass alone never makes a criterion "Supports". It could only when the rule that
   passed decides the criterion on its own, and no rule is marked as deciding yet, so a criterion
   reaches Supports only through a recorded manual result that is still current, or, for 4.1.1
-  Parsing alone, the errata basis described above. A failed check still makes it Does Not
+  Parsing alone, the errata basis described below. A failed check still makes it Does Not
   Support or Partially Supports, 4.1.1 included.
 - A scan covers the pages and files it was given. Criteria that depend on a whole site (for
   example consistent navigation) need a manual review or a scan of every page and file.
+
+### How each criterion gets its level
+
+Each criterion gets one level. It reads "Not Applicable" when the profile, or a manual review
+that gives a reason, rules it out for every asset in scope. Otherwise, it reads "Partially
+Supports" when some applicable assets fail it and others pass, and "Does Not Support" when some
+fail and none pass. It reads "Supports" only when every applicable asset passes through a
+deciding automated rule, a recorded manual result that is still current, or, for WCAG 4.1.1
+Parsing alone, the errata basis: the WCAG 2.0 and 2.1 errata (recorded with their sources in
+`packages/core/data/errata.yaml`) say 4.1.1 is always satisfied, so a scan with no failure on it
+reports 4.1.1 Supports on that basis, and every report says so in its reason.
+
+Everything else reads "Not Evaluated," including a scan with no assets in scope. An incomplete
+scope (a truncated crawl, an unreadable sitemap, or a page or file that could not be scanned)
+turns Supports, and a Not Applicable that rests on a manual review, into "Not Evaluated."
+Manual results are recorded with `widedoor review` or on the Checklist screen of `widedoor ui`
+(see [Usage](#usage)).
 
 ## Usage
 
@@ -78,6 +97,8 @@ widedoor review record --report widedoor-report/report.json --item ck_0123456789
   --outcome pass --reviewer "Ann Lee" --notes "Tabbed through every control" --attach focus.png
 widedoor --help
 ```
+
+### What a scan covers
 
 - Web pages are scanned by http or https URL, PDFs as local files or by URL. PDFs need Docker
   with `docker pull verapdf/cli:v1.30.3` (or veraPDF 1.30.3 on PATH, which runs without the
@@ -117,6 +138,9 @@ widedoor --help
   Command-line targets do not replace it, and the report records it (`profile.pdfDocumentType`).
 - A `pdf.include` that matches no file is a warning and a scope gap in every report, not a
   silent empty PDF scope.
+
+### Report files and formats
+
 - Reports go to `./widedoor-report/report.html`, `report.json` and `report.sarif`, with
   screenshots in `./widedoor-report/evidence/`. Change the folder with `--out` and the formats
   with `--format html,json,sarif`. JUnit is not a default: `--format` replaces the list, so
@@ -145,6 +169,8 @@ widedoor --help
 
   Unknown keys are refused, and a version YAML reads as a number (`2.10`) must be quoted.
 
+### Signed-in pages and CI gates
+
 - Signed-in pages: pass a Playwright storage state with `--storage-state <file>` or
   `WIDEDOOR_STORAGE_STATE`. A config's `web.auth.storageState` must sit inside the config folder.
   Reports of signed-in pages are written private (0600) on POSIX; on Windows they inherit the
@@ -155,6 +181,9 @@ widedoor --help
   fails that a review record overrides (the reports still show the overrides), for runs on
   changes whose `widedoor-review/` files are not trusted. The summary then says how many
   counted failed checks a reviewer had overridden.
+
+### Manual reviews
+
 - Manual review records in `widedoor-review/*.yaml` next to the config (or the current folder)
   are added to the report. Records for pages or files outside the run, of the wrong kind, with an
   override the run does not support, replaced by a newer record or for a criterion that is not a
@@ -236,6 +265,8 @@ widedoor --help
   **/widedoor-review/**/.*.tmp
   ```
 
+### The local viewer
+
 - `widedoor ui [--report <file>] [--root <dir> | --config <file>] [--no-open]` shows a JSON
   report in a local viewer. It serves on `127.0.0.1` only, on a random port, and prints a link
   with a one-time access code, then opens it in the default browser (unless `--no-open`). The
@@ -305,11 +336,13 @@ widedoor --help
     Refusals name a config file relative to the root, never by its absolute path.
   - The server writes only review records and their attachments in `<root>/widedoor-review/`
     and its own temp folder for uploads and screenshots, removed when it stops.
-- Exit codes: 0 when no failed check is at or above `--fail-on` (default `serious`; `none` turns
-  it off), 1 when one is, 2 for a tool error: bad arguments or config, a page or file that could
-  not be scanned, listed pages left out by the page cap (the reports are still written), or an
-  interrupt. Needs-review results never
-  fail a run.
+
+### Exit codes
+
+0 when no failed check is at or above `--fail-on` (default `serious`; `none` turns it off), 1
+when one is, 2 for a tool error: bad arguments or config, a page or file that could not be
+scanned, listed pages left out by the page cap (the reports are still written), or an interrupt.
+Needs-review results never fail a run.
 
 ### Compare two reports
 
@@ -348,6 +381,8 @@ Tested on Docker Desktop for Windows (WSL 2) only. Linux hosts are untested: App
 (Docker's `docker-default` profile, or Ubuntu 23.10 and later with
 `kernel.apparmor_restrict_unprivileged_userns=1`) may block the user namespaces Chromium's
 sandbox needs, and a web scan then stops with "Chromium could not start with its OS sandbox".
+
+### Run a scan with the image
 
 Scan web pages and PDFs in separate runs. `WIDEDOOR` is the path of your Widedoor clone, which
 holds the seccomp profile; run the scans from your project folder.
@@ -398,7 +433,7 @@ changes: run `export MSYS_NO_PATHCONV=1` first (or Git Bash rewrites `/work/out`
 into Windows paths), and set `WIDEDOOR="$(pwd -W)"` instead of `"$PWD"` (the Docker client
 reads the seccomp profile and needs a Windows path, such as `C:/path/to/widedoor`).
 
-What each part does:
+### What each flag does
 
 - **`--user "$(id -u):$(id -g)"`**: required on Linux. Without it the scan runs as uid 10001,
   which cannot write to a folder you own, and it stops with exit 2 and an EACCES ("permission
@@ -484,6 +519,8 @@ image by digest (a URL-only scan can reach PDFs by URL too), runs the scan and u
 trust. It runs on Linux runners (`ubuntu-latest`); PDFs need Docker, which GitHub-hosted Ubuntu
 runners have.
 
+### Example workflow
+
 ```yaml
 name: Accessibility
 
@@ -518,6 +555,8 @@ jobs:
           fail-on: serious
 ```
 
+### Inputs and outputs
+
 | Input              | Default                     | Meaning                                                                                                                                                                     |
 | ------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `urls`             |                             | Web pages, one http or https URL per line                                                                                                                                   |
@@ -537,6 +576,8 @@ code on this run, whether or not one would have changed it; the log then also ha
 the HTML report, add an `actions/upload-artifact` step (pinned by SHA) with
 `path: ${{ steps.widedoor.outputs.report-dir }}` and `if: ${{ !cancelled() }}`: without that
 `if`, the step is skipped whenever the scan fails, which is when the report matters.
+
+### Exit codes, forks and trust
 
 - **Exit codes**: the scan step exits with the CLI's code: 0 when no failed check is at or above
   `fail-on`, 1 when one is, 2 for a tool error (bad input, a page or PDF that could not be
