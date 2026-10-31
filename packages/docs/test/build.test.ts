@@ -14,7 +14,10 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { DISCLAIMER as REPORT_DISCLAIMER } from '@widedoor/report';
 import {
   BrokenLinkError,
+  NAV_GROUPS,
   RUNBOOKS,
+  SUMMARIES,
+  TOC_MIN,
   buildSite,
   renderSite,
   slugify,
@@ -101,11 +104,12 @@ describe('the build', () => {
   it('writes a page per README section and doc, without the runbooks', () => {
     const out = join(tmp, `out${n++}`);
     const written = buildSite(fixture(), out);
+    // License is an About section, so it is on the About page.
     expect(written).toEqual([
       '404.html',
+      'about/index.html',
       'hosted/index.html',
       'index.html',
-      'license/index.html',
       'site.css',
       'usage/index.html',
     ]);
@@ -149,7 +153,7 @@ describe('the build', () => {
     const usage = readFileSync(join(out, 'usage', 'index.html'), 'utf8');
     expect(usage).toContain('<a href="/">the intro</a>');
     expect(usage).toContain('<a href="#options-in-detail">details</a>');
-    expect(readFileSync(join(out, 'license', 'index.html'), 'utf8')).toContain(
+    expect(readFileSync(join(out, 'about', 'index.html'), 'utf8')).toContain(
       '<a href="/usage/#options-in-detail">Options</a>',
     );
     const hosted = readFileSync(join(out, 'hosted', 'index.html'), 'utf8');
@@ -157,7 +161,7 @@ describe('the build', () => {
     expect(hosted).toContain(
       'href="https://github.com/edwardjgriggs/widedoor/blob/main/docs/hosted-runbook.md" rel="noopener noreferrer"',
     );
-    expect(hosted).toContain('<a href="/license/">README</a>');
+    expect(hosted).toContain('<a href="/about/#license">README</a>');
     // Table alignment is a class, not an inline style (the CSP has no unsafe-inline).
     expect(hosted).toContain('<th class="align-right">Cost</th>');
   });
@@ -228,7 +232,7 @@ describe('the real docs', () => {
       expect(text, page).toMatch(/^<!doctype html>\n<html lang="en">/);
       expect(text.match(/<h1[\s>]/g), page).toHaveLength(1);
       expect(text, page).toContain('<a class="skip-link" href="#main">Skip to the content</a>');
-      expect(text, page).toContain('<main id="main" tabindex="-1">');
+      expect(text, page).toMatch(/<main id="main" tabindex="-1"( class="has-toc")?>/);
       expect(text, page).toContain('<nav aria-label="Docs">');
       expect(text.match(/aria-current="page"/g)?.length ?? 0, page).toBe(
         page === '404.html' ? 0 : 1,
@@ -372,6 +376,105 @@ describe('fix round 1', () => {
     const home = site.get('index.html') ?? '';
     expect(home).toContain('<a href="/docker/#example-1">the second example</a>');
     expect(home).toContain('<a href="/usage/#example">the first</a>');
+  });
+});
+
+describe('the information architecture', () => {
+  const readme = [
+    '# W',
+    '',
+    'See [the hosted part](#hosted-scanner) and [the license](#license).',
+    '',
+    '## Status',
+    '',
+    'Early.',
+    '',
+    '## Install',
+    '',
+    'Run it.',
+    '',
+    '## Usage',
+    '',
+    '### One',
+    '',
+    'a',
+    '',
+    '### Two',
+    '',
+    'b',
+    '',
+    '### Three',
+    '',
+    'c',
+    '',
+    '## Hosted scanner',
+    '',
+    'In short. See [the doc](docs/hosted.md).',
+    '',
+    '## License',
+    '',
+    'Apache-2.0.',
+    '',
+  ].join('\n');
+  const files = { 'README.md': readme, 'docs/hosted.md': '# The hosted scanner\n\nAll of it.\n' };
+  const site = renderSite(new Map(Object.entries(files)), () => undefined, '');
+
+  it('gives a README summary of a doc no page, and sends its links to the doc', () => {
+    expect([...site.keys()].sort()).toEqual([
+      '404.html',
+      'about/index.html',
+      'hosted/index.html',
+      'index.html',
+      'install/index.html',
+      'site.css',
+      'usage/index.html',
+    ]);
+    expect(SUMMARIES['hosted-scanner']).toBe('docs/hosted.md');
+    expect(site.get('index.html')).toContain('<a href="/hosted/">the hosted part</a>');
+  });
+
+  it('gathers the About sections on one page, each under its own h2', () => {
+    const about = site.get('about/index.html') ?? '';
+    expect(about).toContain('<h1 id="about">About</h1>');
+    expect(about).toContain('<h2 id="status">Status</h2>');
+    expect(about).toContain('<h2 id="license">License</h2>');
+    expect(site.get('index.html')).toContain('<a href="/about/#license">the license</a>');
+  });
+
+  it('groups the nav, with shorter labels, and lists every written page once', () => {
+    const home = site.get('index.html') ?? '';
+    const nav = /<nav aria-label="Docs">([\s\S]*?)<\/nav>/.exec(home)?.[1] ?? '';
+    expect([...nav.matchAll(/<p class="nav-title">([^<]+)</g)].map((m) => m[1])).toEqual([
+      'Get started',
+      'Guides',
+      'Reference',
+    ]);
+    expect([...nav.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
+      '/',
+      '/install/',
+      '/usage/',
+      '/hosted/',
+      '/about/',
+    ]);
+    expect(nav).toContain('aria-current="page">Overview</a>');
+    expect(nav).toContain('>Hosted scanner</a>');
+    expect(NAV_GROUPS.flatMap((g) => g.slugs)).toContain('reports');
+  });
+
+  it(`lists the h2s of a page with at least ${TOC_MIN} under its h1, and no list on a short page`, () => {
+    const usage = site.get('usage/index.html') ?? '';
+    expect(usage).toContain('<main id="main" tabindex="-1" class="has-toc">');
+    expect(usage).toMatch(
+      /<h1 id="usage">Usage<\/h1>\n<aside class="toc" aria-label="On this page">[\s\S]*<a href="#one">One<\/a>[\s\S]*<a href="#three">Three<\/a>[\s\S]*<\/aside>\n<div class="doc">/,
+    );
+    expect(site.get('install/index.html')).not.toContain('class="toc"');
+  });
+
+  it('puts cards on the home page only, for pages the site has', () => {
+    const home = site.get('index.html') ?? '';
+    expect(home).toContain('<a class="card" href="/usage/">');
+    expect(home).not.toContain('href="/reports/"');
+    expect(site.get('usage/index.html')).not.toContain('class="cards"');
   });
 });
 

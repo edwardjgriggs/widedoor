@@ -9,7 +9,14 @@ import {
 } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import MarkdownIt from 'markdown-it';
-import { NOT_FOUND_BODY, REPO_URL, page, type NavItem } from './template.ts';
+import {
+  NOT_FOUND_BODY,
+  REPO_URL,
+  page,
+  type NavGroup,
+  type NavItem,
+  type TocEntry,
+} from './template.ts';
 
 /*
  * The docs site (Task 3b.11, plan ruling 9): README.md split at its ##
@@ -26,6 +33,38 @@ export { REPO_URL };
 /** Operator runbooks: for whoever deploys, not for the public site. */
 export const RUNBOOKS: readonly string[] = ['hosted-runbook.md', 'docs-site-deploy.md'];
 
+/**
+ * README sections that only sum up a doc with its own page. The site gives them no page of
+ * their own (the nav would list the topic twice); a link to one goes to the doc's page.
+ */
+export const SUMMARIES: Readonly<Record<string, string>> = {
+  'hosted-scanner': 'docs/hosted.md',
+  'ai-fix-suggestions-optional': 'docs/ai-fixes.md',
+  'use-from-an-ai-coding-agent': 'docs/mcp.md',
+};
+
+/** Short README sections gathered on one About page, each under its own h2. */
+export const ABOUT: readonly string[] = ['status', 'disclaimer', 'license'];
+
+/** The nav's groups, by page slug. A page in none of them is listed under "More". */
+export const NAV_GROUPS: readonly { label: string; slugs: readonly string[] }[] = [
+  { label: 'Get started', slugs: ['', 'install', 'quick-start', 'what-is-and-is-not-automated'] },
+  { label: 'Guides', slugs: ['usage', 'docker', 'github-action', 'hosted', 'ai-fixes', 'mcp'] },
+  { label: 'Reference', slugs: ['reports', 'about'] },
+];
+
+/** Shorter nav labels than the page titles, by slug. */
+export const NAV_LABELS: Readonly<Record<string, string>> = {
+  '': 'Overview',
+  'what-is-and-is-not-automated': 'What is automated',
+  hosted: 'Hosted scanner',
+  'ai-fixes': 'AI fix suggestions',
+  mcp: 'AI coding agents (MCP)',
+};
+
+/** A page with at least this many h2 headings gets an "On this page" list. */
+export const TOC_MIN = 3;
+
 /** One page of the site: its path segment ('' for the home page), its title and its Markdown. */
 export interface SourcePage {
   slug: string;
@@ -35,6 +74,8 @@ export interface SourcePage {
   file: string;
   /** How many levels its headings move up (a README section's ## becomes the page h1). */
   shift: number;
+  /** For a README summary of a doc (SUMMARIES): that doc. The page is not written. */
+  summaryOf?: string;
 }
 
 /** A link that leads nowhere the site or the repository has; the build stops on it. */
@@ -104,6 +145,20 @@ export function sourcePages(files: ReadonlyMap<string, string>): SourcePage[] {
   const readme = files.get('README.md');
   if (readme === undefined) throw new Error('README.md is missing');
   const [home, ...sections] = splitAtH2(readme);
+  const parts: SourcePage[] = sections.map((s) => {
+    const title = plainText(md.parseInline(s.heading ?? '', {})[0]);
+    const slug = slugify(title);
+    const doc = SUMMARIES[slug];
+    return {
+      slug,
+      title,
+      markdown: s.markdown,
+      file: 'README.md',
+      shift: 1,
+      ...(doc !== undefined && files.has(doc) ? { summaryOf: doc } : {}),
+    };
+  });
+  const about = parts.filter((p) => ABOUT.includes(p.slug));
   const pages: SourcePage[] = [
     {
       slug: '',
@@ -112,11 +167,17 @@ export function sourcePages(files: ReadonlyMap<string, string>): SourcePage[] {
       file: 'README.md',
       shift: 0,
     },
-    ...sections.map((s) => {
-      const title = plainText(md.parseInline(s.heading ?? '', {})[0]);
-      return { slug: slugify(title), title, markdown: s.markdown, file: 'README.md', shift: 1 };
-    }),
+    ...parts.filter((p) => !ABOUT.includes(p.slug)),
   ];
+  // The About sections keep their ## (shift 0) under an h1 of their own.
+  if (about.length > 0)
+    pages.push({
+      slug: 'about',
+      title: 'About',
+      markdown: `# About\n\n${about.map((p) => p.markdown).join('\n')}`,
+      file: 'README.md',
+      shift: 0,
+    });
   const docs = [...files.keys()]
     .filter((f) => /^docs\/[^/]+\.md$/.test(f) && !RUNBOOKS.includes(posix.basename(f)))
     .sort();
@@ -194,9 +255,12 @@ export function renderSite(
     const map = anchors.get(p.file) ?? new Map<string, Target>();
     anchors.set(p.file, map);
     hs.forEach((h, i) => {
-      if (!map.has(h.id))
-        // A page's h1 is the page itself.
-        map.set(h.id, { slug: p.slug, id: i === 0 ? undefined : h.id });
+      if (map.has(h.id)) return;
+      // A summary's headings lead to the doc it sums up.
+      if (p.summaryOf !== undefined)
+        map.set(h.id, { slug: posix.basename(p.summaryOf, '.md'), id: undefined });
+      // A page's h1 is the page itself.
+      else map.set(h.id, { slug: p.slug, id: i === 0 ? undefined : h.id });
     });
   }
   const bySource = new Map(
@@ -245,11 +309,19 @@ export function renderSite(
   };
 
   const out = new Map<string, string>();
-  const nav: NavItem[] = pages.map((p) => ({
+  const listed = pages.filter((p) => p.summaryOf === undefined);
+  const item = (p: SourcePage): NavItem => ({
     href: pagePath(p.slug),
-    label: p.title,
+    label: NAV_LABELS[p.slug] ?? p.title,
     slug: p.slug,
-  }));
+  });
+  const nav: NavGroup[] = NAV_GROUPS.map((g) => ({
+    label: g.label,
+    items: g.slugs.flatMap((slug) => listed.filter((p) => p.slug === slug).map(item)),
+  })).filter((g) => g.items.length > 0);
+  const rest = listed.filter((p) => !NAV_GROUPS.some((g) => g.slugs.includes(p.slug)));
+  if (rest.length > 0) nav.push({ label: 'More', items: rest.map(item) });
+
   for (const { page: p, tokens, headings: hs } of parsed) {
     for (const h of hs) {
       const open = tokens[h.index] as Token;
@@ -276,10 +348,24 @@ export function renderSite(
         }
       }
     };
+    // A summary's links are still checked, though its page is not written.
     walk(tokens);
+    if (p.summaryOf !== undefined) continue;
     const body = md.renderer.render(tokens, md.options, {});
+    const h2s: TocEntry[] = hs
+      .filter((h) => h.level === 2)
+      .map((h) => ({ id: h.id, text: h.text }));
     const file = p.slug === '' ? 'index.html' : `${p.slug}/index.html`;
-    out.set(file, page({ title: p.title, current: p.slug, nav, body }));
+    out.set(
+      file,
+      page({
+        title: p.title,
+        current: p.slug,
+        nav,
+        body,
+        ...(h2s.length >= TOC_MIN ? { toc: h2s } : {}),
+      }),
+    );
   }
   out.set(
     '404.html',
