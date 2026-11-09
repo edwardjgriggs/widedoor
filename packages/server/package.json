@@ -8,13 +8,13 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@hono/node-server": "2.1.5",
+    "@hono/node-server": "2.1.6",
     "@widedoor/core": "0.1.0",
     "@widedoor/pdf": "0.1.0",
     "@widedoor/report": "0.1.0",
     "@widedoor/ui": "0.1.0",
     "@widedoor/web": "0.1.0",
-    "hono": "4.13.14",
+    "hono": "4.13.16",
     "zod": "4.6.7"
   }
 }
