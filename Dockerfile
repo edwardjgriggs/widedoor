@@ -18,7 +18,7 @@
 #     widedoor:dev scan docs/annual-report.pdf --out out
 
 # Build stage: dev dependencies, TypeScript build and the viewer bundle.
-FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS build
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS build
 WORKDIR /src
 COPY package.json package-lock.json .npmrc ./
 COPY packages/core/package.json packages/core/
@@ -41,7 +41,7 @@ RUN npm run build
 # image holds @widedoor/ai or a provider SDK (D16), nor the docs site. npm ci needs every
 # workspace's package.json to check the lockfile; the ai and docs ones are removed again
 # after the install.
-FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS deps
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 COPY packages/core/package.json packages/core/
@@ -65,7 +65,7 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace @widedoo
 
 # The CLI image's production dependencies: the cli workspace, which adds @widedoor/ai and
 # the provider SDKs (never the docs site). Only the cli target copies from here.
-FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS deps-cli
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS deps-cli
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 COPY packages/core/package.json packages/core/
@@ -95,7 +95,7 @@ FROM verapdf/cli:v1.30.3@sha256:d565095c67a083e693aebf7d1a15784007370571053fc1aa
 
 # Everything the CLI, scan and hosted images share. It sets no user or entry point: the
 # targets below do, and the CLI target comes last so `docker build .` builds it.
-FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS base
+FROM node:24.22.2-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS base
 ARG WIDEDOOR_VERSION=0.1.0
 # The licenses label covers what the image bundles; THIRD-PARTY-NOTICES.txt in
 # the image says where each component's license and source are.
