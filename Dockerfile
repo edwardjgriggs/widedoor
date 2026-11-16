@@ -84,7 +84,7 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund --workspace @widedoo
 
 # A Java runtime with the modules the upstream veraPDF image ships (its own
 # runtime is built for musl and does not run on Debian).
-FROM eclipse-temurin:11.0.32.1_1-jdk@sha256:810d03ef723872693a38e5c1367cc88a0bee58edcf06a2ab868ccc048888db73 AS jre
+FROM eclipse-temurin:11.0.33_10-jdk@sha256:8b64035b610d11979ee0fdefca06355b8fcfb7001ec657a5223ca996b82614b4 AS jre
 RUN jlink \
       --add-modules java.base,java.compiler,java.datatransfer,java.xml,java.prefs,java.desktop,java.logging,java.management,jdk.crypto.ec,jdk.management \
       --strip-debug --no-man-pages --no-header-files --compress=2 \
