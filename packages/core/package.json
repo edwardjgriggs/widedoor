@@ -30,6 +30,6 @@
     "data:verapdf": "tsx scripts/gen-verapdf-map.ts"
   },
   "devDependencies": {
-    "axe-core": "4.14.0"
+    "axe-core": "4.14.1"
   }
 }
